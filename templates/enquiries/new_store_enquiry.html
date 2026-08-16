@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}New store enquiry · Little Amigos Tracker{% endblock %}
+{% block body %}
+{% include "accounts/_header.html" %}
+<main class="page-shell form-page">
+  <a class="back-link" href="{% url 'dashboard' %}">← Back to dashboard</a>
+  <div class="page-heading form-heading">
+    <div>
+      <p class="eyebrow">Store enquiry</p>
+      <h1>New enquiry</h1>
+      <p class="muted">
+        {% if request.user.location %}This enquiry will be assigned to {{ request.user.location.name }}.{% else %}Choose the store handling this enquiry.{% endif %}
+      </p>
+    </div>
+  </div>
+
+  <form method="post" class="form-card" novalidate>
+    {% csrf_token %}
+    {% if form.non_field_errors %}<div class="alert" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+    {% if duplicate_matches %}
+    <div class="duplicate-warning" role="alert">
+      <div><strong>Possible duplicate</strong><p>We found the same phone number or email. A repeat customer may still create a new enquiry.</p></div>
+      <ul>
+        {% for match in duplicate_matches %}
+          <li><a href="{% url 'enquiry_detail' match.id %}">{{ match.name }}</a><span>{{ match.location.name }} · {{ match.get_status_display }} · {{ match.created_at|date:"j M Y" }}</span></li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+
+    <section class="form-section" aria-labelledby="customer-heading">
+      <div><p class="section-number">01</p><h2 id="customer-heading">Customer details</h2></div>
+      <div class="form-grid">
+        {% include "enquiries/_field.html" with field=form.name wide=True %}
+        {% include "enquiries/_field.html" with field=form.phone %}
+        {% include "enquiries/_field.html" with field=form.email %}
+        {% include "enquiries/_field.html" with field=form.postcode %}
+        {% if form.location %}{% include "enquiries/_field.html" with field=form.location %}{% endif %}
+      </div>
+      <p class="form-hint">At least one phone number or email address is required.</p>
+    </section>
+
+    <section class="form-section" aria-labelledby="party-heading">
+      <div><p class="section-number">02</p><h2 id="party-heading">Party timing</h2></div>
+      <div class="date-choice">
+        {% include "enquiries/_field.html" with field=form.party_date %}
+        <label class="check-card" for="{{ form.party_date_unknown.id_for_label }}">
+          {{ form.party_date_unknown }}
+          <span><strong>Not sure yet</strong><small>The customer has not chosen a date.</small></span>
+        </label>
+      </div>
+    </section>
+
+    <section class="form-section" aria-labelledby="note-heading">
+      <div><p class="section-number">03</p><h2 id="note-heading">Conversation note</h2></div>
+      {% include "enquiries/_field.html" with field=form.initial_note wide=True %}
+    </section>
+
+    <div class="form-actions">
+      <a class="button button-quiet" href="{% url 'dashboard' %}">Cancel</a>
+      {% if duplicate_matches %}
+        <button class="button button-primary" type="submit" name="confirm_duplicate" value="1">Create anyway</button>
+      {% else %}
+        <button class="button button-primary" type="submit">Create enquiry</button>
+      {% endif %}
+    </div>
+  </form>
+</main>
+{% endblock %}

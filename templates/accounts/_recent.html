@@ -1,0 +1,25 @@
+<section class="panel">
+  <div class="panel-heading">
+    <h2>Recently updated</h2>
+  </div>
+  {% if recent %}
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>Name</th><th>Location</th><th>Source</th><th>Status</th><th>Updated</th></tr></thead>
+        <tbody>
+          {% for enquiry in recent %}
+          <tr>
+            <td><a class="record-link" href="{% url 'enquiry_detail' enquiry.id %}">{{ enquiry.name }}</a></td>
+            <td>{{ enquiry.location.name }}</td>
+            <td><span class="pill">{{ enquiry.get_source_display }}</span></td>
+            <td>{{ enquiry.get_status_display }}</td>
+            <td>{{ enquiry.updated_at|date:"j M Y, g:i a" }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="empty-state"><p>No enquiries yet.</p><span>New enquiries will appear here.</span></div>
+  {% endif %}
+</section>

@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Enquiries · Little Amigos Tracker{% endblock %}
+{% block body %}
+{% include "accounts/_header.html" %}
+<main class="page-shell">
+  <div class="page-heading">
+    <div><p class="eyebrow">Enquiries</p><h1>All enquiries</h1><p class="muted">{{ result_count }} result{{ result_count|pluralize }}</p></div>
+    <a class="button button-primary" href="{% url 'new_store_enquiry' %}">New enquiry</a>
+  </div>
+
+  <form method="get" class="filter-panel" aria-label="Filter enquiries">
+    <div class="filter-search field">
+      <label for="{{ form.search.id_for_label }}">Search</label>
+      {{ form.search }}
+    </div>
+    <details class="filter-details"{% if request.GET %} open{% endif %}>
+      <summary>Filters and sorting</summary>
+      <div class="filter-grid">
+        {% if form.location %}{% include "enquiries/_field.html" with field=form.location %}{% endif %}
+        {% if form.source %}{% include "enquiries/_field.html" with field=form.source %}{% endif %}
+        {% include "enquiries/_field.html" with field=form.status %}
+        {% include "enquiries/_field.html" with field=form.party_date %}
+        {% include "enquiries/_field.html" with field=form.created_date %}
+        {% include "enquiries/_field.html" with field=form.follow_up %}
+        {% include "enquiries/_field.html" with field=form.archived %}
+        {% include "enquiries/_field.html" with field=form.sort %}
+      </div>
+    </details>
+    <div class="filter-actions">
+      <a class="button button-quiet" href="{% url 'enquiry_list' %}">Clear</a>
+      <button class="button button-primary" type="submit">Apply</button>
+    </div>
+  </form>
+
+  <section class="panel enquiry-results" aria-live="polite">
+    {% if enquiries %}
+      <div class="table-scroll">
+        <table class="enquiry-table">
+          <thead><tr><th>Name</th><th>Location</th><th>Source</th><th>Status</th><th>Party date</th><th>Contact</th><th>Follow-up</th><th>Updated</th></tr></thead>
+          <tbody>
+          {% for enquiry in enquiries %}
+            <tr{% if enquiry.archived %} class="row-archived"{% endif %}>
+              <td data-label="Name"><a class="record-link" href="{% url 'enquiry_detail' enquiry.id %}">{{ enquiry.name }}</a>{% if enquiry.archived %}<span class="archived-label">Archived</span>{% endif %}</td>
+              <td data-label="Location">{{ enquiry.location.name }}</td>
+              <td data-label="Source"><span class="pill">{{ enquiry.get_source_display }}</span></td>
+              <td data-label="Status"><span class="status status-{{ enquiry.status }}">{{ enquiry.get_status_display }}</span></td>
+              <td data-label="Party date">{% if enquiry.party_date %}{{ enquiry.party_date|date:"j M Y" }}{% elif enquiry.party_date_unknown %}Not sure yet{% else %}—{% endif %}</td>
+              <td data-label="Contact">{% if enquiry.phone %}{{ enquiry.phone }}{% else %}{{ enquiry.email }}{% endif %}</td>
+              <td data-label="Follow-up">{% if enquiry.follow_up_due_date %}{{ enquiry.follow_up_due_date|date:"j M Y" }}{% else %}—{% endif %}</td>
+              <td data-label="Updated">{{ enquiry.updated_at|date:"j M Y, g:i a" }}</td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="empty-state"><p>No matching enquiries</p><span>Try changing or clearing the filters.</span></div>
+    {% endif %}
+  </section>
+</main>
+{% endblock %}

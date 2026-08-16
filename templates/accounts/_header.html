@@ -1,0 +1,26 @@
+<header class="app-header">
+  <div>
+    <p class="eyebrow">Little Amigos</p>
+    <p class="header-title">Enquiry Tracker</p>
+  </div>
+  <nav class="main-nav" aria-label="Primary navigation">
+    <a href="{% url 'dashboard' %}"{% if request.resolver_match.url_name == 'dashboard' %} aria-current="page"{% endif %}>Dashboard</a>
+    <a href="{% url 'enquiry_list' %}"{% if request.resolver_match.url_name == 'enquiry_list' %} aria-current="page"{% endif %}>Enquiries</a>
+    {% if request.user.role == 'admin' %}<a href="{% url 'zumo_imports' %}"{% if request.resolver_match.url_name == 'zumo_imports' %} aria-current="page"{% endif %}>Zumo</a>{% endif %}
+  </nav>
+  <div class="account-menu">
+    <div>
+      <strong>{{ request.user.display_name }}</strong>
+      <span>{% if request.user.location %}{{ request.user.location.name }}{% else %}Administrator{% endif %}</span>
+    </div>
+    <form method="post" action="{% url 'logout' %}">
+      {% csrf_token %}
+      <button class="button button-quiet" type="submit">Sign out</button>
+    </form>
+  </div>
+</header>
+{% if messages %}
+<div class="message-tray" aria-live="polite">
+  {% for message in messages %}<div class="toast toast-{{ message.tags }}">{{ message }}</div>{% endfor %}
+</div>
+{% endif %}

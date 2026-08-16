@@ -1,0 +1,8 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><link rel="stylesheet" href="popup.css"><title>Little Amigos Importer</title></head>
+<body><main><p class="eyebrow">Little Amigos</p><h1>Importer settings</h1><p class="muted">Connect this private extension to the Tracker.</p>
+  <form id="settings-form">
+    <label>Tracker URL<input id="tracker-url" type="url" required placeholder="http://127.0.0.1:8000"></label>
+    <label>Extension token<input id="api-token" type="password" required autocomplete="off" placeholder="laet_…"></label>
+    <button type="submit">Save and test</button>
+  </form><p id="status" role="status"></p>
+</main><script src="popup.js"></script></body></html>

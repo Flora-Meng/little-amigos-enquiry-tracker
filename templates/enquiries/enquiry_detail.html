@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block title %}{{ enquiry.name }} · Little Amigos Tracker{% endblock %}
+{% block body %}
+{% include "accounts/_header.html" %}
+<main class="page-shell detail-page">
+  <a class="back-link" href="{% url 'enquiry_list' %}">← Back to enquiries</a>
+  <div class="detail-heading">
+    <div>
+      <div class="title-badges">
+        <span class="status status-{{ enquiry.status }}">{{ enquiry.get_status_display }}</span>
+        <span class="pill">{{ enquiry.get_source_display }}</span>
+        {% if enquiry.archived %}<span class="pill archived-label-inline">Archived</span>{% endif %}
+      </div>
+      <h1>{{ enquiry.name }}</h1>
+      <p class="muted">{{ enquiry.location.name }}</p>
+    </div>
+    {% if request.user.role == 'admin' and not enquiry.archived %}
+      <div class="detail-actions">
+        {% if enquiry.status != 'booked' and enquiry.status != 'closed' %}
+        <form method="post" action="{% url 'reschedule_follow_up' enquiry.id %}">
+          {% csrf_token %}<button class="button button-quiet" type="submit">Next follow-up · +2 days</button>
+        </form>
+        {% endif %}
+        <form method="post" action="{% url 'archive_enquiry' enquiry.id %}" onsubmit="return confirm('Archive this enquiry? It will leave the normal work queue.');">
+          {% csrf_token %}<button class="button button-danger" type="submit">Archive</button>
+        </form>
+      </div>
+    {% endif %}
+  </div>
+
+  <div class="detail-layout">
+    <div class="detail-main">
+      <section class="panel detail-panel">
+        <div class="panel-heading"><h2>Enquiry details</h2></div>
+        <dl class="detail-list">
+          <div><dt>Phone</dt><dd>{% if enquiry.phone %}<a href="tel:{{ enquiry.phone }}">{{ enquiry.phone }}</a>{% else %}—{% endif %}</dd></div>
+          <div><dt>Email</dt><dd>{% if enquiry.email %}<a href="mailto:{{ enquiry.email }}">{{ enquiry.email }}</a>{% else %}—{% endif %}</dd></div>
+          <div><dt>Postcode</dt><dd>{{ enquiry.postcode|default:"—" }}</dd></div>
+          <div><dt>Party date</dt><dd>{% if enquiry.party_date %}{{ enquiry.party_date|date:"j F Y" }}{% elif enquiry.party_date_unknown %}Not sure yet{% else %}—{% endif %}</dd></div>
+          <div><dt>Follow-up due</dt><dd>{{ enquiry.follow_up_due_date|date:"j F Y"|default:"—" }}</dd></div>
+          <div><dt>Booking amount</dt><dd>{% if enquiry.booking_amount_aud is not None %}${{ enquiry.booking_amount_aud|floatformat:2 }} AUD{% else %}—{% endif %}</dd></div>
+          <div><dt>Closed reason</dt><dd>{% if enquiry.closed_reason %}{{ enquiry.get_closed_reason_display }}{% if enquiry.closed_reason_details %}<br><small>{{ enquiry.closed_reason_details }}</small>{% endif %}{% else %}—{% endif %}</dd></div>
+          <div><dt>Submitted by</dt><dd>{{ enquiry.submitted_by.display_name }}</dd></div>
+          <div><dt>Created</dt><dd>{{ enquiry.created_at|date:"j M Y, g:i a" }}</dd></div>
+          <div><dt>Last updated</dt><dd>{{ enquiry.updated_at|date:"j M Y, g:i a" }}</dd></div>
+        </dl>
+      </section>
+
+      {% if update_form %}
+      <details class="panel edit-panel"{% if update_form.errors %} open{% endif %}>
+        <summary class="panel-heading"><h2>Edit enquiry</h2><span>Administrator only</span></summary>
+        <form method="post" action="{% url 'update_enquiry' enquiry.id %}" class="edit-form" novalidate>
+          {% csrf_token %}
+          <div class="form-grid">
+            {% include "enquiries/_field.html" with field=update_form.name wide=True %}
+            {% include "enquiries/_field.html" with field=update_form.phone %}
+            {% include "enquiries/_field.html" with field=update_form.email %}
+            {% include "enquiries/_field.html" with field=update_form.postcode %}
+            {% include "enquiries/_field.html" with field=update_form.location %}
+            {% include "enquiries/_field.html" with field=update_form.party_date %}
+            <label class="check-card compact-check" for="{{ update_form.party_date_unknown.id_for_label }}">{{ update_form.party_date_unknown }}<span><strong>Not sure yet</strong></span></label>
+          </div>
+          <div class="workflow-grid">
+            {% include "enquiries/_field.html" with field=update_form.status %}
+            {% include "enquiries/_field.html" with field=update_form.follow_up_due_date %}
+            {% include "enquiries/_field.html" with field=update_form.booking_amount_aud %}
+            {% include "enquiries/_field.html" with field=update_form.closed_reason %}
+            {% include "enquiries/_field.html" with field=update_form.closed_reason_details wide=True %}
+          </div>
+          <p class="form-hint edit-hint">Waiting for reply and Follow-up automatically schedule two calendar days ahead. Booked and Closed clear the reminder.</p>
+          <div class="inline-actions"><button class="button button-primary" type="submit">Save changes</button></div>
+        </form>
+      </details>
+      {% endif %}
+    </div>
+
+    <aside class="notes-column">
+      <section class="panel notes-panel">
+        <div class="panel-heading"><h2>Notes</h2><span>{{ notes|length }}</span></div>
+        <div class="notes-list">
+          {% for note in notes %}
+            <article class="note-item"><p>{{ note.body|linebreaksbr }}</p><footer><strong>{{ note.author_display_name }}</strong><time datetime="{{ note.created_at|date:'c' }}">{{ note.created_at|date:"j M Y, g:i a" }}</time></footer></article>
+          {% empty %}
+            <div class="empty-state compact-empty"><p>No notes yet</p><span>Add the first note below.</span></div>
+          {% endfor %}
+        </div>
+        <form method="post" action="{% url 'add_note' enquiry.id %}" class="note-form">
+          {% csrf_token %}{% include "enquiries/_field.html" with field=note_form.body %}
+          <button class="button button-primary" type="submit">Add note</button>
+        </form>
+      </section>
+    </aside>
+  </div>
+</main>
+{% endblock %}

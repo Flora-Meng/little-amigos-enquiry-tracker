@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Zumo imports · Little Amigos Tracker{% endblock %}
+{% block body %}
+{% include "accounts/_header.html" %}
+<main class="page-shell">
+  <div class="page-heading">
+    <div><p class="eyebrow">Administrator only</p><h1>Zumo imports</h1><p class="muted">Reviewed conversations and their Tracker decisions.</p></div>
+    <a class="button button-quiet" href="{% url 'extension_token_settings' %}">Extension connection</a>
+  </div>
+
+  <section class="card-grid card-grid-four" aria-label="Zumo import summary">
+    <article class="summary-card summary-booked"><span>Imported</span><strong>{{ imported_count }}</strong></article>
+    <article class="summary-card"><span>Ignored</span><strong>{{ ignored_count }}</strong></article>
+    <article class="summary-card summary-due"><span>Possible duplicates</span><strong>{{ duplicate_count }}</strong></article>
+    <article class="summary-card summary-overdue"><span>Out of area</span><strong>{{ out_of_area_count }}</strong></article>
+  </section>
+
+  <section class="panel">
+    <div class="panel-heading"><h2>Review history</h2></div>
+    {% if decisions %}
+    <div class="table-scroll">
+      <table class="enquiry-table">
+        <thead><tr><th>Conversation</th><th>Decision</th><th>Routing</th><th>Flags</th><th>Reviewed by</th><th>Reviewed</th><th>Tracker enquiry</th></tr></thead>
+        <tbody>
+          {% for item in decisions %}
+          <tr>
+            <td data-label="Conversation"><a class="record-link" href="{{ item.zumo_conversation_url }}" target="_blank" rel="noopener">{{ item.zumo_conversation_id }}</a></td>
+            <td data-label="Decision"><span class="status {% if item.decision == 'imported' %}status-booked{% else %}status-closed{% endif %}">{{ item.get_decision_display }}</span></td>
+            <td data-label="Routing">{% if item.detected_location %}{{ item.detected_location.name }}{% else %}Out of area{% endif %}{% if item.detected_postcode %}<small class="table-subtext">{{ item.detected_postcode }}</small>{% endif %}</td>
+            <td data-label="Flags">{% if item.possible_duplicate %}<span class="pill warning-pill">Possible duplicate</span>{% endif %}{% if not item.detected_location %}<span class="pill danger-pill">Out of area</span>{% endif %}{% if not item.possible_duplicate and item.detected_location %}—{% endif %}</td>
+            <td data-label="Reviewed by">{{ item.reviewed_by.display_name }}</td>
+            <td data-label="Reviewed">{{ item.reviewed_at|date:"j M Y, g:i a" }}</td>
+            <td data-label="Tracker enquiry">{% if item.linked_enquiry %}<a class="record-link" href="{% url 'enquiry_detail' item.linked_enquiry.id %}">{{ item.linked_enquiry.name }}</a>{% else %}—{% endif %}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+      <div class="empty-state"><p>No Zumo conversations reviewed</p><span>Imported and ignored conversations will appear here after the Chrome extension step.</span></div>
+    {% endif %}
+  </section>
+</main>
+{% endblock %}

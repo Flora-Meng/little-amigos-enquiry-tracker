@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Extension connection · Little Amigos Tracker{% endblock %}
+{% block body %}
+{% include "accounts/_header.html" %}
+<main class="page-shell token-page">
+  <a class="back-link" href="{% url 'zumo_imports' %}">← Back to Zumo imports</a>
+  <div class="page-heading"><div><p class="eyebrow">Secure connection</p><h1>Chrome extension tokens</h1><p class="muted">Create a revocable token instead of storing your Tracker password in Chrome.</p></div></div>
+
+  {% if raw_token %}
+  <section class="token-reveal" role="alert">
+    <strong>Copy this token now</strong>
+    <p>It will not be displayed again. Paste it into the Little Amigos extension settings.</p>
+    <code>{{ raw_token }}</code>
+  </section>
+  {% endif %}
+
+  <div class="detail-layout token-layout">
+    <section class="panel">
+      <div class="panel-heading"><h2>Active and previous tokens</h2></div>
+      {% if tokens %}
+      <div class="token-list">
+        {% for token in tokens %}
+        <article>
+          <div><strong>{{ token.name }}</strong><span>{{ token.token_prefix }}… · Created {{ token.created_at|date:"j M Y" }}{% if token.last_used_at %} · Last used {{ token.last_used_at|date:"j M Y, g:i a" }}{% endif %}</span></div>
+          {% if token.revoked_at %}<span class="status status-closed">Revoked</span>{% else %}<form method="post">{% csrf_token %}<input type="hidden" name="action" value="revoke"><input type="hidden" name="token_id" value="{{ token.id }}"><button class="button button-danger" type="submit">Revoke</button></form>{% endif %}
+        </article>
+        {% endfor %}
+      </div>
+      {% else %}<div class="empty-state"><p>No extension tokens</p></div>{% endif %}
+    </section>
+    <section class="panel token-create">
+      <div class="panel-heading"><h2>Create token</h2></div>
+      <form method="post" class="note-form">
+        {% csrf_token %}<input type="hidden" name="action" value="create">
+        <div class="field"><label for="token-name">Computer name</label><input id="token-name" name="name" value="Flora's Chrome" maxlength="100"></div>
+        <button class="button button-primary" type="submit">Create one-time token</button>
+      </form>
+    </section>
+  </div>
+</main>
+{% endblock %}

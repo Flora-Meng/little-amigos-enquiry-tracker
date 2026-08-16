@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Sign in · Little Amigos Tracker{% endblock %}
+{% block body %}
+<main class="login-shell">
+  <section class="login-card" aria-labelledby="login-title">
+    <div class="brand-mark" aria-hidden="true">LA</div>
+    <p class="eyebrow">Little Amigos</p>
+    <h1 id="login-title">Enquiry Tracker</h1>
+    <p class="muted">Sign in with your staff account.</p>
+
+    {% if form.non_field_errors %}
+      <div class="alert" role="alert">Your email or password is incorrect. Please try again.</div>
+    {% endif %}
+
+    <form method="post" class="stack">
+      {% csrf_token %}
+      <div class="field">
+        <label for="{{ form.username.id_for_label }}">Email</label>
+        {{ form.username }}
+        {% for error in form.username.errors %}<p class="field-error">{{ error }}</p>{% endfor %}
+      </div>
+      <div class="field">
+        <label for="{{ form.password.id_for_label }}">Password</label>
+        {{ form.password }}
+        {% for error in form.password.errors %}<p class="field-error">{{ error }}</p>{% endfor %}
+      </div>
+      <button type="submit" class="button button-primary">Sign in</button>
+    </form>
+  </section>
+</main>
+{% endblock %}
