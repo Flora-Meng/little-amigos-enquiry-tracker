@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Enquiries · Little Amigos Tracker{% endblock %}
+{% block title %}Enquiries · Little Amigos Workspace{% endblock %}
 {% block body %}
 {% include "accounts/_header.html" %}
 <main class="page-shell">
@@ -36,17 +36,58 @@
     {% if enquiries %}
       <div class="table-scroll">
         <table class="enquiry-table">
-          <thead><tr><th>Name</th><th>Location</th><th>Source</th><th>Status</th><th>Party date</th><th>Contact</th><th>Follow-up</th><th>Updated</th></tr></thead>
+          <thead><tr><th>Name</th><th>Location</th><th>Source</th><th>Status</th><th>Party date</th><th>Contact</th><th>Notes</th><th>Updated</th></tr></thead>
           <tbody>
           {% for enquiry in enquiries %}
             <tr{% if enquiry.archived %} class="row-archived"{% endif %}>
               <td data-label="Name"><a class="record-link" href="{% url 'enquiry_detail' enquiry.id %}">{{ enquiry.name }}</a>{% if enquiry.archived %}<span class="archived-label">Archived</span>{% endif %}</td>
               <td data-label="Location">{{ enquiry.location.name }}</td>
               <td data-label="Source"><span class="pill">{{ enquiry.get_source_display }}</span></td>
-              <td data-label="Status"><span class="status status-{{ enquiry.status }}">{{ enquiry.get_status_display }}</span></td>
+              <td data-label="Status">
+                {% if request.user.role == 'admin' %}
+                  <form method="post" action="{% url 'quick_update_status' enquiry.id %}" class="inline-status-form">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                    <label class="sr-only" for="list-status-{{ enquiry.id }}">Change status for {{ enquiry.name }}</label>
+                    <select id="list-status-{{ enquiry.id }}" name="status" class="inline-status-select status status-{{ enquiry.status }}" onchange="this.form.submit()" aria-label="Change status for {{ enquiry.name }}">
+                      {% for value, label in status_choices %}<option value="{{ value }}"{% if enquiry.status == value %} selected{% endif %}>{{ label }}</option>{% endfor %}
+                    </select>
+                  </form>
+                {% else %}
+                  <span class="status status-{{ enquiry.status }}">{{ enquiry.get_status_display }}</span>
+                {% endif %}
+              </td>
               <td data-label="Party date">{% if enquiry.party_date %}{{ enquiry.party_date|date:"j M Y" }}{% elif enquiry.party_date_unknown %}Not sure yet{% else %}—{% endif %}</td>
               <td data-label="Contact">{% if enquiry.phone %}{{ enquiry.phone }}{% else %}{{ enquiry.email }}{% endif %}</td>
-              <td data-label="Follow-up">{% if enquiry.follow_up_due_date %}{{ enquiry.follow_up_due_date|date:"j M Y" }}{% else %}—{% endif %}</td>
+              <td data-label="Notes" class="list-notes-cell">
+                {% if enquiry.latest_note_id %}
+                  <div class="list-note-display">
+                    <p class="list-latest-note">{{ enquiry.latest_note_body|truncatechars:90 }}</p>
+                    <div class="note-meta-row">
+                      <small>by {{ enquiry.latest_note_author_name }}</small>
+                      {% if request.user.role == 'admin' or enquiry.latest_note_author_id == request.user.id %}
+                        <form method="post" action="{% url 'delete_note' enquiry.latest_note_id %}" onsubmit="return confirm('Delete this note?');">
+                          {% csrf_token %}
+                          <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                          <button class="note-delete-button" type="submit">Delete</button>
+                        </form>
+                      {% endif %}
+                    </div>
+                  </div>
+                {% else %}
+                  <p class="list-latest-note">No notes yet</p>
+                {% endif %}
+                <details class="inline-note-details">
+                  <summary>+ Add note</summary>
+                  <form method="post" action="{% url 'add_note' enquiry.id %}" class="inline-note-form">
+                    {% csrf_token %}
+                    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                    <label class="sr-only" for="note-{{ enquiry.id }}">Add note for {{ enquiry.name }}</label>
+                    <textarea id="note-{{ enquiry.id }}" name="body" rows="3" placeholder="Write a note…" required></textarea>
+                    <button class="button button-primary" type="submit">Save note</button>
+                  </form>
+                </details>
+              </td>
               <td data-label="Updated">{{ enquiry.updated_at|date:"j M Y, g:i a" }}</td>
             </tr>
           {% endfor %}

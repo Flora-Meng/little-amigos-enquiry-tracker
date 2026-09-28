@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Party summaries · Little Amigos Workspace{% endblock %}
+{% block body %}
+{% include "accounts/_header.html" %}
+<main class="page-shell">
+  <div class="page-heading">
+    <div>
+      <p class="eyebrow">Party operations</p>
+      <h1>Party summaries</h1>
+      <p class="muted">{{ result_count }} saved summar{{ result_count|pluralize:"y,ies" }}</p>
+    </div>
+    <a class="button button-primary" href="{% url 'party_summary_create' %}">New party summary</a>
+  </div>
+
+  <form class="filter-panel party-filter" method="get">
+    <div class="field filter-search">
+      <label for="summary-search">Search</label>
+      <input id="summary-search" type="search" name="search" value="{{ search }}" placeholder="Owner, phone, child, theme or location">
+    </div>
+    <div class="field">
+      <label for="summary-date">Party date</label>
+      <input id="summary-date" type="date" name="party_date" value="{{ party_date }}">
+    </div>
+    <div class="filter-actions">
+      <a class="button button-quiet" href="{% url 'party_summary_list' %}">Clear</a>
+      <button class="button button-primary" type="submit">Search</button>
+    </div>
+  </form>
+
+  <section class="panel party-results">
+    {% if summaries %}
+      <div class="table-scroll">
+        <table class="party-table">
+          <thead><tr><th>Date &amp; time</th><th>Owner</th><th>Location</th><th>Room</th><th>Guests</th><th>Balance</th><th>Actions</th></tr></thead>
+          <tbody>
+          {% for summary in summaries %}
+            <tr>
+              <td data-label="Date & time"><strong>{{ summary.party_date|date:"j M Y" }}</strong><span class="table-subtext">{{ summary.party_time }}</span></td>
+              <td data-label="Owner"><a class="record-link" href="{% url 'party_summary_edit' summary.id %}">{{ summary.owner_name }}</a><span class="table-subtext">{{ summary.owner_number }}</span></td>
+              <td data-label="Location">{{ summary.location.name }}</td>
+              <td data-label="Room"><span class="pill">{{ summary.get_room_type_display }}</span></td>
+              <td data-label="Guests">{{ summary.kids_count }} kids · {{ summary.adults_count }} adults</td>
+              <td data-label="Balance"><strong>${{ summary.total_balance|floatformat:2 }}</strong></td>
+              <td data-label="Actions"><div class="table-actions"><a class="button button-quiet button-small" href="{% url 'party_summary_edit' summary.id %}">Open / edit</a><a class="button button-quiet button-small" href="{% url 'party_summary_pdf' summary.id %}">PDF</a><a class="button button-danger button-small" href="{% url 'party_summary_delete' summary.id %}">Delete</a></div></td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="empty-state"><p>No party summaries found</p><span>Create the first summary or try a different search.</span></div>
+    {% endif %}
+  </section>
+</main>
+{% endblock %}

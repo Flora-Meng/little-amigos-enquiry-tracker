@@ -1,6 +1,7 @@
 from django.contrib.auth.decorators import login_required
+from django.db.models import OuterRef, Subquery
 from django.shortcuts import render
-from enquiries.models import Enquiry
+from enquiries.models import Enquiry, Note
 from enquiries.services import due_today, overdue
 
 from .authorization import enquiries_visible_to
@@ -9,9 +10,17 @@ from .models import User
 
 @login_required
 def dashboard(request):
+    latest_note = Note.objects.filter(enquiry_id=OuterRef("pk")).order_by("-created_at")
     visible = enquiries_visible_to(
         request.user,
-        Enquiry.objects.filter(archived=False).select_related("location"),
+        Enquiry.objects.filter(archived=False)
+        .select_related("location")
+        .annotate(
+            latest_note_body=Subquery(latest_note.values("body")[:1]),
+            latest_note_author_name=Subquery(
+                latest_note.values("author_display_name")[:1]
+            ),
+        ),
     )
     recent = visible.order_by("-updated_at")[:8]
 
@@ -29,7 +38,12 @@ def dashboard(request):
         return render(
             request,
             "accounts/admin_dashboard.html",
-            {"cards": cards, "booked_total": booked_total, "recent": recent},
+            {
+                "cards": cards,
+                "booked_total": booked_total,
+                "recent": recent,
+                "status_choices": Enquiry.Status.choices,
+            },
         )
 
     cards = (
@@ -40,5 +54,5 @@ def dashboard(request):
     return render(
         request,
         "accounts/staff_dashboard.html",
-        {"cards": cards, "recent": recent},
+        {"cards": cards, "recent": recent, "status_choices": Enquiry.Status.choices},
     )

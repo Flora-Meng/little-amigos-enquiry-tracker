@@ -62,6 +62,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'accounts',
     'enquiries',
+    'party_summaries',
 ]
 
 MIDDLEWARE = [

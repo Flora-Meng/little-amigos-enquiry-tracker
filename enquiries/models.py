@@ -72,8 +72,6 @@ class Enquiry(models.Model):
             errors["party_date"] = "Choose a date or Not sure yet, not both."
         if self.status == self.Status.BOOKED and self.booking_amount_aud is None:
             errors["booking_amount_aud"] = "A booking amount is required when booked."
-        if self.status == self.Status.CLOSED and not self.closed_reason:
-            errors["closed_reason"] = "A closed reason is required when closed."
         if self.closed_reason == self.ClosedReason.OTHER and not self.closed_reason_details.strip():
             errors["closed_reason_details"] = "Provide details when the reason is Other."
         if errors:
@@ -103,10 +101,6 @@ class Note(models.Model):
         if not self._state.adding:
             raise ValidationError("Notes are append-only and cannot be edited.")
         super().save(*args, **kwargs)
-
-    def delete(self, *args, **kwargs):
-        raise ValidationError("Notes are append-only and cannot be deleted.")
-
 
 class ZumoImportDecision(models.Model):
     class Decision(models.TextChoices):

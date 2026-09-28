@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}{{ enquiry.name }} · Little Amigos Tracker{% endblock %}
+{% block title %}{{ enquiry.name }} · Little Amigos Workspace{% endblock %}
 {% block body %}
 {% include "accounts/_header.html" %}
 <main class="page-shell detail-page">
@@ -47,8 +47,8 @@
       </section>
 
       {% if update_form %}
-      <details class="panel edit-panel"{% if update_form.errors %} open{% endif %}>
-        <summary class="panel-heading"><h2>Edit enquiry</h2><span>Administrator only</span></summary>
+      <section class="panel edit-panel">
+        <div class="panel-heading edit-panel-heading"><h2>Edit enquiry</h2><span>Administrator only</span></div>
         <form method="post" action="{% url 'update_enquiry' enquiry.id %}" class="edit-form" novalidate>
           {% csrf_token %}
           <div class="form-grid">
@@ -70,7 +70,7 @@
           <p class="form-hint edit-hint">Waiting for reply and Follow-up automatically schedule two calendar days ahead. Booked and Closed clear the reminder.</p>
           <div class="inline-actions"><button class="button button-primary" type="submit">Save changes</button></div>
         </form>
-      </details>
+      </section>
       {% endif %}
     </div>
 
@@ -79,7 +79,18 @@
         <div class="panel-heading"><h2>Notes</h2><span>{{ notes|length }}</span></div>
         <div class="notes-list">
           {% for note in notes %}
-            <article class="note-item"><p>{{ note.body|linebreaksbr }}</p><footer><strong>{{ note.author_display_name }}</strong><time datetime="{{ note.created_at|date:'c' }}">{{ note.created_at|date:"j M Y, g:i a" }}</time></footer></article>
+            <article class="note-item">
+              <p>{{ note.body|linebreaksbr }}</p>
+              <footer>
+                <span>by {{ note.author_display_name }} · <time datetime="{{ note.created_at|date:'c' }}">{{ note.created_at|date:"j M Y, g:i a" }}</time></span>
+                {% if request.user.role == 'admin' or note.author_id == request.user.id %}
+                  <form method="post" action="{% url 'delete_note' note.id %}" onsubmit="return confirm('Delete this note?');">
+                    {% csrf_token %}
+                    <button class="note-delete-button" type="submit">Delete</button>
+                  </form>
+                {% endif %}
+              </footer>
+            </article>
           {% empty %}
             <div class="empty-state compact-empty"><p>No notes yet</p><span>Add the first note below.</span></div>
           {% endfor %}

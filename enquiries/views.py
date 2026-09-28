@@ -6,10 +6,11 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
 from django.db import transaction
-from django.db.models import F, Q
+from django.db.models import F, OuterRef, Q, Subquery
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils import timezone
 from django.views.decorators.http import require_GET, require_POST
 from django.views.decorators.csrf import csrf_exempt
@@ -17,7 +18,13 @@ from django.views.decorators.csrf import csrf_exempt
 from accounts.authorization import Action, require_permission
 from accounts.models import Location, User
 
-from .forms import EnquiryAdminUpdateForm, EnquiryFilterForm, NoteForm, StoreEnquiryForm
+from .forms import (
+    EnquiryAdminUpdateForm,
+    EnquiryFilterForm,
+    NoteForm,
+    QuickStatusForm,
+    StoreEnquiryForm,
+)
 from .models import Enquiry, ExtensionToken, Note, ZumoImportDecision
 from .routing import normalise_postcode, route_postcode
 from .services import apply_status_rules, due_today, find_duplicates, overdue, schedule_next_follow_up
@@ -50,7 +57,11 @@ def new_store_enquiry(request):
                     if request.user.role == User.Role.STAFF
                     else form.cleaned_data["location"]
                 )
-                enquiry.source = Enquiry.Source.STORE
+                enquiry.source = (
+                    Enquiry.Source.STORE
+                    if request.user.role == User.Role.STAFF
+                    else form.cleaned_data["source"]
+                )
                 enquiry.status = Enquiry.Status.NEW
                 enquiry.submitted_by = request.user
                 enquiry.full_clean()
@@ -76,9 +87,17 @@ def new_store_enquiry(request):
 def enquiry_list(request):
     from accounts.authorization import enquiries_visible_to
 
+    latest_note = Note.objects.filter(enquiry_id=OuterRef("pk")).order_by("-created_at")
     queryset = enquiries_visible_to(
         request.user,
-        Enquiry.objects.select_related("location", "submitted_by"),
+        Enquiry.objects.select_related("location", "submitted_by").annotate(
+            latest_note_body=Subquery(latest_note.values("body")[:1]),
+            latest_note_id=Subquery(latest_note.values("id")[:1]),
+            latest_note_author_id=Subquery(latest_note.values("author_id")[:1]),
+            latest_note_author_name=Subquery(
+                latest_note.values("author_display_name")[:1]
+            ),
+        ),
     )
     form = EnquiryFilterForm(request.GET or None, user=request.user)
 
@@ -127,7 +146,12 @@ def enquiry_list(request):
     return render(
         request,
         "enquiries/enquiry_list.html",
-        {"form": form, "enquiries": queryset, "result_count": queryset.count()},
+        {
+            "form": form,
+            "enquiries": queryset,
+            "result_count": queryset.count(),
+            "status_choices": Enquiry.Status.choices,
+        },
     )
 
 def _visible_enquiry_or_404(user, enquiry_id):
@@ -182,12 +206,54 @@ def update_enquiry(request, enquiry_id):
 
 
 @login_required
+@require_POST
+@transaction.atomic
+def quick_update_status(request, enquiry_id):
+    enquiry = _visible_enquiry_or_404(request.user, enquiry_id)
+    require_permission(request.user, Action.CHANGE_STATUS, enquiry=enquiry)
+    next_url = request.POST.get("next", "")
+    if not url_has_allowed_host_and_scheme(
+        next_url,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        next_url = reverse("dashboard")
+    form = QuickStatusForm(request.POST)
+    if not form.is_valid():
+        messages.error(request, "Please select a valid status.")
+        return redirect(next_url)
+
+    previous_status = enquiry.status
+    enquiry.status = form.cleaned_data["status"]
+    apply_status_rules(enquiry, previous_status)
+    try:
+        enquiry.full_clean()
+    except ValidationError:
+        if enquiry.status == Enquiry.Status.BOOKED:
+            messages.error(request, "Enter the booking amount before changing this enquiry to Booked.")
+        else:
+            messages.error(request, "This status change needs more information.")
+        return redirect("enquiry_detail", enquiry_id=enquiry.id)
+
+    enquiry.save()
+    messages.success(request, f"{enquiry.name} is now {enquiry.get_status_display()}.")
+    return redirect(next_url)
+
+
+@login_required
 @transaction.atomic
 def add_note(request, enquiry_id):
     enquiry = _visible_enquiry_or_404(request.user, enquiry_id)
     require_permission(request.user, Action.ADD_NOTE, enquiry=enquiry)
     if request.method != "POST":
         return redirect("enquiry_detail", enquiry_id=enquiry.id)
+    next_url = request.POST.get("next", "")
+    if not url_has_allowed_host_and_scheme(
+        next_url,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        next_url = reverse("enquiry_detail", args=(enquiry.id,))
     form = NoteForm(request.POST)
     if form.is_valid():
         Note.objects.create(
@@ -196,8 +262,43 @@ def add_note(request, enquiry_id):
             author=request.user,
             author_display_name=request.user.display_name,
         )
+        enquiry.save(update_fields=("updated_at",))
         messages.success(request, "Note added.")
-    return redirect("enquiry_detail", enquiry_id=enquiry.id)
+    else:
+        messages.error(request, "Write a note before saving.")
+    return redirect(next_url)
+
+
+@login_required
+@require_POST
+@transaction.atomic
+def delete_note(request, note_id):
+    from accounts.authorization import enquiries_visible_to
+
+    note = get_object_or_404(
+        Note.objects.select_related("enquiry", "author").filter(
+            enquiry__in=enquiries_visible_to(request.user, Enquiry.objects.all())
+        ),
+        id=note_id,
+    )
+    if request.user.role != User.Role.ADMIN and note.author_id != request.user.id:
+        from django.core.exceptions import PermissionDenied
+
+        raise PermissionDenied("You can only delete notes you added.")
+
+    enquiry = note.enquiry
+    note.delete()
+    enquiry.save(update_fields=("updated_at",))
+    messages.success(request, "Note deleted.")
+
+    next_url = request.POST.get("next", "")
+    if not url_has_allowed_host_and_scheme(
+        next_url,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        next_url = reverse("enquiry_detail", args=(enquiry.id,))
+    return redirect(next_url)
 
 
 @login_required

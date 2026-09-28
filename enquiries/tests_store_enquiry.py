@@ -24,6 +24,7 @@ class NewStoreEnquiryTests(TestCase):
         self.client.force_login(self.southland)
         response = self.client.get(reverse("new_store_enquiry"))
         self.assertNotContains(response, 'name="location"')
+        self.assertNotContains(response, 'name="source"')
         self.assertContains(response, "Little Amigos Southland")
 
     def test_staff_submission_forces_own_location_and_store_new_values(self):
@@ -62,12 +63,31 @@ class NewStoreEnquiryTests(TestCase):
                 "postcode": "2601",
                 "party_date": "2027-02-20",
                 "location": str(self.canberra.location_id),
+                "source": Enquiry.Source.STORE,
             },
         )
         self.assertRedirects(response, reverse("dashboard"))
         enquiry = Enquiry.objects.get(name="Noah Customer")
         self.assertEqual(enquiry.location, self.canberra.location)
+        self.assertEqual(enquiry.source, Enquiry.Source.STORE)
         self.assertEqual(enquiry.submitted_by, self.admin)
+
+    def test_admin_can_choose_online_source_for_manual_entry(self):
+        self.client.force_login(self.admin)
+        response = self.client.post(
+            reverse("new_store_enquiry"),
+            {
+                "name": "Online Phone Enquiry",
+                "phone": "0400 555 111",
+                "postcode": "3192",
+                "party_date_unknown": "on",
+                "location": str(self.southland.location_id),
+                "source": Enquiry.Source.ONLINE,
+            },
+        )
+        self.assertRedirects(response, reverse("dashboard"))
+        enquiry = Enquiry.objects.get(name="Online Phone Enquiry")
+        self.assertEqual(enquiry.source, Enquiry.Source.ONLINE)
 
     def test_phone_or_email_is_required(self):
         self.client.force_login(self.southland)

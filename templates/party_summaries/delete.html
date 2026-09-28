@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Delete party summary · Little Amigos{% endblock %}
+{% block body %}
+{% include "accounts/_header.html" %}
+<main class="page-shell delete-page">
+  <a class="back-link" href="{% url 'party_summary_list' %}">← Party summaries</a>
+  <section class="form-card delete-card">
+    <p class="eyebrow">Confirm deletion</p>
+    <h1>Delete {{ summary.owner_name }}'s party summary?</h1>
+    <p class="muted">Party date: {{ summary.party_date|date:"j F Y" }} · {{ summary.party_time }}. This will also delete its saved menu items.</p>
+    <form method="post">{% csrf_token %}<a class="button button-quiet" href="{% url 'party_summary_edit' summary.id %}">Keep summary</a><button class="button button-danger" type="submit">Yes, delete</button></form>
+  </section>
+</main>
+{% endblock %}

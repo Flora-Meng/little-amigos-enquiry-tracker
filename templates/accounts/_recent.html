@@ -4,16 +4,34 @@
   </div>
   {% if recent %}
     <div class="table-scroll">
-      <table>
-        <thead><tr><th>Name</th><th>Location</th><th>Source</th><th>Status</th><th>Updated</th></tr></thead>
+      <table class="enquiry-table recent-table">
+        <thead><tr><th>Name</th><th>Location</th><th>Source</th><th>Status</th><th>Latest note</th><th>Updated</th></tr></thead>
         <tbody>
           {% for enquiry in recent %}
           <tr>
-            <td><a class="record-link" href="{% url 'enquiry_detail' enquiry.id %}">{{ enquiry.name }}</a></td>
-            <td>{{ enquiry.location.name }}</td>
-            <td><span class="pill">{{ enquiry.get_source_display }}</span></td>
-            <td>{{ enquiry.get_status_display }}</td>
-            <td>{{ enquiry.updated_at|date:"j M Y, g:i a" }}</td>
+            <td data-label="Name"><a class="record-link" href="{% url 'enquiry_detail' enquiry.id %}">{{ enquiry.name }}</a></td>
+            <td data-label="Location">{{ enquiry.location.name }}</td>
+            <td data-label="Source"><span class="pill">{{ enquiry.get_source_display }}</span></td>
+            <td data-label="Status">
+              {% if request.user.role == 'admin' %}
+                <form method="post" action="{% url 'quick_update_status' enquiry.id %}" class="inline-status-form">
+                  {% csrf_token %}
+                  <label class="sr-only" for="status-{{ enquiry.id }}">Change status for {{ enquiry.name }}</label>
+                  <select id="status-{{ enquiry.id }}" name="status" class="inline-status-select status status-{{ enquiry.status }}" onchange="this.form.submit()" aria-label="Change status for {{ enquiry.name }}">
+                    {% for value, label in status_choices %}<option value="{{ value }}"{% if enquiry.status == value %} selected{% endif %}>{{ label }}</option>{% endfor %}
+                  </select>
+                </form>
+              {% else %}
+                <span class="status status-{{ enquiry.status }}">{{ enquiry.get_status_display }}</span>
+              {% endif %}
+            </td>
+            <td data-label="Latest note" class="note-preview">
+              {% if enquiry.latest_note_body %}
+                <span>{{ enquiry.latest_note_body|truncatechars:90 }}</span>
+                <small>by {{ enquiry.latest_note_author_name }}</small>
+              {% else %}—{% endif %}
+            </td>
+            <td data-label="Updated">{{ enquiry.updated_at|date:"j M Y, g:i a" }}</td>
           </tr>
           {% endfor %}
         </tbody>

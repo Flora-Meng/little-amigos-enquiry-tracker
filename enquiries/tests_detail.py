@@ -57,6 +57,8 @@ class EnquiryDetailTests(TestCase):
         self.client.force_login(self.admin)
         response = self.client.get(reverse("enquiry_detail", args=(self.store.id,)))
         self.assertContains(response, "Edit enquiry")
+        self.assertContains(response, '<section class="panel edit-panel">')
+        self.assertNotContains(response, '<details class="panel edit-panel"')
         self.assertContains(response, "Archive")
 
     def test_staff_sees_own_store_detail_but_not_admin_controls(self):
@@ -64,6 +66,7 @@ class EnquiryDetailTests(TestCase):
         response = self.client.get(reverse("enquiry_detail", args=(self.store.id,)))
         self.assertContains(response, "Detail Customer")
         self.assertNotContains(response, "Edit enquiry")
+        self.assertNotContains(response, reverse("update_enquiry", args=(self.store.id,)))
         self.assertNotContains(response, ">Archive<")
 
     def test_staff_cannot_guess_online_or_other_location_detail_url(self):
@@ -124,11 +127,17 @@ class EnquiryDetailTests(TestCase):
         self.assertEqual(self.store.booking_amount_aud, Decimal("675.50"))
         self.assertIsNone(self.store.follow_up_due_date)
 
-    def test_closed_requires_reason_and_other_details(self):
+    def test_closed_reason_is_optional_but_other_still_requires_details(self):
         self.client.force_login(self.admin)
         url = reverse("update_enquiry", args=(self.store.id,))
         no_reason = self.client.post(url, self.update_payload(status=Enquiry.Status.CLOSED))
-        self.assertEqual(no_reason.status_code, 400)
+        self.assertRedirects(no_reason, reverse("enquiry_detail", args=(self.store.id,)))
+        self.store.refresh_from_db()
+        self.assertEqual(self.store.status, Enquiry.Status.CLOSED)
+        self.assertEqual(self.store.closed_reason, "")
+
+        self.store.status = Enquiry.Status.NEW
+        self.store.save(update_fields=("status", "updated_at"))
         no_details = self.client.post(
             url,
             self.update_payload(status=Enquiry.Status.CLOSED, closed_reason=Enquiry.ClosedReason.OTHER),
@@ -164,7 +173,7 @@ class EnquiryDetailTests(TestCase):
         self.assertEqual(response.status_code, 404)
         self.assertFalse(Note.objects.filter(body="Leak").exists())
 
-    def test_notes_cannot_be_edited_or_deleted_through_model_actions(self):
+    def test_notes_cannot_be_edited_but_can_be_deleted(self):
         note = Note.objects.create(
             enquiry=self.store,
             body="Permanent note",
@@ -174,9 +183,43 @@ class EnquiryDetailTests(TestCase):
         note.body = "Rewritten"
         with self.assertRaisesMessage(Exception, "append-only"):
             note.save()
-        with self.assertRaisesMessage(Exception, "append-only"):
-            note.delete()
         self.assertTrue(Note.objects.filter(id=note.id, body="Permanent note").exists())
+        note.delete()
+        self.assertFalse(Note.objects.filter(id=note.id).exists())
+
+    def test_admin_can_delete_any_note(self):
+        note = Note.objects.create(
+            enquiry=self.store,
+            body="Staff note to remove",
+            author=self.southland,
+            author_display_name=self.southland.display_name,
+        )
+        self.client.force_login(self.admin)
+        response = self.client.post(reverse("delete_note", args=(note.id,)))
+        self.assertRedirects(response, reverse("enquiry_detail", args=(self.store.id,)))
+        self.assertFalse(Note.objects.filter(id=note.id).exists())
+
+    def test_staff_can_delete_own_note_but_not_someone_elses(self):
+        own_note = Note.objects.create(
+            enquiry=self.store,
+            body="Kiva own note",
+            author=self.southland,
+            author_display_name=self.southland.display_name,
+        )
+        admin_note = Note.objects.create(
+            enquiry=self.store,
+            body="Flora note",
+            author=self.admin,
+            author_display_name=self.admin.display_name,
+        )
+        self.client.force_login(self.southland)
+        denied = self.client.post(reverse("delete_note", args=(admin_note.id,)))
+        self.assertEqual(denied.status_code, 403)
+        self.assertTrue(Note.objects.filter(id=admin_note.id).exists())
+
+        allowed = self.client.post(reverse("delete_note", args=(own_note.id,)))
+        self.assertRedirects(allowed, reverse("enquiry_detail", args=(self.store.id,)))
+        self.assertFalse(Note.objects.filter(id=own_note.id).exists())
 
     def test_admin_archive_preserves_record_and_notes(self):
         Note.objects.create(

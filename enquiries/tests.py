@@ -7,7 +7,7 @@ from django.utils import timezone
 
 from accounts.models import User
 
-from .models import Enquiry
+from .models import Enquiry, Note
 
 
 class DashboardTests(TestCase):
@@ -68,6 +68,83 @@ class DashboardTests(TestCase):
         self.assertContains(response, "Canberra Store Customer")
         self.assertContains(response, "Private Online Customer")
         self.assertContains(response, "$450.00")
+        self.assertContains(response, 'name="status"')
+
+    def test_dashboard_shows_latest_note(self):
+        Note.objects.create(
+            enquiry=self.southland_store,
+            body="First conversation note",
+            author=self.admin,
+            author_display_name=self.admin.display_name,
+        )
+        Note.objects.create(
+            enquiry=self.southland_store,
+            body="Latest dashboard note",
+            author=self.admin,
+            author_display_name=self.admin.display_name,
+        )
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse("dashboard"))
+        self.assertContains(response, "Latest dashboard note")
+        self.assertContains(response, "by Flora")
+        self.assertNotContains(response, "First conversation note")
+
+    def test_admin_can_change_status_from_dashboard(self):
+        self.client.force_login(self.admin)
+        response = self.client.post(
+            reverse("quick_update_status", args=(self.southland_store.id,)),
+            {"status": Enquiry.Status.CONTACTED},
+        )
+        self.assertRedirects(response, reverse("dashboard"))
+        self.southland_store.refresh_from_db()
+        self.assertEqual(self.southland_store.status, Enquiry.Status.CONTACTED)
+
+    def test_admin_can_change_status_from_all_enquiries_and_stay_on_list(self):
+        self.client.force_login(self.admin)
+        list_url = f'{reverse("enquiry_list")}?source=store'
+        response = self.client.get(list_url)
+        self.assertContains(response, 'name="status"')
+        response = self.client.post(
+            reverse("quick_update_status", args=(self.southland_store.id,)),
+            {"status": Enquiry.Status.CONTACTED, "next": list_url},
+        )
+        self.assertRedirects(response, list_url)
+        self.southland_store.refresh_from_db()
+        self.assertEqual(self.southland_store.status, Enquiry.Status.CONTACTED)
+
+    def test_booked_status_redirects_for_required_booking_amount(self):
+        self.client.force_login(self.admin)
+        response = self.client.post(
+            reverse("quick_update_status", args=(self.southland_store.id,)),
+            {"status": Enquiry.Status.BOOKED},
+        )
+        self.assertRedirects(
+            response,
+            reverse("enquiry_detail", args=(self.southland_store.id,)),
+        )
+        self.southland_store.refresh_from_db()
+        self.assertEqual(self.southland_store.status, Enquiry.Status.NEW)
+
+    def test_closed_status_can_be_selected_without_reason(self):
+        self.client.force_login(self.admin)
+        response = self.client.post(
+            reverse("quick_update_status", args=(self.southland_store.id,)),
+            {"status": Enquiry.Status.CLOSED},
+        )
+        self.assertRedirects(response, reverse("dashboard"))
+        self.southland_store.refresh_from_db()
+        self.assertEqual(self.southland_store.status, Enquiry.Status.CLOSED)
+        self.assertEqual(self.southland_store.closed_reason, "")
+
+    def test_staff_cannot_change_status_from_dashboard(self):
+        self.client.force_login(self.southland)
+        response = self.client.post(
+            reverse("quick_update_status", args=(self.southland_store.id,)),
+            {"status": Enquiry.Status.CONTACTED},
+        )
+        self.assertEqual(response.status_code, 403)
+        self.southland_store.refresh_from_db()
+        self.assertEqual(self.southland_store.status, Enquiry.Status.NEW)
 
     def test_staff_dashboard_never_receives_online_or_other_location_rows(self):
         self.client.force_login(self.southland)

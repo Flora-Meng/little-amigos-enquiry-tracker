@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Food selection received · Little Amigos{% endblock %}
+{% block body %}
+<main class="customer-thanks-shell">
+  <section class="customer-thanks-card">
+    <div class="customer-success-mark">✓</div>
+    <p class="eyebrow">Selection received</p>
+    <h1>Thank you, {{ summary.owner_name }}!</h1>
+    <p>Your food choices for {{ summary.party_date|date:"l, j F Y" }} have been sent to the {{ summary.location.name }} team.</p>
+    <a class="button button-quiet" href="{% url 'customer_menu' summary.customer_menu_token %}">Review or update choices</a>
+  </section>
+</main>
+{% endblock %}

@@ -1,15 +1,15 @@
 {% extends "base.html" %}
-{% block title %}New store enquiry · Little Amigos Tracker{% endblock %}
+{% block title %}New store enquiry · Little Amigos Workspace{% endblock %}
 {% block body %}
 {% include "accounts/_header.html" %}
 <main class="page-shell form-page">
   <a class="back-link" href="{% url 'dashboard' %}">← Back to dashboard</a>
   <div class="page-heading form-heading">
     <div>
-      <p class="eyebrow">Store enquiry</p>
+      <p class="eyebrow">{% if request.user.role == 'admin' %}Manual enquiry{% else %}Store enquiry{% endif %}</p>
       <h1>New enquiry</h1>
       <p class="muted">
-        {% if request.user.location %}This enquiry will be assigned to {{ request.user.location.name }}.{% else %}Choose the store handling this enquiry.{% endif %}
+        {% if request.user.location %}This enquiry will be assigned to {{ request.user.location.name }} as a Store enquiry.{% else %}Choose the location and source for this enquiry.{% endif %}
       </p>
     </div>
   </div>
@@ -36,6 +36,7 @@
         {% include "enquiries/_field.html" with field=form.email %}
         {% include "enquiries/_field.html" with field=form.postcode %}
         {% if form.location %}{% include "enquiries/_field.html" with field=form.location %}{% endif %}
+        {% if form.source %}{% include "enquiries/_field.html" with field=form.source %}{% endif %}
       </div>
       <p class="form-hint">At least one phone number or email address is required.</p>
     </section>

@@ -1,0 +1,222 @@
+{% extends "base.html" %}
+{% block title %}{% if summary %}Edit {{ summary.owner_name }}{% else %}New party summary{% endif %} · Little Amigos{% endblock %}
+{% block body %}
+{% include "accounts/_header.html" %}
+<main class="page-shell party-form-page">
+  <a class="back-link" href="{% url 'party_summary_list' %}">← Party summaries</a>
+  <div class="page-heading form-heading">
+    <div><p class="eyebrow">Party summary</p><h1>{% if summary %}{{ summary.owner_name }} · {{ summary.party_date|date:"j M Y" }}{% else %}Create a party summary{% endif %}</h1><p class="muted">Based on the Melbourne party summary worksheet.</p></div>
+    {% if summary %}<div class="detail-actions"><a class="button button-quiet" href="{% url 'party_summary_pdf' summary.id %}">Download PDF</a><a class="button button-danger" href="{% url 'party_summary_delete' summary.id %}">Delete summary</a></div>{% endif %}
+  </div>
+
+  {% if summary %}
+  <section class="panel customer-link-panel">
+    <div>
+      <p class="eyebrow">Customer menu link</p>
+      <h2>Send this private link to the customer</h2>
+      <p class="muted">Their submission updates the kids count, adults count and menu sections below.</p>
+      {% if summary.customer_menu_submitted_at %}<span class="customer-submitted-status">Last submitted {{ summary.customer_menu_submitted_at|date:"j M Y, g:i a" }}</span>{% else %}<span class="customer-awaiting-status">Awaiting customer submission</span>{% endif %}
+    </div>
+    <div class="customer-link-copy">
+      <input id="customer-menu-url" type="text" value="{{ customer_menu_url }}" readonly aria-label="Customer menu URL">
+      <button class="button button-primary" id="copy-customer-menu-url" type="button">Copy link</button>
+      <a class="button button-quiet" href="{{ customer_menu_url }}" target="_blank" rel="noopener noreferrer">Preview</a>
+    </div>
+  </section>
+  {% endif %}
+
+  <form method="post" enctype="multipart/form-data" class="party-summary-form" novalidate>
+    {% csrf_token %}
+    {% if form.errors or adult_formset.errors or kids_formset.errors or extra_formset.errors %}
+    <div class="party-save-errors" role="alert">
+      <strong>Party summary was not saved. Please check:</strong>
+      <ul>
+        {% for field in form %}{% for error in field.errors %}<li><b>{{ field.label }}:</b> {{ error }}</li>{% endfor %}{% endfor %}
+        {% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}
+        {% for row in adult_formset %}{% for field in row %}{% for error in field.errors %}<li><b>Adult menu — {{ field.label }}:</b> {{ error }}</li>{% endfor %}{% endfor %}{% endfor %}
+        {% for row in kids_formset %}{% for field in row %}{% for error in field.errors %}<li><b>Kids menu — {{ field.label }}:</b> {{ error }}</li>{% endfor %}{% endfor %}{% endfor %}
+        {% for row in extra_formset %}{% for field in row %}{% for error in field.errors %}<li><b>Extra food — {{ field.label }}:</b> {{ error }}</li>{% endfor %}{% endfor %}{% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+    <section class="party-sheet panel">
+      <div class="party-sheet-title"><div><p class="eyebrow">Little Amigos</p><h2>Party details</h2></div><span>{% if request.user.location %}{{ request.user.location.name }}{% else %}All locations{% endif %}</span></div>
+      <div class="party-form-grid">
+        {% if form.location %}{% include "enquiries/_field.html" with field=form.location %}{% endif %}
+        {% include "enquiries/_field.html" with field=form.party_date %}
+        {% include "enquiries/_field.html" with field=form.party_time %}
+        {% include "enquiries/_field.html" with field=form.food_ready %}
+        {% include "enquiries/_field.html" with field=form.owner_name %}
+        {% include "enquiries/_field.html" with field=form.owner_number %}
+        {% include "enquiries/_field.html" with field=form.room_type %}
+        {% include "enquiries/_field.html" with field=form.deposit_method %}
+        {% include "enquiries/_field.html" with field=form.kids_count %}
+        {% include "enquiries/_field.html" with field=form.adults_count %}
+      </div>
+    </section>
+
+    {% if not summary or not summary.customer_menu_submitted_at %}
+    <div class="staff-menu-flow-note">
+      <strong>These tables are the staff summary, not the customer selection screen.</strong>
+      <span>Save the party first, then copy the customer menu link. The customer will see the fixed Kids' Food and Adults' Food choices; their submission will fill these menu tables automatically.</span>
+    </div>
+    {% endif %}
+
+    <div class="party-menu-grid">
+      <section class="panel party-menu-card">
+        <div class="panel-heading"><h2>Adult menu</h2><button class="menu-add-button" type="button" data-add-menu="adult" aria-label="Add adult menu row"><span aria-hidden="true">+</span> Add row</button></div>
+        {{ adult_formset.management_form }}
+        <div class="menu-rows menu-standard" data-menu="adult">
+          <div class="menu-row menu-header"><span>Qty</span><span>Item</span><span>Notes</span><span></span></div>
+          {% for row in adult_formset %}<div class="menu-row"><div>{{ row.quantity }}{{ row.quantity.errors }}</div><div>{{ row.item }}{{ row.item.errors }}</div><div>{{ row.notes }}{{ row.notes.errors }}</div>{{ row.DELETE.as_hidden }}<button class="menu-delete-button" type="button" aria-label="Delete this adult menu row" title="Delete row"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 9v8m4-8v8m4-8v8M5 6h14m-9-3h4l1 3H9l1-3Zm-3 3 1 15h8l1-15"/></svg></button></div>{% endfor %}
+        </div>
+        <template data-empty-menu="adult"><div class="menu-row"><div>{{ adult_formset.empty_form.quantity }}</div><div>{{ adult_formset.empty_form.item }}</div><div>{{ adult_formset.empty_form.notes }}</div>{{ adult_formset.empty_form.DELETE.as_hidden }}<button class="menu-delete-button" type="button" aria-label="Delete this adult menu row" title="Delete row"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 9v8m4-8v8m4-8v8M5 6h14m-9-3h4l1 3H9l1-3Zm-3 3 1 15h8l1-15"/></svg></button></div></template>
+      </section>
+      <section class="panel party-menu-card">
+        <div class="panel-heading"><div><h2>Kids menu</h2><small class="kids-menu-note">1 drink per child</small></div><button class="menu-add-button" type="button" data-add-menu="kids" aria-label="Add kids menu row"><span aria-hidden="true">+</span> Add row</button></div>
+        {{ kids_formset.management_form }}
+        <div class="menu-rows menu-standard" data-menu="kids">
+          <div class="menu-row menu-header"><span>Qty</span><span>Item</span><span>Notes</span><span></span></div>
+          {% for row in kids_formset %}<div class="menu-row"><div>{{ row.quantity }}{{ row.quantity.errors }}</div><div>{{ row.item }}{{ row.item.errors }}</div><div>{{ row.notes }}{{ row.notes.errors }}</div>{{ row.DELETE.as_hidden }}<button class="menu-delete-button" type="button" aria-label="Delete this kids menu row" title="Delete row"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 9v8m4-8v8m4-8v8M5 6h14m-9-3h4l1 3H9l1-3Zm-3 3 1 15h8l1-15"/></svg></button></div>{% endfor %}
+        </div>
+        <template data-empty-menu="kids"><div class="menu-row"><div>{{ kids_formset.empty_form.quantity }}</div><div>{{ kids_formset.empty_form.item }}</div><div>{{ kids_formset.empty_form.notes }}</div>{{ kids_formset.empty_form.DELETE.as_hidden }}<button class="menu-delete-button" type="button" aria-label="Delete this kids menu row" title="Delete row"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 9v8m4-8v8m4-8v8M5 6h14m-9-3h4l1 3H9l1-3Zm-3 3 1 15h8l1-15"/></svg></button></div></template>
+      </section>
+    </div>
+
+    <section class="panel party-menu-card extra-menu-card">
+      <div class="panel-heading"><div><h2>Extra food</h2><span>Extra food amounts are added to the balance</span></div><button class="menu-add-button" type="button" data-add-menu="extra" aria-label="Add extra food row"><span aria-hidden="true">+</span> Add row</button></div>
+      {{ extra_formset.management_form }}
+      <div class="menu-rows menu-extra" data-menu="extra">
+        <div class="menu-row menu-header"><span>Qty</span><span>Item</span><span>Notes</span><span>Amount</span><span></span></div>
+        {% for row in extra_formset %}<div class="menu-row"><div>{{ row.quantity }}{{ row.quantity.errors }}</div><div>{{ row.item }}{{ row.item.errors }}</div><div>{{ row.notes }}{{ row.notes.errors }}</div><div>{{ row.amount }}{{ row.amount.errors }}</div>{{ row.DELETE.as_hidden }}<button class="menu-delete-button" type="button" aria-label="Delete this extra food row" title="Delete row"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 9v8m4-8v8m4-8v8M5 6h14m-9-3h4l1 3H9l1-3Zm-3 3 1 15h8l1-15"/></svg></button></div>{% endfor %}
+      </div>
+      <template data-empty-menu="extra"><div class="menu-row"><div>{{ extra_formset.empty_form.quantity }}</div><div>{{ extra_formset.empty_form.item }}</div><div>{{ extra_formset.empty_form.notes }}</div><div>{{ extra_formset.empty_form.amount }}</div>{{ extra_formset.empty_form.DELETE.as_hidden }}<button class="menu-delete-button" type="button" aria-label="Delete this extra food row" title="Delete row"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 9v8m4-8v8m4-8v8M5 6h14m-9-3h4l1 3H9l1-3Zm-3 3 1 15h8l1-15"/></svg></button></div></template>
+    </section>
+
+    <div class="party-bottom-grid">
+      <section class="panel">
+        <div class="panel-heading"><h2>Birthday child &amp; setup</h2></div>
+        <div class="party-form-grid padded-grid">
+          {% include "enquiries/_field.html" with field=form.kids_name %}
+          {% include "enquiries/_field.html" with field=form.gender %}
+          {% include "enquiries/_field.html" with field=form.age %}
+          {% include "enquiries/_field.html" with field=form.theme %}
+          {% include "enquiries/_field.html" with field=form.balloon_color %}
+          {% include "enquiries/_field.html" with field=form.special_note wide=True %}
+          {% include "enquiries/_field.html" with field=form.dietary_requirements wide=True %}
+          {% include "enquiries/_field.html" with field=form.adult_food_avoid wide=True %}
+          <div class="field field-wide decoration-upload{% if form.decoration_example_upload.errors %} field-invalid{% endif %}">
+            <label for="{{ form.decoration_example_upload.id_for_label }}">Decoration example</label>
+            {% if summary.decoration_example %}<img class="decoration-preview" src="{% url 'party_summary_decoration' summary.id %}" alt="Current decoration example"><span class="decoration-file-name">{{ summary.decoration_example_name }}</span>{% endif %}
+            {{ form.decoration_example_upload }}
+            <small>Upload a JPG, PNG or WebP image up to 5 MB.</small>
+            {% for error in form.decoration_example_upload.errors %}<p class="field-error" role="alert">{{ error }}</p>{% endfor %}
+            {% if summary.decoration_example %}<label class="remove-image-check">{{ form.remove_decoration_example }} Remove current image</label>{% endif %}
+          </div>
+        </div>
+      </section>
+      <section class="panel bill-card">
+        <div class="panel-heading"><h2>Bill</h2></div>
+        <div class="bill-fields">
+          {% include "enquiries/_field.html" with field=form.deposit_amount %}
+          {% include "enquiries/_field.html" with field=form.package_name %}
+          {% include "enquiries/_field.html" with field=form.package_amount %}
+          {% include "enquiries/_field.html" with field=form.other_charges %}
+          <div class="bill-line"><span>Extra food</span><strong id="extra-total">$0.00</strong></div>
+          <div class="bill-total"><span>Total balance</span><strong id="balance-total">$0.00</strong></div>
+        </div>
+      </section>
+    </div>
+    <div class="sticky-form-actions"><a class="button button-quiet" href="{% url 'party_summary_list' %}">Cancel</a><button class="button button-quiet" name="action" value="download" type="submit">Save &amp; download PDF</button><button class="button button-primary" type="submit">{% if summary %}Save changes{% else %}Save party summary{% endif %}</button></div>
+  </form>
+
+  <datalist id="adult-menu-options">{% for item in adult_menu_options %}<option value="{{ item }}"></option>{% endfor %}</datalist>
+  <datalist id="kids-menu-options">{% for item in kids_menu_options %}<option value="{{ item }}"></option>{% endfor %}</datalist>
+  {{ package_prices|json_script:"package-price-data" }}
+</main>
+<script>
+(() => {
+  const copyButton = document.getElementById('copy-customer-menu-url');
+  copyButton?.addEventListener('click', async () => {
+    const input = document.getElementById('customer-menu-url');
+    try {
+      await navigator.clipboard.writeText(input.value);
+    } catch (_error) {
+      input.select();
+      document.execCommand('copy');
+    }
+    copyButton.textContent = 'Copied';
+    window.setTimeout(() => { copyButton.textContent = 'Copy link'; }, 1800);
+  });
+  function applyMenuList(menu) {
+    const listId = menu === 'kids' ? 'kids-menu-options' : 'adult-menu-options';
+    document.querySelectorAll(`[data-menu="${menu}"] input[name$="-item"]`).forEach(input => input.setAttribute('list', listId));
+  }
+  ['adult', 'kids', 'extra'].forEach(applyMenuList);
+  const prices = JSON.parse(document.getElementById('package-price-data').textContent);
+  const packageSelect = document.getElementById('id_package_name');
+  const packageAmount = document.getElementById('id_package_amount');
+  const deposit = document.getElementById('id_deposit_amount');
+  const other = document.getElementById('id_other_charges');
+  const money = value => '$' + value.toLocaleString('en-AU', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+  const number = input => Number.parseFloat(input?.value || '0') || 0;
+  function calculate() {
+    const extra = [...document.querySelectorAll('[data-menu="extra"] input[name$="-amount"]')].reduce((sum, input) => sum + number(input), 0);
+    document.getElementById('extra-total').textContent = money(extra);
+    document.getElementById('balance-total').textContent = money(number(packageAmount) - number(deposit) + extra + number(other));
+  }
+  packageSelect?.addEventListener('change', () => { if (prices[packageSelect.value]) packageAmount.value = prices[packageSelect.value]; calculate(); });
+  [packageAmount, deposit, other].forEach(input => input?.addEventListener('input', calculate));
+  document.querySelector('[data-menu="extra"]')?.addEventListener('input', calculate);
+  document.querySelectorAll('.menu-rows').forEach(container => {
+    container.addEventListener('click', event => {
+      const button = event.target.closest('.menu-delete-button');
+      if (!button) return;
+      const row = button.closest('.menu-row');
+      const deleteInput = row.querySelector('input[name$="-DELETE"]');
+      if (deleteInput) deleteInput.value = 'on';
+      row.classList.add('menu-row-deleted');
+      calculate();
+    });
+  });
+  document.querySelectorAll('[data-add-menu]').forEach(button => {
+    button.addEventListener('click', () => {
+      const menu = button.dataset.addMenu;
+      const totalInput = document.getElementById(`id_${menu}-TOTAL_FORMS`);
+      const total = Number.parseInt(totalInput.value, 10);
+      if (total >= 20) return;
+      const template = document.querySelector(`template[data-empty-menu="${menu}"]`);
+      const wrapper = document.createElement('div');
+      wrapper.innerHTML = template.innerHTML.replaceAll('__prefix__', total).trim();
+      document.querySelector(`[data-menu="${menu}"]`).appendChild(wrapper.firstElementChild);
+      totalInput.value = total + 1;
+      applyMenuList(menu);
+      calculate();
+    });
+  });
+  const decorationInput = document.getElementById('id_decoration_example_upload');
+  decorationInput?.addEventListener('change', async () => {
+    const file = decorationInput.files?.[0];
+    if (!file || file.type === 'image/jpeg') return;
+    try {
+      const bitmap = await createImageBitmap(file);
+      const maximum = 1600;
+      const scale = Math.min(1, maximum / Math.max(bitmap.width, bitmap.height));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(bitmap.width * scale);
+      canvas.height = Math.round(bitmap.height * scale);
+      canvas.getContext('2d').drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+      bitmap.close();
+      const jpeg = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.88));
+      if (!jpeg) return;
+      const files = new DataTransfer();
+      files.items.add(new File([jpeg], file.name.replace(/\.[^.]+$/, '') + '.jpg', {type: 'image/jpeg'}));
+      decorationInput.files = files.files;
+    } catch (error) {
+      console.warn('Decoration image conversion was not available.', error);
+    }
+  });
+  calculate();
+})();
+</script>
+{% endblock %}

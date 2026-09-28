@@ -6,7 +6,7 @@ from django.utils import timezone
 
 from accounts.models import User
 
-from .models import Enquiry
+from .models import Enquiry, Note
 
 
 class EnquiryListTests(TestCase):
@@ -63,6 +63,43 @@ class EnquiryListTests(TestCase):
         self.assertContains(response, "Leo Canberra")
         self.assertContains(response, "Zoe Online")
         self.assertNotContains(response, "Archived Customer")
+
+    def test_list_shows_latest_note_and_inline_add_note_form(self):
+        Note.objects.create(
+            enquiry=self.southland_store,
+            body="Older list note",
+            author=self.admin,
+            author_display_name=self.admin.display_name,
+        )
+        Note.objects.create(
+            enquiry=self.southland_store,
+            body="Latest list note",
+            author=self.admin,
+            author_display_name=self.admin.display_name,
+        )
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse("enquiry_list"))
+        self.assertContains(response, "Latest list note")
+        self.assertContains(response, "by Flora")
+        self.assertNotContains(response, "Older list note")
+        self.assertContains(response, "+ Add note")
+        self.assertContains(response, f'id="note-{self.southland_store.id}"')
+
+    def test_note_can_be_added_from_list_and_returns_to_current_filter(self):
+        self.client.force_login(self.admin)
+        list_url = f'{reverse("enquiry_list")}?source=store'
+        response = self.client.post(
+            reverse("add_note", args=(self.southland_store.id,)),
+            {"body": "Added directly from list", "next": list_url},
+        )
+        self.assertRedirects(response, list_url)
+        self.assertTrue(
+            Note.objects.filter(
+                enquiry=self.southland_store,
+                body="Added directly from list",
+                author=self.admin,
+            ).exists()
+        )
 
     def test_search_matches_name_phone_and_email(self):
         self.client.force_login(self.admin)

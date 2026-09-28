@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Admin dashboard · Little Amigos Tracker{% endblock %}
+{% block title %}Admin dashboard · Little Amigos Workspace{% endblock %}
 {% block body %}
 {% include "accounts/_header.html" %}
 <main class="page-shell">
@@ -7,6 +7,11 @@
     <div><p class="eyebrow">Administrator</p><h1>Good to see you, {{ request.user.display_name }}</h1><p class="muted">Here is what needs attention across both locations.</p></div>
     <a class="button button-primary" href="{% url 'new_store_enquiry' %}">New enquiry</a>
   </div>
+  <section class="workspace-modules" aria-label="Workspace modules">
+    <a class="module-card" href="{% url 'enquiry_list' %}"><span class="module-icon">E</span><span><strong>Enquiry tracking</strong><small>Manage leads, statuses and notes</small></span><b>→</b></a>
+    <a class="module-card module-party" href="{% url 'party_summary_list' %}"><span class="module-icon">P</span><span><strong>Party summaries</strong><small>Create, search and update party plans</small></span><b>→</b></a>
+  </section>
+  <h2 class="dashboard-section-title">Enquiry overview</h2>
   <section class="card-grid" aria-label="Enquiry summary">
     {% for label, value, style in cards %}
       <a class="summary-card summary-{{ style }}" href="{% url 'enquiry_list' %}{% if style == 'new-store' %}?source=store&amp;status=new{% elif style == 'waiting' %}?status=waiting_for_reply{% elif style == 'due' %}?follow_up=due_today{% elif style == 'overdue' %}?follow_up=overdue{% elif style == 'booked' %}?status=booked{% endif %}"><span>{{ label }}</span><strong>{{ value }}</strong></a>

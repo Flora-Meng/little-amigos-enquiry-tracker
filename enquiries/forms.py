@@ -27,8 +27,12 @@ class StoreEnquiryForm(forms.ModelForm):
             "party_date",
             "party_date_unknown",
             "location",
+            "source",
         )
-        labels = {"party_date_unknown": "Not sure yet"}
+        labels = {
+            "party_date_unknown": "Not sure yet",
+            "source": "Source",
+        }
         widgets = {
             "name": forms.TextInput(attrs={"autocomplete": "name"}),
             "phone": forms.TextInput(attrs={"autocomplete": "tel", "inputmode": "tel"}),
@@ -44,8 +48,12 @@ class StoreEnquiryForm(forms.ModelForm):
         self.fields["location"].empty_label = "Select a location"
         if user.role == User.Role.STAFF:
             self.fields.pop("location")
+            self.fields.pop("source")
         else:
             self.fields["location"].required = True
+            self.fields["source"].required = False
+            self.fields["source"].choices = Enquiry.Source.choices
+            self.fields["source"].initial = Enquiry.Source.STORE
 
     def clean(self):
         cleaned = super().clean()
@@ -53,6 +61,8 @@ class StoreEnquiryForm(forms.ModelForm):
         phone = (cleaned.get("phone") or "").strip()
         party_date = cleaned.get("party_date")
         unknown = cleaned.get("party_date_unknown")
+        if self.user.role == User.Role.ADMIN:
+            cleaned["source"] = cleaned.get("source") or Enquiry.Source.STORE
 
         if not email and not phone:
             message = "Provide at least a phone number or email address."
@@ -61,6 +71,10 @@ class StoreEnquiryForm(forms.ModelForm):
         if party_date and unknown:
             self.add_error("party_date", "Choose a date or Not sure yet, not both.")
         return cleaned
+
+
+class QuickStatusForm(forms.Form):
+    status = forms.ChoiceField(choices=Enquiry.Status.choices)
 
 
 class EnquiryFilterForm(forms.Form):
@@ -150,8 +164,6 @@ class EnquiryAdminUpdateForm(forms.ModelForm):
         details = (cleaned.get("closed_reason_details") or "").strip()
         if status == Enquiry.Status.BOOKED and cleaned.get("booking_amount_aud") is None:
             self.add_error("booking_amount_aud", "Enter the booking amount in AUD.")
-        if status == Enquiry.Status.CLOSED and not reason:
-            self.add_error("closed_reason", "Select a reason when closing an enquiry.")
         if status == Enquiry.Status.CLOSED and reason == Enquiry.ClosedReason.OTHER and not details:
             self.add_error("closed_reason_details", "Explain the reason when Other is selected.")
         return cleaned

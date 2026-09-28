@@ -95,9 +95,6 @@ CREATE TABLE enquiries (
   CONSTRAINT enquiries_booked_requires_amount CHECK (
     status <> 'booked' OR booking_amount_aud IS NOT NULL
   ),
-  CONSTRAINT enquiries_closed_requires_reason CHECK (
-    status <> 'closed' OR closed_reason IS NOT NULL
-  ),
   CONSTRAINT enquiries_other_reason_requires_details CHECK (
     closed_reason <> 'other'
     OR nullif(btrim(coalesce(closed_reason_details, '')), '') IS NOT NULL

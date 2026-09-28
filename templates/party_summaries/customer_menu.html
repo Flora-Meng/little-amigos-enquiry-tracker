@@ -1,0 +1,251 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Choose your party food · Little Amigos{% endblock %}
+{% block body %}
+<header class="customer-menu-header">
+  <div class="customer-brand"><img class="customer-brand-logo" src="{% static 'img/little-amigos-characters-stacked.png' %}" alt="Little Amigos characters"><div><strong>little amigos</strong><small>{{ summary.location.name }}</small></div></div>
+  <div class="customer-party-date"><span>{{ summary.party_date|date:"l, j F Y" }}</span><strong>{{ summary.party_time }}</strong></div>
+</header>
+<main class="customer-menu-shell">
+  <div class="customer-menu-intro">
+    <p class="eyebrow">Food selection</p>
+    <h1>Choose food for your party</h1>
+    {% if menu_locked %}
+    <p>Hi {{ summary.owner_name }}, you can view your menu selections below. Online changes closed 72 hours before your party.</p>
+    {% else %}
+    <p>Hi {{ summary.owner_name }}, please complete the selections below. You can return to this private link and update your choices until 72 hours (3 days) before your party.</p>
+    {% endif %}
+  </div>
+
+  <form method="post" class="customer-menu-form" novalidate>
+    {% csrf_token %}
+    {% if menu_locked %}<div class="customer-menu-locked" role="alert"><strong>{% if locked_submit_attempt %}Your changes were not submitted.{% else %}Online menu changes are now closed.{% endif %}</strong><span>This party is within 72 hours. You can still view the menu below, but please contact your Party Manager if you need to make a change.</span></div>{% endif %}
+    {% if form.non_field_errors %}<div class="customer-form-errors" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+    <fieldset class="customer-menu-lockable"{% if menu_locked %} disabled{% endif %}>
+
+    <section class="customer-menu-card customer-info-card">
+      <div class="customer-section-heading"><span>1</span><div><h2>Party information</h2><p>This menu link is for {{ summary.location.name }}. Please complete your party details below.</p></div></div>
+      <div class="customer-booking-details" aria-label="Party booking details">
+        <div class="customer-booking-detail customer-booking-owner"><span>Venue</span><strong>{{ summary.location.name }}</strong></div>
+      </div>
+      <h3 class="customer-guest-heading">Your party details</h3>
+      <div class="customer-field-grid">
+        {% include "enquiries/_field.html" with field=form.party_date %}
+        {% include "enquiries/_field.html" with field=form.party_time %}
+        {% include "enquiries/_field.html" with field=form.owner_name %}
+        {% include "enquiries/_field.html" with field=form.owner_number %}
+        {% include "enquiries/_field.html" with field=form.room_type wide=True %}
+        <div class="customer-package-capacity field-wide" data-package-capacity role="status" aria-live="polite">
+          <strong><span data-package-kids></span> kids + <span data-package-adults></span> adults are included in this package.</strong>
+          <span>If your guest numbers are over the package allowance, an extra charge will apply.</span>
+        </div>
+        {% include "enquiries/_field.html" with field=form.kids_count %}
+        {% include "enquiries/_field.html" with field=form.adults_count %}
+        <fieldset class="customer-food-ready field-wide">
+          <legend>Food ready</legend>
+          {{ form.food_ready_choice }}
+          {% for error in form.food_ready_choice.errors %}<p class="field-error">{{ error }}</p>{% endfor %}
+          <div class="field" data-food-ready-time>{% include "enquiries/_field.html" with field=form.food_ready_time %}</div>
+        </fieldset>
+        {% include "enquiries/_field.html" with field=form.dietary_requirements wide=True %}
+      </div>
+    </section>
+
+    <div class="customer-kids-menu-key">
+      <div class="customer-diet-legend" aria-label="Menu dietary legend"><span><b class="diet-dot vegan"></b>Vegan</span><span><b class="diet-dot vegetarian"></b>Vegetarian</span><span><b class="diet-dot nuts"></b>Nuts allergy warning</span><span><b class="diet-dot popular"></b>Popular</span></div>
+    </div>
+
+    <section class="customer-menu-card">
+      <div class="customer-section-heading kids-heading"><span>2</span><div><h2>Kids' food</h2><p>Every child receives one hot food and a kids' size drink. Split the hot food between no more than two choices.</p></div></div>
+      <div class="customer-rule-callout"><strong>One hot food per child, plus one kids' size drink.</strong> You have <b data-kids-total>{{ form.kids_count.value|default:0 }}</b> children, so select exactly <b data-kids-total>{{ form.kids_count.value|default:0 }}</b> hot food portions. You may split them between a maximum of two choices.</div>
+      <h3>Hot food</h3>
+      <div class="customer-checkbox-choices" data-kids-group="hot food">
+        {% for row in form.kids_hot_rows %}
+        <div class="customer-checkbox-row" data-choice-row>
+          <label class="customer-choice-check">{{ row.selected }}<span>{{ row.label }}{% if row.tags %}<span class="customer-choice-tags">{% for slug, title in row.tags %}<i class="diet-dot {{ slug }}" role="img" aria-label="{{ title }}" title="{{ title }}"></i>{% endfor %}</span>{% endif %}</span></label>
+          <div class="customer-quantity-field"><span>Portions</span>{{ row.quantity }}{% for error in row.selected.errors %}<p class="field-error">{{ error }}</p>{% endfor %}{% for error in row.quantity.errors %}<p class="field-error">{{ error }}</p>{% endfor %}</div>
+        </div>
+        {% endfor %}
+        <div class="customer-allocation-status" data-allocation-status>Choose up to two options.</div>
+      </div>
+    </section>
+
+    <section class="customer-menu-card" data-room-menu="single double triple private">
+      <div class="customer-section-heading adult-heading"><span>3</span><div><h2>Adults food</h2><p>All food choices in this section are included in the package. Choose one option from each group.</p></div></div>
+      <div class="triple-menu-list triple-menu-pdf-layout">
+        <article class="triple-menu-item triple-menu-wide">
+          <div class="triple-menu-quantity">Pick one</div>
+          <div><h3>Fryer platter</h3><p class="triple-pick-rule">Pick one fryer platter</p><div class="triple-radio-field">{{ form.triple_fryer }}{% for error in form.triple_fryer.errors %}<p class="field-error">{{ error }}</p>{% endfor %}</div>{% include "enquiries/_field.html" with field=form.triple_fryer_note %}</div>
+        </article>
+        <article class="triple-menu-item triple-menu-wide">
+          <div class="triple-menu-quantity">Included</div>
+          <div><h3>Seasonal fruit platter 🥕 🌿</h3><p class="muted">One seasonal fruit platter is included.</p>{% include "enquiries/_field.html" with field=form.triple_fruit_note %}</div>
+        </article>
+        <article class="triple-menu-item triple-menu-wide"><div class="triple-menu-quantity"><span data-package-pizza-count>4</span> pizzas<br><small>10-inch each</small></div><div><h3>Pizza flavours</h3><p class="muted">Choose quantities that add up to exactly <span data-package-pizza-count>4</span>.</p><div class="triple-pizza-flavours" data-triple-pizza-flavours><div class="triple-pizza-grid" data-triple-pizzas>{% for row in form.triple_pizza_rows %}<div class="triple-pizza-choice"><label>{{ row.label }}{% if row.label == "Vegetarian" %} <i class="diet-dot vegetarian" role="img" aria-label="Vegetarian"></i>{% endif %}</label>{{ row.quantity }}{% for error in row.quantity.errors %}<p class="field-error">{{ error }}</p>{% endfor %}</div>{% endfor %}</div><div class="customer-allocation-status" data-pizza-status></div></div>{% include "enquiries/_field.html" with field=form.triple_pizza_note %}</div></article>
+        <article class="triple-menu-item triple-menu-wide" data-package-item="double triple private"><div class="triple-menu-quantity">1 bowl</div><div><h3>Salad bowl</h3><p class="triple-pick-rule">Pick one salad</p><div class="triple-radio-field triple-radio-columns">{{ form.triple_salad }}{% for error in form.triple_salad.errors %}<p class="field-error">{{ error }}</p>{% endfor %}</div>{% include "enquiries/_field.html" with field=form.triple_salad_note %}</div></article>
+        <article class="triple-menu-item triple-menu-wide" data-package-item="double triple private"><div class="triple-menu-quantity">1 platter<br><small>10 pieces</small></div><div><h3>Mini burger platter</h3><p class="triple-pick-rule">Pick one flavour</p><div class="triple-radio-field triple-radio-columns">{{ form.triple_burger }}{% for error in form.triple_burger.errors %}<p class="field-error">{{ error }}</p>{% endfor %}</div>{% include "enquiries/_field.html" with field=form.triple_burger_note %}</div></article>
+        <article class="triple-menu-item triple-menu-wide" data-package-item="triple private"><div class="triple-menu-quantity">1 platter<br><small>12 pieces</small></div><div><h3>Taco platter</h3><p class="triple-pick-rule">Pick one flavour</p><div class="triple-radio-field triple-radio-columns">{{ form.triple_taco }}{% for error in form.triple_taco.errors %}<p class="field-error">{{ error }}</p>{% endfor %}</div>{% include "enquiries/_field.html" with field=form.triple_taco_note %}</div></article>
+        <article class="triple-menu-item triple-menu-wide" data-package-item="triple private"><div class="triple-menu-quantity">1 bowl</div><div><h3>Pesto pasta bowl</h3><p class="triple-pick-rule">Pick with or without chicken</p><div class="triple-radio-field triple-radio-columns">{{ form.triple_pasta }}{% for error in form.triple_pasta.errors %}<p class="field-error">{{ error }}</p>{% endfor %}</div>{% include "enquiries/_field.html" with field=form.triple_pasta_note %}</div></article>
+        <article class="triple-menu-item triple-menu-wide" data-package-item="private"><div class="triple-menu-quantity">1 platter<br><small>16 pieces</small></div><div><h3>Finger sandwiches</h3><p class="triple-pick-rule">Pick one flavour</p><div class="triple-radio-field triple-radio-columns">{{ form.private_sandwich }}{% for error in form.private_sandwich.errors %}<p class="field-error">{{ error }}</p>{% endfor %}</div>{% include "enquiries/_field.html" with field=form.private_sandwich_note %}</div></article>
+        <article class="triple-menu-item triple-menu-wide" data-package-item="double triple private"><div class="triple-menu-quantity">1 platter<br><small>12 pieces</small></div><div><h3>Toast platter</h3><p class="triple-pick-rule">Pick one option</p><div class="triple-radio-field triple-radio-columns">{{ form.triple_toast }}{% for error in form.triple_toast.errors %}<p class="field-error">{{ error }}</p>{% endfor %}</div>{% include "enquiries/_field.html" with field=form.triple_toast_note %}</div></article>
+        <article class="triple-menu-item triple-menu-wide" data-package-item="triple private"><div class="triple-menu-quantity">1 platter</div><div><h3>Sushi platter</h3><p class="triple-pick-rule">Pick one option</p><div class="triple-radio-field triple-radio-columns">{{ form.triple_sushi }}{% for error in form.triple_sushi.errors %}<p class="field-error">{{ error }}</p>{% endfor %}</div>{% include "enquiries/_field.html" with field=form.triple_sushi_note %}</div></article>
+        <article class="triple-menu-item triple-menu-wide"><div class="triple-menu-quantity">Included</div><div><h3><span data-package-drink-count>6</span> drink jars and 1 water jar</h3><div class="triple-included-row"><span>✓ <b data-package-drink-count>6</b> jars of drink (juice &amp; soft drinks)</span><span>✓ 1 refillable water jar</span></div>{% include "enquiries/_field.html" with field=form.triple_drinks_note %}</div></article>
+      </div>
+      <p class="customer-menu-note">For guest numbers above the package allowance, please order extra food so everyone is accommodated.</p>
+    </section>
+
+    <section class="customer-menu-card">
+      <div class="customer-section-heading extra-heading"><span>4</span><div><h2>Extra food add-ons</h2><p>Optional. Tick an item and enter how many you would like. The total updates automatically.</p></div></div>
+      <div class="customer-extra-list">
+        {% for group in form.extra_groups %}
+        <section class="customer-extra-group">
+          <h3>{{ group.title }}</h3>
+          <div class="customer-extra-group-grid">
+          {% for row in group.rows %}
+            <div class="customer-extra-row" data-extra-row data-unit-price="{{ row.price }}">
+              <label class="customer-choice-check">{{ row.selected }}<span>{{ row.name }} <strong>${{ row.price }}</strong></span></label>
+              <div class="customer-quantity-field"><span>Qty</span>{{ row.quantity }}{% for error in row.selected.errors %}<p class="field-error">{{ error }}</p>{% endfor %}{% for error in row.quantity.errors %}<p class="field-error">{{ error }}</p>{% endfor %}</div>
+              <strong class="customer-extra-subtotal" data-extra-subtotal>$0.00</strong>
+            </div>
+          {% endfor %}
+          </div>
+        </section>
+        {% endfor %}
+      </div>
+      <div class="customer-extra-total"><span>Extra food add-on total</span><strong data-extra-total>$0.00</strong></div>
+    </section>
+
+    </fieldset>
+    {% if not menu_locked %}<div class="customer-submit-bar"><p>Check your quantities, then send your choices to the Little Amigos team. Changes close at {{ menu_deadline|date:"j M Y, g:i a" }}.</p><button class="button button-primary" type="submit">Submit food selection</button></div>{% endif %}
+  </form>
+</main>
+<script>
+(() => {
+  const kidsInput = document.getElementById('id_kids_count');
+  const number = value => Number.parseInt(value || '0', 10) || 0;
+  const money = value => value.toLocaleString('en-AU', {style: 'currency', currency: 'AUD'});
+
+  const roomType = document.getElementById('id_room_type');
+  const packageCapacities = {
+    single: {kids: 8, adults: 10, pizzas: 2, drinks: 1},
+    double: {kids: 15, adults: 20, pizzas: 4, drinks: 2},
+    triple: {kids: 25, adults: 30, pizzas: 4, drinks: 6},
+    private: {kids: 35, adults: 40, pizzas: 4, drinks: 8},
+  };
+  function updateRoomMenu() {
+    document.querySelectorAll('[data-room-menu]').forEach(section => {
+      section.hidden = !section.dataset.roomMenu.split(' ').includes(roomType.value);
+    });
+    const capacity = packageCapacities[roomType.value] || packageCapacities.double;
+    document.querySelector('[data-package-kids]').textContent = capacity.kids;
+    document.querySelector('[data-package-adults]').textContent = capacity.adults;
+    document.querySelectorAll('[data-package-pizza-count]').forEach(node => { node.textContent = capacity.pizzas; });
+    document.querySelectorAll('[data-package-drink-count]').forEach(node => { node.textContent = capacity.drinks; });
+    document.querySelectorAll('[data-package-item]').forEach(card => {
+      const included = card.dataset.packageItem.split(' ').includes(roomType.value);
+      card.hidden = !included;
+      card.querySelectorAll('input, select, textarea').forEach(input => { input.disabled = !included; });
+    });
+  }
+  roomType.addEventListener('change', updateRoomMenu);
+  updateRoomMenu();
+
+  const readyRadios = [...document.querySelectorAll('input[name="food_ready_choice"]')];
+  const readyTimeWrap = document.querySelector('[data-food-ready-time]');
+  const readyTimeInput = document.getElementById('id_food_ready_time');
+  function updateFoodReady() {
+    const earlier = readyRadios.find(input => input.checked)?.value === 'earlier';
+    readyTimeWrap.hidden = !earlier;
+    readyTimeInput.disabled = !earlier;
+  }
+  readyRadios.forEach(input => input.addEventListener('change', updateFoodReady));
+  updateFoodReady();
+
+  const pizzaInputs = [...document.querySelectorAll('[data-triple-pizzas] input[type="number"]')];
+  function updatePizzaTotal() {
+    const target = (packageCapacities[roomType.value] || packageCapacities.double).pizzas;
+    const total = pizzaInputs.reduce((sum, input) => sum + number(input.value), 0);
+    const remaining = target - total;
+    const status = document.querySelector('[data-pizza-status]');
+    status.classList.toggle('allocation-complete', remaining === 0);
+    status.classList.toggle('allocation-over', remaining < 0);
+    if (remaining === 0) status.textContent = `Complete: ${target} of ${target} pizzas selected.`;
+    else if (remaining > 0) status.textContent = `${total} of ${target} pizzas selected - ${remaining} remaining.`;
+    else status.textContent = `${total} of ${target} pizzas selected - reduce by ${Math.abs(remaining)}.`;
+  }
+  roomType.addEventListener('change', updatePizzaTotal);
+  pizzaInputs.forEach(input => input.addEventListener('input', updatePizzaTotal));
+  updatePizzaTotal();
+
+  function updateKidsGroup(group) {
+    const rows = [...group.querySelectorAll('[data-choice-row]')];
+    const selected = rows.filter(row => row.querySelector('input[type="checkbox"]').checked);
+    const totalKids = number(kidsInput.value);
+    const allocated = selected.reduce((sum, row) => sum + number(row.querySelector('input[type="number"]').value), 0);
+    const remaining = totalKids - allocated;
+    rows.forEach(row => {
+      const checkbox = row.querySelector('input[type="checkbox"]');
+      const quantity = row.querySelector('input[type="number"]');
+      quantity.disabled = !checkbox.checked;
+      quantity.max = totalKids || 100;
+      checkbox.disabled = !checkbox.checked && selected.length >= 2;
+      row.classList.toggle('choice-selected', checkbox.checked);
+      row.classList.toggle('choice-unavailable', checkbox.disabled);
+    });
+    const status = group.querySelector('[data-allocation-status]');
+    status.classList.toggle('allocation-complete', totalKids > 0 && remaining === 0);
+    status.classList.toggle('allocation-over', remaining < 0);
+    if (!totalKids) status.textContent = 'Enter the number of children above first.';
+    else if (remaining === 0) status.textContent = `Complete: ${allocated} of ${totalKids} portions selected.`;
+    else if (remaining > 0) status.textContent = `${allocated} of ${totalKids} portions selected - ${remaining} remaining.`;
+    else status.textContent = `${allocated} of ${totalKids} portions selected - reduce by ${Math.abs(remaining)}.`;
+  }
+
+  document.querySelectorAll('[data-kids-group]').forEach(group => {
+    group.addEventListener('change', event => {
+      const row = event.target.closest('[data-choice-row]');
+      if (row && event.target.matches('input[type="checkbox"]') && event.target.checked) {
+        const quantity = row.querySelector('input[type="number"]');
+        const otherTotal = [...group.querySelectorAll('[data-choice-row]')]
+          .filter(other => other !== row && other.querySelector('input[type="checkbox"]').checked)
+          .reduce((sum, other) => sum + number(other.querySelector('input[type="number"]').value), 0);
+        if (!quantity.value) quantity.value = Math.max(1, number(kidsInput.value) - otherTotal);
+      }
+      if (row && event.target.matches('input[type="checkbox"]') && !event.target.checked) row.querySelector('input[type="number"]').value = '';
+      updateKidsGroup(group);
+    });
+    group.addEventListener('input', () => updateKidsGroup(group));
+    updateKidsGroup(group);
+  });
+  kidsInput.addEventListener('input', () => {
+    document.querySelectorAll('[data-kids-total]').forEach(node => { node.textContent = kidsInput.value || '0'; });
+    document.querySelectorAll('[data-kids-group]').forEach(updateKidsGroup);
+  });
+
+  function updateExtras() {
+    let total = 0;
+    document.querySelectorAll('[data-extra-row]').forEach(row => {
+      const checkbox = row.querySelector('input[type="checkbox"]');
+      const quantity = row.querySelector('input[type="number"]');
+      quantity.disabled = !checkbox.checked;
+      row.classList.toggle('choice-selected', checkbox.checked);
+      const subtotal = checkbox.checked ? number(quantity.value) * Number.parseFloat(row.dataset.unitPrice) : 0;
+      row.querySelector('[data-extra-subtotal]').textContent = money(subtotal);
+      total += subtotal;
+    });
+    document.querySelector('[data-extra-total]').textContent = money(total);
+  }
+  document.querySelector('.customer-extra-list').addEventListener('change', event => {
+    const row = event.target.closest('[data-extra-row]');
+    if (row && event.target.matches('input[type="checkbox"]')) {
+      const quantity = row.querySelector('input[type="number"]');
+      if (event.target.checked && !quantity.value) quantity.value = '1';
+      if (!event.target.checked) quantity.value = '';
+    }
+    updateExtras();
+  });
+  document.querySelector('.customer-extra-list').addEventListener('input', updateExtras);
+  updateExtras();
+})();
+</script>
+{% endblock %}

@@ -2,6 +2,8 @@ services:
   - type: web
     name: little-amigos-enquiry-tracker
     runtime: python
+    plan: free
+    region: singapore
     buildCommand: ./build.sh
     startCommand: ./start.sh
     healthCheckPath: /health/
@@ -19,3 +21,5 @@ services:
 
 databases:
   - name: little-amigos-enquiry-tracker-db
+    plan: free
+    region: singapore

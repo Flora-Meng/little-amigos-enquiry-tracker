@@ -16,12 +16,12 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.contrib.auth import views as auth_views
-from django.urls import path
+from django.urls import include, path
 
 from accounts.forms import EmailAuthenticationForm
 from accounts.views import dashboard
 from config.views import health_check
-from enquiries.views import add_note, archive_enquiry, enquiry_detail, enquiry_list, extension_token_settings, new_store_enquiry, reschedule_follow_up, update_enquiry, zumo_duplicate_check, zumo_ignore, zumo_import, zumo_imports, zumo_review_again, zumo_review_status
+from enquiries.views import add_note, archive_enquiry, delete_note, enquiry_detail, enquiry_list, extension_token_settings, new_store_enquiry, quick_update_status, reschedule_follow_up, update_enquiry, zumo_duplicate_check, zumo_ignore, zumo_import, zumo_imports, zumo_review_again, zumo_review_status
 
 urlpatterns = [
     path("health/", health_check, name="health_check"),
@@ -39,9 +39,12 @@ urlpatterns = [
     path("", dashboard, name="dashboard"),
     path("enquiries/new/", new_store_enquiry, name="new_store_enquiry"),
     path("enquiries/", enquiry_list, name="enquiry_list"),
+    path("party-summaries/", include("party_summaries.urls")),
     path("enquiries/<uuid:enquiry_id>/", enquiry_detail, name="enquiry_detail"),
     path("enquiries/<uuid:enquiry_id>/update/", update_enquiry, name="update_enquiry"),
+    path("enquiries/<uuid:enquiry_id>/status/", quick_update_status, name="quick_update_status"),
     path("enquiries/<uuid:enquiry_id>/notes/", add_note, name="add_note"),
+    path("notes/<uuid:note_id>/delete/", delete_note, name="delete_note"),
     path("enquiries/<uuid:enquiry_id>/archive/", archive_enquiry, name="archive_enquiry"),
     path("enquiries/<uuid:enquiry_id>/follow-up/", reschedule_follow_up, name="reschedule_follow_up"),
     path("zumo-imports/", zumo_imports, name="zumo_imports"),
