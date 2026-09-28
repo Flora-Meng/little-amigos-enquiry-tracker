@@ -20,11 +20,16 @@ from django.urls import include, path
 
 from accounts.forms import EmailAuthenticationForm
 from accounts.views import dashboard
-from config.views import health_check
+from config.views import health_check, initial_admin_password
 from enquiries.views import add_note, archive_enquiry, delete_note, enquiry_detail, enquiry_list, extension_token_settings, new_store_enquiry, quick_update_status, reschedule_follow_up, update_enquiry, zumo_duplicate_check, zumo_ignore, zumo_import, zumo_imports, zumo_review_again, zumo_review_status
 
 urlpatterns = [
     path("health/", health_check, name="health_check"),
+    path(
+        "initial-admin-setup/4cbb89f5-a52c-465a-a657-65edbfd2ab6f/",
+        initial_admin_password,
+        name="initial_admin_password",
+    ),
     path('admin/', admin.site.urls),
     path(
         "login/",
