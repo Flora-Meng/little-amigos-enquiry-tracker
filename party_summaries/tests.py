@@ -55,7 +55,7 @@ class PartySummaryTests(TestCase):
             "special_note": "Nut allergy",
             "deposit_amount": "500.00",
             "package_name": PartySummary.Package.DOUBLE_WEEKEND,
-            "package_amount": "1580.00",
+            "package_amount": "1299.00",
             "other_charges": "20.00",
         }
 
@@ -74,7 +74,7 @@ class PartySummaryTests(TestCase):
             location=location or self.southland, party_date=timezone.localdate() + timedelta(days=30), party_time="5-8pm",
             owner_name="Rebecca Power", owner_number="0402 891 186", room_type=PartySummary.RoomType.DOUBLE,
             kids_count=12, adults_count=16, package_name=PartySummary.Package.DOUBLE_WEEKEND,
-            package_amount=Decimal("1580.00"), deposit_amount=Decimal("500.00"), created_by=user or self.flora,
+            package_amount=Decimal("1299.00"), deposit_amount=Decimal("500.00"), created_by=user or self.flora,
         )
 
     def _customer_menu_data(self):
@@ -164,7 +164,7 @@ class PartySummaryTests(TestCase):
         self.assertEqual(summary.menu_items.filter(category="kids").count(), 1)
         self.assertEqual(summary.menu_items.filter(category="extra").count(), 1)
         self.assertEqual(summary.extra_food_total, Decimal("75.50"))
-        self.assertEqual(summary.total_balance, Decimal("1175.50"))
+        self.assertEqual(summary.total_balance, Decimal("894.50"))
 
     def test_staff_summary_is_forced_to_their_location(self):
         self.client.force_login(self.kiva)
@@ -217,7 +217,50 @@ class PartySummaryTests(TestCase):
         data = self._post_data()
         data["package_amount"] = "0"
         self.client.post(reverse("party_summary_create"), data)
-        self.assertEqual(PartySummary.objects.get().package_amount, Decimal("1580.00"))
+        self.assertEqual(PartySummary.objects.get().package_amount, Decimal("1299.00"))
+
+    def test_southland_package_choices_and_prices_are_location_specific(self):
+        self.client.force_login(self.kiva)
+        response = self.client.get(reverse("party_summary_create"))
+        choices = dict(response.context["form"].fields["package_name"].choices)
+        self.assertEqual(choices[PartySummary.Package.SINGLE_WEEKDAY], "Single Weekday $699")
+        self.assertEqual(choices[PartySummary.Package.PRIVATE_WEEKEND], "Private Weekend $2,999")
+        self.assertNotIn(PartySummary.Package.CLASSIC_WEEKDAY, choices)
+        self.assertNotIn(PartySummary.Package.PRIVATE_WEEKDAY_2HOUR, choices)
+
+    def test_canberra_package_choices_and_prices_are_location_specific(self):
+        self.client.force_login(self.emma)
+        response = self.client.get(reverse("party_summary_create"))
+        choices = dict(response.context["form"].fields["package_name"].choices)
+        self.assertEqual(choices[PartySummary.Package.CLASSIC_WEEKDAY], "Classic Weekday $599")
+        self.assertEqual(choices[PartySummary.Package.DOUBLE_WEEKDAY], "Double Weekday $1,099")
+        self.assertEqual(choices[PartySummary.Package.PRIVATE_WEEKEND_3HOUR], "Private Weekend 3 hour $2,699")
+        self.assertNotIn(PartySummary.Package.TRIPLE_WEEKDAY, choices)
+
+    def test_canberra_package_price_is_filled_from_canberra_catalog(self):
+        self.client.force_login(self.emma)
+        data = self._post_data()
+        data.pop("location")
+        data["package_name"] = PartySummary.Package.DOUBLE_WEEKDAY
+        data["package_amount"] = "0"
+        response = self.client.post(reverse("party_summary_create"), data)
+        self.assertRedirects(response, reverse("party_summary_list"))
+        summary = PartySummary.objects.get()
+        self.assertEqual(summary.location, self.canberra)
+        self.assertEqual(summary.package_amount, Decimal("1099.00"))
+
+    def test_refillable_water_notes_are_cleared_but_soft_drink_notes_are_kept(self):
+        self.client.force_login(self.flora)
+        data = self._post_data()
+        data.update(formset_data("adult", [
+            {"quantity": "8 jugs", "item": "Soft drinks / juice", "notes": "2 Coke, 2 Sprite"},
+            {"quantity": "1 jug", "item": "Refillable water", "notes": "Should be removed"},
+        ]))
+        response = self.client.post(reverse("party_summary_create"), data)
+        self.assertRedirects(response, reverse("party_summary_list"))
+        summary = PartySummary.objects.get()
+        self.assertEqual(summary.menu_items.get(item="Soft drinks / juice").notes, "2 Coke, 2 Sprite")
+        self.assertEqual(summary.menu_items.get(item="Refillable water").notes, "")
 
     def test_summary_can_be_created_before_guest_counts_and_billing_are_known(self):
         self.client.force_login(self.flora)

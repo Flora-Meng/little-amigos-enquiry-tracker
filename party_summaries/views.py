@@ -15,7 +15,7 @@ from django.utils import timezone
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 
-from accounts.models import User
+from accounts.models import Location, User
 
 from .forms import (
     ADULT_FRYER_CHOICES,
@@ -148,9 +148,18 @@ def party_summary_list(request):
 
 
 def _form_context(form, formsets, summary=None, request=None):
+    package_catalog = {}
+    for location_code in (Location.Code.SOUTHLAND, Location.Code.CANBERRA):
+        prices = PartySummary.package_prices_for_location(location_code)
+        package_catalog[str(location_code)] = [
+            {"value": str(value), "label": label, "price": str(prices[value])}
+            for value, label in PartySummary.package_choices_for_location(location_code)
+        ]
     context = {"form": form, "summary": summary, **formsets, "adult_menu_options": ADULT_MENU_OPTIONS,
         "kids_menu_options": KIDS_MENU_OPTIONS,
-        "package_prices": {str(key): str(value) for key, value in PartySummary.PACKAGE_PRICES.items()}}
+        "package_catalog": package_catalog,
+        "location_codes": {str(location.id): location.code for location in Location.objects.all()},
+        "default_package_location": getattr(form, "package_location_code", Location.Code.SOUTHLAND)}
     if summary is not None and request is not None:
         context["customer_menu_url"] = request.build_absolute_uri(
             reverse("customer_menu", args=(summary.customer_menu_token,))
@@ -400,7 +409,7 @@ def _save_customer_menu(summary, cleaned):
     drink_quantity = "1 jug" if drink_count == 1 else f"{drink_count} jugs"
     adult_items.extend((
         (drink_quantity, "Soft drinks / juice", cleaned.get("triple_drinks_note", "")),
-        ("1 jug", "Refillable water", cleaned.get("triple_drinks_note", "")),
+        ("1 jug", "Refillable water", ""),
     ))
     for position, (quantity, item, notes) in enumerate(adult_items):
         rows.append(PartyMenuItem(summary=summary, category=PartyMenuItem.Category.ADULT,

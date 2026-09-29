@@ -21,26 +21,59 @@ class PartySummary(models.Model):
         OTHER = "other", "Other"
 
     class Package(models.TextChoices):
-        SINGLE_WEEKDAY = "single_weekday", "Single Weekday $799"
-        SINGLE_WEEKEND = "single_weekend", "Single Weekend $999"
-        DOUBLE_WEEKDAY = "double_weekday", "Double Weekday $1280"
-        DOUBLE_WEEKEND = "double_weekend", "Double Weekend $1580"
-        TRIPLE_WEEKDAY = "triple_weekday", "Triple Weekday $2150"
-        TRIPLE_WEEKEND = "triple_weekend", "Triple Weekend $2550"
-        PRIVATE_WEEKDAY = "private_weekday", "Private Weekday $3150"
-        PRIVATE_WEEKEND = "private_weekend", "Private Weekend $3550"
+        CLASSIC_WEEKDAY = "classic_weekday", "Classic Weekday"
+        SINGLE_WEEKDAY = "single_weekday", "Single Weekday"
+        SINGLE_WEEKEND = "single_weekend", "Single Weekend"
+        DOUBLE_WEEKDAY = "double_weekday", "Double Weekday"
+        DOUBLE_WEEKEND = "double_weekend", "Double Weekend"
+        TRIPLE_WEEKDAY = "triple_weekday", "Triple Weekday"
+        TRIPLE_WEEKEND = "triple_weekend", "Triple Weekend"
+        PRIVATE_WEEKDAY = "private_weekday", "Private Weekday"
+        PRIVATE_WEEKEND = "private_weekend", "Private Weekend"
+        PRIVATE_WEEKDAY_2HOUR = "private_weekday_2hour", "Private Weekday 2 hour"
+        PRIVATE_WEEKEND_2HOUR = "private_weekend_2hour", "Private Weekend 2 hour"
+        PRIVATE_WEEKDAY_3HOUR = "private_weekday_3hour", "Private Weekday 3 hour"
+        PRIVATE_WEEKEND_3HOUR = "private_weekend_3hour", "Private Weekend 3 hour"
         CUSTOM = "custom", "Custom / small gathering"
 
-    PACKAGE_PRICES = {
+    SOUTHLAND_PACKAGE_PRICES = {
+        Package.SINGLE_WEEKDAY: Decimal("699.00"),
+        Package.SINGLE_WEEKEND: Decimal("899.00"),
+        Package.DOUBLE_WEEKDAY: Decimal("999.00"),
+        Package.DOUBLE_WEEKEND: Decimal("1299.00"),
+        Package.TRIPLE_WEEKDAY: Decimal("1899.00"),
+        Package.TRIPLE_WEEKEND: Decimal("2199.00"),
+        Package.PRIVATE_WEEKDAY: Decimal("2699.00"),
+        Package.PRIVATE_WEEKEND: Decimal("2999.00"),
+    }
+    CANBERRA_PACKAGE_PRICES = {
+        Package.CLASSIC_WEEKDAY: Decimal("599.00"),
         Package.SINGLE_WEEKDAY: Decimal("799.00"),
         Package.SINGLE_WEEKEND: Decimal("999.00"),
-        Package.DOUBLE_WEEKDAY: Decimal("1280.00"),
-        Package.DOUBLE_WEEKEND: Decimal("1580.00"),
-        Package.TRIPLE_WEEKDAY: Decimal("2150.00"),
-        Package.TRIPLE_WEEKEND: Decimal("2550.00"),
-        Package.PRIVATE_WEEKDAY: Decimal("3150.00"),
-        Package.PRIVATE_WEEKEND: Decimal("3550.00"),
+        Package.DOUBLE_WEEKDAY: Decimal("1099.00"),
+        Package.DOUBLE_WEEKEND: Decimal("1299.00"),
+        Package.PRIVATE_WEEKDAY_2HOUR: Decimal("1899.00"),
+        Package.PRIVATE_WEEKEND_2HOUR: Decimal("2199.00"),
+        Package.PRIVATE_WEEKDAY_3HOUR: Decimal("2399.00"),
+        Package.PRIVATE_WEEKEND_3HOUR: Decimal("2699.00"),
     }
+    # Kept as the Southland default for backwards-compatible callers.
+    PACKAGE_PRICES = SOUTHLAND_PACKAGE_PRICES
+
+    @classmethod
+    def package_prices_for_location(cls, location_code):
+        if location_code == Location.Code.CANBERRA:
+            return cls.CANBERRA_PACKAGE_PRICES
+        return cls.SOUTHLAND_PACKAGE_PRICES
+
+    @classmethod
+    def package_choices_for_location(cls, location_code):
+        prices = cls.package_prices_for_location(location_code)
+        labels = dict(cls.Package.choices)
+        return [
+            (str(package), f"{labels[str(package)]} ${amount:,.0f}")
+            for package, amount in prices.items()
+        ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     location = models.ForeignKey(Location, on_delete=models.PROTECT, related_name="party_summaries")

@@ -165,6 +165,21 @@ class PartySummaryForm(forms.ModelForm):
         for name in ("kids_count", "adults_count", "deposit_amount", "package_name", "package_amount", "other_charges"):
             self.fields[name].required = False
         self.fields["location"].queryset = Location.objects.order_by("name")
+        location = None
+        if self.is_bound and self.data.get("location"):
+            location = Location.objects.filter(pk=self.data.get("location")).first()
+        elif self.instance and not self.instance._state.adding:
+            location = self.instance.location
+        elif user.location_id:
+            location = user.location
+        if location is None:
+            location = Location.objects.filter(code=Location.Code.SOUTHLAND).first()
+        self.package_location_code = location.code if location else Location.Code.SOUTHLAND
+        self.fields["package_name"].choices = [
+            ("", "---------"),
+            *PartySummary.package_choices_for_location(self.package_location_code),
+            (PartySummary.Package.CUSTOM, PartySummary.Package.CUSTOM.label),
+        ]
         if user.role == User.Role.STAFF:
             self.fields.pop("location")
 
@@ -176,8 +191,14 @@ class PartySummaryForm(forms.ModelForm):
         cleaned["other_charges"] = cleaned.get("other_charges") or 0
         package = cleaned.get("package_name") or PartySummary.Package.CUSTOM
         cleaned["package_name"] = package
-        if package in PartySummary.PACKAGE_PRICES and cleaned.get("package_amount") in (None, 0):
-            cleaned["package_amount"] = PartySummary.PACKAGE_PRICES[package]
+        location = cleaned.get("location")
+        if location is None and self.user.location_id:
+            location = self.user.location
+        if location is None and self.instance and not self.instance._state.adding:
+            location = self.instance.location
+        prices = PartySummary.package_prices_for_location(location.code if location else None)
+        if package in prices and cleaned.get("package_amount") in (None, 0):
+            cleaned["package_amount"] = prices[package]
         else:
             cleaned["package_amount"] = cleaned.get("package_amount") or 0
         return cleaned
@@ -406,6 +427,12 @@ class StandardMenuItemForm(forms.Form):
     quantity = forms.CharField(required=False, max_length=40, widget=forms.TextInput(attrs={"placeholder": "Qty"}))
     item = forms.CharField(required=False, max_length=250, widget=forms.TextInput(attrs={"placeholder": "Select or type an item"}))
     notes = forms.CharField(required=False, max_length=500, widget=forms.TextInput(attrs={"placeholder": "Notes"}))
+
+    def clean(self):
+        cleaned = super().clean()
+        if (cleaned.get("item") or "").strip().casefold() == "refillable water":
+            cleaned["notes"] = ""
+        return cleaned
 
 
 class ExtraMenuItemForm(StandardMenuItemForm):

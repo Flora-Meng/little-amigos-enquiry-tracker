@@ -132,7 +132,9 @@
 
   <datalist id="adult-menu-options">{% for item in adult_menu_options %}<option value="{{ item }}"></option>{% endfor %}</datalist>
   <datalist id="kids-menu-options">{% for item in kids_menu_options %}<option value="{{ item }}"></option>{% endfor %}</datalist>
-  {{ package_prices|json_script:"package-price-data" }}
+  {{ package_catalog|json_script:"package-catalog-data" }}
+  {{ location_codes|json_script:"location-code-data" }}
+  {{ default_package_location|json_script:"default-package-location-data" }}
 </main>
 <script>
 (() => {
@@ -153,7 +155,10 @@
     document.querySelectorAll(`[data-menu="${menu}"] input[name$="-item"]`).forEach(input => input.setAttribute('list', listId));
   }
   ['adult', 'kids', 'extra'].forEach(applyMenuList);
-  const prices = JSON.parse(document.getElementById('package-price-data').textContent);
+  const packageCatalog = JSON.parse(document.getElementById('package-catalog-data').textContent);
+  const locationCodes = JSON.parse(document.getElementById('location-code-data').textContent);
+  const defaultPackageLocation = JSON.parse(document.getElementById('default-package-location-data').textContent);
+  const locationSelect = document.getElementById('id_location');
   const packageSelect = document.getElementById('id_package_name');
   const packageAmount = document.getElementById('id_package_amount');
   const deposit = document.getElementById('id_deposit_amount');
@@ -165,7 +170,24 @@
     document.getElementById('extra-total').textContent = money(extra);
     document.getElementById('balance-total').textContent = money(number(packageAmount) - number(deposit) + extra + number(other));
   }
-  packageSelect?.addEventListener('change', () => { if (prices[packageSelect.value]) packageAmount.value = prices[packageSelect.value]; calculate(); });
+  const activeLocationCode = () => locationSelect ? (locationCodes[locationSelect.value] || defaultPackageLocation) : defaultPackageLocation;
+  const activePackages = () => packageCatalog[activeLocationCode()] || packageCatalog.southland || [];
+  function applySelectedPackagePrice() {
+    const selected = activePackages().find(option => option.value === packageSelect?.value);
+    if (selected && packageAmount) packageAmount.value = selected.price;
+  }
+  function refreshPackageChoices() {
+    if (!packageSelect) return;
+    const previous = packageSelect.value;
+    packageSelect.replaceChildren(new Option('---------', ''));
+    activePackages().forEach(option => packageSelect.add(new Option(option.label, option.value)));
+    packageSelect.add(new Option('Custom / small gathering', 'custom'));
+    if ([...packageSelect.options].some(option => option.value === previous)) packageSelect.value = previous;
+    applySelectedPackagePrice();
+    calculate();
+  }
+  packageSelect?.addEventListener('change', () => { applySelectedPackagePrice(); calculate(); });
+  locationSelect?.addEventListener('change', refreshPackageChoices);
   [packageAmount, deposit, other].forEach(input => input?.addEventListener('input', calculate));
   document.querySelector('[data-menu="extra"]')?.addEventListener('input', calculate);
   document.querySelectorAll('.menu-rows').forEach(container => {
@@ -179,6 +201,18 @@
       calculate();
     });
   });
+  function updateWaterNotes() {
+    document.querySelectorAll('[data-menu="adult"] .menu-row:not(.menu-header)').forEach(row => {
+      const itemInput = row.querySelector('input[name$="-item"]');
+      const notesInput = row.querySelector('input[name$="-notes"]');
+      if (!itemInput || !notesInput) return;
+      const isWater = itemInput.value.trim().toLowerCase() === 'refillable water';
+      if (isWater) notesInput.value = '';
+      notesInput.hidden = isWater;
+      notesInput.disabled = isWater;
+    });
+  }
+  document.querySelector('[data-menu="adult"]')?.addEventListener('input', updateWaterNotes);
   document.querySelectorAll('[data-add-menu]').forEach(button => {
     button.addEventListener('click', () => {
       const menu = button.dataset.addMenu;
@@ -191,6 +225,7 @@
       document.querySelector(`[data-menu="${menu}"]`).appendChild(wrapper.firstElementChild);
       totalInput.value = total + 1;
       applyMenuList(menu);
+      updateWaterNotes();
       calculate();
     });
   });
@@ -216,6 +251,7 @@
       console.warn('Decoration image conversion was not available.', error);
     }
   });
+  updateWaterNotes();
   calculate();
 })();
 </script>
