@@ -24,6 +24,8 @@ class PartySummary(models.Model):
         CLASSIC_WEEKDAY = "classic_weekday", "Classic Weekday"
         SINGLE_WEEKDAY = "single_weekday", "Single Weekday"
         SINGLE_WEEKEND = "single_weekend", "Single Weekend"
+        DOUBLE_LITE_WEEKDAY = "double_lite_weekday", "Double Lite Weekday"
+        DOUBLE_LITE_WEEKEND = "double_lite_weekend", "Double Lite Weekend"
         DOUBLE_WEEKDAY = "double_weekday", "Double Weekday"
         DOUBLE_WEEKEND = "double_weekend", "Double Weekend"
         TRIPLE_WEEKDAY = "triple_weekday", "Triple Weekday"
@@ -50,8 +52,10 @@ class PartySummary(models.Model):
         Package.CLASSIC_WEEKDAY: Decimal("599.00"),
         Package.SINGLE_WEEKDAY: Decimal("799.00"),
         Package.SINGLE_WEEKEND: Decimal("999.00"),
-        Package.DOUBLE_WEEKDAY: Decimal("1099.00"),
-        Package.DOUBLE_WEEKEND: Decimal("1299.00"),
+        Package.DOUBLE_LITE_WEEKDAY: Decimal("1099.00"),
+        Package.DOUBLE_LITE_WEEKEND: Decimal("1299.00"),
+        Package.DOUBLE_WEEKDAY: Decimal("1280.00"),
+        Package.DOUBLE_WEEKEND: Decimal("1580.00"),
         Package.PRIVATE_WEEKDAY_2HOUR: Decimal("1899.00"),
         Package.PRIVATE_WEEKEND_2HOUR: Decimal("2199.00"),
         Package.PRIVATE_WEEKDAY_3HOUR: Decimal("2399.00"),
@@ -129,8 +133,18 @@ class PartySummary(models.Model):
         )["total"] or Decimal("0.00")
 
     @property
+    def food_voucher_amount(self):
+        if self.location.code == Location.Code.CANBERRA:
+            return Decimal("100.00")
+        return Decimal("0.00")
+
+    @property
+    def extra_food_balance(self):
+        return max(self.extra_food_total - self.food_voucher_amount, Decimal("0.00"))
+
+    @property
     def total_balance(self):
-        return self.package_amount - self.deposit_amount + self.extra_food_total + self.other_charges
+        return self.package_amount - self.deposit_amount + self.extra_food_balance + self.other_charges
 
 
 class PartyMenuItem(models.Model):

@@ -370,50 +370,51 @@ def _save_customer_menu(summary, cleaned):
 
     rows = []
     room_type = cleaned["room_type"]
-    adult_items = [
-        ("1 platter (50pcs)", cleaned["triple_fryer"], cleaned.get("triple_fryer_note", "")),
-        ("1 platter", "Seasonal fruit platter", cleaned.get("triple_fruit_note", "")),
-    ]
-    for index, (pizza, _label) in enumerate(TRIPLE_PIZZA_CHOICES):
-        quantity = cleaned.get(f"triple_pizza_{index}_qty") or 0
-        if quantity:
-            adult_items.append((str(quantity), pizza, cleaned.get("triple_pizza_note", "")))
-    if room_type != PartySummary.RoomType.SINGLE:
+    if summary.location.code != Location.Code.CANBERRA:
+        adult_items = [
+            ("1 platter (50pcs)", cleaned["triple_fryer"], cleaned.get("triple_fryer_note", "")),
+            ("1 platter", "Seasonal fruit platter", cleaned.get("triple_fruit_note", "")),
+        ]
+        for index, (pizza, _label) in enumerate(TRIPLE_PIZZA_CHOICES):
+            quantity = cleaned.get(f"triple_pizza_{index}_qty") or 0
+            if quantity:
+                adult_items.append((str(quantity), pizza, cleaned.get("triple_pizza_note", "")))
+        if room_type != PartySummary.RoomType.SINGLE:
+            adult_items.extend((
+                ("1 bowl", cleaned["triple_salad"], cleaned.get("triple_salad_note", "")),
+                ("1 platter (10pcs)", cleaned["triple_burger"], cleaned.get("triple_burger_note", "")),
+            ))
+        if room_type in {PartySummary.RoomType.TRIPLE, PartySummary.RoomType.PRIVATE}:
+            adult_items.extend((
+                ("1 platter (12pcs)", cleaned["triple_taco"], cleaned.get("triple_taco_note", "")),
+                ("1 bowl", cleaned["triple_pasta"], cleaned.get("triple_pasta_note", "")),
+            ))
+        if room_type == PartySummary.RoomType.PRIVATE:
+            adult_items.append((
+                "1 platter (16pcs)", cleaned["private_sandwich"], cleaned.get("private_sandwich_note", ""),
+            ))
+        if room_type != PartySummary.RoomType.SINGLE:
+            adult_items.append(
+                ("1 platter (12pcs)", cleaned["triple_toast"], cleaned.get("triple_toast_note", "")),
+            )
+        if room_type in {PartySummary.RoomType.TRIPLE, PartySummary.RoomType.PRIVATE}:
+            adult_items.append(
+                ("1 platter", cleaned["triple_sushi"], cleaned.get("triple_sushi_note", "")),
+            )
+        drink_count = {
+            PartySummary.RoomType.SINGLE: 1,
+            PartySummary.RoomType.DOUBLE: 2,
+            PartySummary.RoomType.TRIPLE: 6,
+            PartySummary.RoomType.PRIVATE: 8,
+        }[room_type]
+        drink_quantity = "1 jug" if drink_count == 1 else f"{drink_count} jugs"
         adult_items.extend((
-            ("1 bowl", cleaned["triple_salad"], cleaned.get("triple_salad_note", "")),
-            ("1 platter (10pcs)", cleaned["triple_burger"], cleaned.get("triple_burger_note", "")),
+            (drink_quantity, "Soft drinks / juice", cleaned.get("triple_drinks_note", "")),
+            ("1 jug", "Refillable water", ""),
         ))
-    if room_type in {PartySummary.RoomType.TRIPLE, PartySummary.RoomType.PRIVATE}:
-        adult_items.extend((
-            ("1 platter (12pcs)", cleaned["triple_taco"], cleaned.get("triple_taco_note", "")),
-            ("1 bowl", cleaned["triple_pasta"], cleaned.get("triple_pasta_note", "")),
-        ))
-    if room_type == PartySummary.RoomType.PRIVATE:
-        adult_items.append((
-            "1 platter (16pcs)", cleaned["private_sandwich"], cleaned.get("private_sandwich_note", ""),
-        ))
-    if room_type != PartySummary.RoomType.SINGLE:
-        adult_items.append(
-            ("1 platter (12pcs)", cleaned["triple_toast"], cleaned.get("triple_toast_note", "")),
-        )
-    if room_type in {PartySummary.RoomType.TRIPLE, PartySummary.RoomType.PRIVATE}:
-        adult_items.append(
-            ("1 platter", cleaned["triple_sushi"], cleaned.get("triple_sushi_note", "")),
-        )
-    drink_count = {
-        PartySummary.RoomType.SINGLE: 1,
-        PartySummary.RoomType.DOUBLE: 2,
-        PartySummary.RoomType.TRIPLE: 6,
-        PartySummary.RoomType.PRIVATE: 8,
-    }[room_type]
-    drink_quantity = "1 jug" if drink_count == 1 else f"{drink_count} jugs"
-    adult_items.extend((
-        (drink_quantity, "Soft drinks / juice", cleaned.get("triple_drinks_note", "")),
-        ("1 jug", "Refillable water", ""),
-    ))
-    for position, (quantity, item, notes) in enumerate(adult_items):
-        rows.append(PartyMenuItem(summary=summary, category=PartyMenuItem.Category.ADULT,
-            quantity=quantity, item=item, notes=notes, position=position))
+        for position, (quantity, item, notes) in enumerate(adult_items):
+            rows.append(PartyMenuItem(summary=summary, category=PartyMenuItem.Category.ADULT,
+                quantity=quantity, item=item, notes=notes, position=position))
 
     kids_items = []
     for prefix, choices in (("kids_hot", KIDS_HOT_FOOD_CHOICES),):
@@ -468,6 +469,7 @@ def customer_menu(request, token):
         "menu_deadline": menu_deadline,
         "menu_locked": menu_locked,
         "locked_submit_attempt": locked_submit_attempt,
+        "is_canberra": summary.location.code == Location.Code.CANBERRA,
     })
     return _no_store(response)
 

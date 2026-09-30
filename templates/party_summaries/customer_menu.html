@@ -70,7 +70,7 @@
       </div>
     </section>
 
-    <section class="customer-menu-card" data-room-menu="single double triple private">
+    {% if not is_canberra %}<section class="customer-menu-card" data-room-menu="single double triple private">
       <div class="customer-section-heading adult-heading"><span>3</span><div><h2>Adults food</h2><p>All food choices in this section are included in the package. Choose one option from each group.</p></div></div>
       <div class="triple-menu-list triple-menu-pdf-layout">
         <article class="triple-menu-item triple-menu-wide">
@@ -92,10 +92,10 @@
         <article class="triple-menu-item triple-menu-wide"><div class="triple-menu-quantity">Included</div><div><h3><span data-package-drink-count>6</span> drink jars and 1 water jar</h3><div class="triple-included-row"><span>✓ <b data-package-drink-count>6</b> jars of drink (juice &amp; soft drinks)</span><span>✓ 1 refillable water jar</span></div>{% include "enquiries/_field.html" with field=form.triple_drinks_note %}</div></article>
       </div>
       <p class="customer-menu-note">For guest numbers above the package allowance, please order extra food so everyone is accommodated.</p>
-    </section>
+    </section>{% endif %}
 
     <section class="customer-menu-card">
-      <div class="customer-section-heading extra-heading"><span>4</span><div><h2>Extra food add-ons</h2><p>Optional. Tick an item and enter how many you would like. The total updates automatically.</p></div></div>
+      <div class="customer-section-heading {% if is_canberra %}adult-heading{% else %}extra-heading{% endif %}"><span>{% if is_canberra %}3{% else %}4{% endif %}</span><div><h2>{% if is_canberra %}Adults food{% else %}Extra food add-ons{% endif %}</h2><p>{% if is_canberra %}Your package includes a $100 food voucher for this adult food order. Tick an item and enter the quantity you would like.{% else %}Optional. Tick an item and enter how many you would like. The total updates automatically.{% endif %}</p></div></div>
       <div class="customer-extra-list">
         {% for group in form.extra_groups %}
         <section class="customer-extra-group">
@@ -112,7 +112,13 @@
         </section>
         {% endfor %}
       </div>
-      <div class="customer-extra-total"><span>Extra food add-on total</span><strong data-extra-total>$0.00</strong></div>
+      {% if is_canberra %}
+      <div class="customer-voucher-summary" aria-live="polite">
+        <div><span>Adult food order total</span><strong data-extra-total data-food-order-total>$0.00</strong></div>
+        <div><span>Included food voucher</span><strong>-$100.00</strong></div>
+        <div class="customer-voucher-balance"><span>Balance after voucher</span><strong data-food-balance>$0.00</strong></div>
+      </div>
+      {% else %}<div class="customer-extra-total"><span>Extra food add-on total</span><strong data-extra-total>$0.00</strong></div>{% endif %}
     </section>
 
     </fieldset>
@@ -124,6 +130,7 @@
   const kidsInput = document.getElementById('id_kids_count');
   const number = value => Number.parseInt(value || '0', 10) || 0;
   const money = value => value.toLocaleString('en-AU', {style: 'currency', currency: 'AUD'});
+  const foodVoucher = {% if is_canberra %}100{% else %}0{% endif %};
 
   const roomType = document.getElementById('id_room_type');
   const packageCapacities = {
@@ -167,6 +174,7 @@
     const total = pizzaInputs.reduce((sum, input) => sum + number(input.value), 0);
     const remaining = target - total;
     const status = document.querySelector('[data-pizza-status]');
+    if (!status) return;
     status.classList.toggle('allocation-complete', remaining === 0);
     status.classList.toggle('allocation-over', remaining < 0);
     if (remaining === 0) status.textContent = `Complete: ${target} of ${target} pizzas selected.`;
@@ -234,6 +242,8 @@
       total += subtotal;
     });
     document.querySelector('[data-extra-total]').textContent = money(total);
+    const balance = document.querySelector('[data-food-balance]');
+    if (balance) balance.textContent = money(Math.max(total - foodVoucher, 0));
   }
   document.querySelector('.customer-extra-list').addEventListener('change', event => {
     const row = event.target.closest('[data-extra-row]');

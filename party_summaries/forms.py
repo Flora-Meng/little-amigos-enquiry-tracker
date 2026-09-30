@@ -264,6 +264,7 @@ class CustomerMenuForm(forms.Form):
     def __init__(self, *args, **kwargs):
         venue_code = kwargs.pop("venue_code", None)
         super().__init__(*args, **kwargs)
+        self.is_canberra = venue_code == Location.Code.CANBERRA
         self.fields["room_type"].choices = (
             (PartySummary.RoomType.SINGLE, "Essential (single room)"),
             (PartySummary.RoomType.DOUBLE, "Signature (double room)"),
@@ -368,7 +369,7 @@ class CustomerMenuForm(forms.Form):
                 "triple_pasta", "private_sandwich", "triple_toast", "triple_sushi",
             ),
         }
-        if room_type in package_required_choices:
+        if not self.is_canberra and room_type in package_required_choices:
             self._validate_required_choices(cleaned, package_required_choices[room_type])
             pizza_total = sum(
                 cleaned.get(f"triple_pizza_{index}_qty") or 0

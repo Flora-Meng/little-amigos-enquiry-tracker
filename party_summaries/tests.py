@@ -233,7 +233,10 @@ class PartySummaryTests(TestCase):
         response = self.client.get(reverse("party_summary_create"))
         choices = dict(response.context["form"].fields["package_name"].choices)
         self.assertEqual(choices[PartySummary.Package.CLASSIC_WEEKDAY], "Classic Weekday $599")
-        self.assertEqual(choices[PartySummary.Package.DOUBLE_WEEKDAY], "Double Weekday $1,099")
+        self.assertEqual(choices[PartySummary.Package.DOUBLE_LITE_WEEKDAY], "Double Lite Weekday $1,099")
+        self.assertEqual(choices[PartySummary.Package.DOUBLE_LITE_WEEKEND], "Double Lite Weekend $1,299")
+        self.assertEqual(choices[PartySummary.Package.DOUBLE_WEEKDAY], "Double Weekday $1,280")
+        self.assertEqual(choices[PartySummary.Package.DOUBLE_WEEKEND], "Double Weekend $1,580")
         self.assertEqual(choices[PartySummary.Package.PRIVATE_WEEKEND_3HOUR], "Private Weekend 3 hour $2,699")
         self.assertNotIn(PartySummary.Package.TRIPLE_WEEKDAY, choices)
 
@@ -241,13 +244,23 @@ class PartySummaryTests(TestCase):
         self.client.force_login(self.emma)
         data = self._post_data()
         data.pop("location")
-        data["package_name"] = PartySummary.Package.DOUBLE_WEEKDAY
+        data["package_name"] = PartySummary.Package.DOUBLE_LITE_WEEKDAY
         data["package_amount"] = "0"
         response = self.client.post(reverse("party_summary_create"), data)
         self.assertRedirects(response, reverse("party_summary_list"))
         summary = PartySummary.objects.get()
         self.assertEqual(summary.location, self.canberra)
         self.assertEqual(summary.package_amount, Decimal("1099.00"))
+
+    def test_canberra_double_room_uses_full_double_price(self):
+        self.client.force_login(self.emma)
+        data = self._post_data()
+        data.pop("location")
+        data["package_name"] = PartySummary.Package.DOUBLE_WEEKDAY
+        data["package_amount"] = "0"
+        response = self.client.post(reverse("party_summary_create"), data)
+        self.assertRedirects(response, reverse("party_summary_list"))
+        self.assertEqual(PartySummary.objects.get().package_amount, Decimal("1280.00"))
 
     def test_refillable_water_notes_are_cleared_but_soft_drink_notes_are_kept(self):
         self.client.force_login(self.flora)
@@ -384,6 +397,30 @@ class PartySummaryTests(TestCase):
         room_values = [value for value, _label in response.context["form"].fields["room_type"].choices]
         self.assertEqual(len(room_values), 4)
         self.assertIn(PartySummary.RoomType.TRIPLE, room_values)
+
+    def test_canberra_customer_menu_uses_adult_food_voucher_catalog(self):
+        summary = self._create_summary(location=self.canberra, user=self.emma)
+        response = self.client.get(reverse("customer_menu", args=(summary.customer_menu_token,)))
+        self.assertContains(response, "Your package includes a $100 food voucher")
+        self.assertContains(response, "Adult food order total")
+        self.assertContains(response, "Balance after voucher")
+        self.assertContains(response, "Mixed fryer platter (assorted)")
+        self.assertNotContains(response, "All food choices in this section are included in the package")
+        self.assertNotContains(response, 'name="triple_fryer"', html=False)
+
+    def test_canberra_customer_food_balance_deducts_voucher(self):
+        summary = self._create_summary(location=self.canberra, user=self.emma)
+        response = self.client.post(
+            reverse("customer_menu", args=(summary.customer_menu_token,)),
+            self._customer_menu_data(),
+        )
+        self.assertRedirects(response, reverse("customer_menu_thanks", args=(summary.customer_menu_token,)))
+        summary.refresh_from_db()
+        self.assertFalse(summary.menu_items.filter(category="adult").exists())
+        self.assertEqual(summary.extra_food_total, Decimal("270.00"))
+        self.assertEqual(summary.food_voucher_amount, Decimal("100.00"))
+        self.assertEqual(summary.extra_food_balance, Decimal("170.00"))
+        self.assertEqual(summary.total_balance, Decimal("969.00"))
 
     def test_customer_menu_is_read_only_within_72_hours_of_party(self):
         summary = self._create_summary()
