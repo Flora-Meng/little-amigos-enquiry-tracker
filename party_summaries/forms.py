@@ -26,8 +26,8 @@ KIDS_FOOD_TAGS = {
     "Yogurt berries smoothie": (("vegetarian", "Vegetarian"),),
 }
 ADULT_FRYER_CHOICES = (
-    ("Mixed Fryer platter", "Mixed Fryer platter"),
-    ("Vege Fryer Platter", "Vege Fryer Platter"),
+    ("Mixed Fryer platter", "Mixed Fryer platter (spring rolls, karaage chicken, coconut crumbed prawn, fish fingers, wedges)"),
+    ("Vege Fryer Platter", "Vege Fryer Platter (chips, sweet potato chips, wedges, spring rolls)"),
 )
 ADULT_STARTER_CHOICES = (
     ("Mini Burger sliders - 10pcs (Pork)", "Mini Burger sliders - 10pcs (Pork)"),
@@ -175,6 +175,22 @@ class PartySummaryForm(forms.ModelForm):
         if location is None:
             location = Location.objects.filter(code=Location.Code.SOUTHLAND).first()
         self.package_location_code = location.code if location else Location.Code.SOUTHLAND
+        if self.package_location_code == Location.Code.CANBERRA:
+            self.fields["room_type"].choices = (
+                (PartySummary.RoomType.SINGLE, "Single room"),
+                (PartySummary.RoomType.DOUBLE_LITE, "Double room Lite"),
+                (PartySummary.RoomType.DOUBLE, "Double room"),
+                (PartySummary.RoomType.PRIVATE_2HOUR, "Private 2 hour"),
+                (PartySummary.RoomType.PRIVATE_3HOUR, "Private 3 hour"),
+            )
+        else:
+            self.fields["room_type"].choices = (
+                (PartySummary.RoomType.SINGLE, PartySummary.RoomType.SINGLE.label),
+                (PartySummary.RoomType.DOUBLE, PartySummary.RoomType.DOUBLE.label),
+                (PartySummary.RoomType.TRIPLE, PartySummary.RoomType.TRIPLE.label),
+                (PartySummary.RoomType.PRIVATE, PartySummary.RoomType.PRIVATE.label),
+                (PartySummary.RoomType.SMALL_GATHERING, PartySummary.RoomType.SMALL_GATHERING.label),
+            )
         self.fields["package_name"].choices = [
             ("", "---------"),
             *PartySummary.package_choices_for_location(self.package_location_code),
@@ -235,11 +251,11 @@ class CustomerMenuForm(forms.Form):
         label="Earlier ready time", required=False,
         widget=forms.TimeInput(attrs={"type": "time"}),
     )
-    adult_fryer = forms.ChoiceField(label="Fryer platter - pick one", choices=ADULT_FRYER_CHOICES, required=False)
+    adult_fryer = forms.ChoiceField(label="Fryer platter - pick one", choices=ADULT_FRYER_CHOICES, required=False, widget=forms.RadioSelect)
     adult_food_avoid = forms.CharField(label="Food to avoid", required=False, max_length=250)
-    adult_starter = forms.ChoiceField(label="Burger or sandwiches - pick one", choices=ADULT_STARTER_CHOICES, required=False)
-    adult_main = forms.ChoiceField(label="Taco platter or four pizzas - pick one", choices=ADULT_MAIN_CHOICES, required=False)
-    adult_pasta = forms.ChoiceField(label="Pasta or salad - pick one", choices=ADULT_PASTA_CHOICES, required=False)
+    adult_starter = forms.ChoiceField(label="Burger or sandwiches - pick one", choices=ADULT_STARTER_CHOICES, required=False, widget=forms.RadioSelect)
+    adult_main = forms.ChoiceField(label="Taco platter or four pizzas - pick one", choices=ADULT_MAIN_CHOICES, required=False, widget=forms.RadioSelect)
+    adult_pasta = forms.ChoiceField(label="Pasta or salad - pick one", choices=ADULT_PASTA_CHOICES, required=False, widget=forms.RadioSelect)
 
     triple_fryer = forms.ChoiceField(label="Mixed fryer platter", choices=TRIPLE_FRYER_CHOICES, required=False, widget=forms.RadioSelect)
     triple_fryer_note = forms.CharField(label="Fryer platter notes", required=False, max_length=500)
@@ -259,18 +275,27 @@ class CustomerMenuForm(forms.Form):
     triple_sushi_note = forms.CharField(label="Sushi notes", required=False, max_length=500)
     private_sandwich = forms.ChoiceField(label="Finger sandwiches", choices=PRIVATE_SANDWICH_CHOICES, required=False, widget=forms.RadioSelect)
     private_sandwich_note = forms.CharField(label="Finger sandwiches notes", required=False, max_length=500)
-    triple_drinks_note = forms.CharField(label="Drinks and water notes", required=False, max_length=500)
+    triple_drinks_note = forms.CharField(label="Soft drinks / juice notes", required=False, max_length=500)
 
     def __init__(self, *args, **kwargs):
         venue_code = kwargs.pop("venue_code", None)
         super().__init__(*args, **kwargs)
         self.is_canberra = venue_code == Location.Code.CANBERRA
-        self.fields["room_type"].choices = (
-            (PartySummary.RoomType.SINGLE, "Essential (single room)"),
-            (PartySummary.RoomType.DOUBLE, "Signature (double room)"),
-            (PartySummary.RoomType.TRIPLE, "Ultimate (triple room)"),
-            (PartySummary.RoomType.PRIVATE, "Private (whole venue hire)"),
-        )
+        if self.is_canberra:
+            self.fields["room_type"].choices = (
+                (PartySummary.RoomType.SINGLE, "Single room"),
+                (PartySummary.RoomType.DOUBLE_LITE, "Double room Lite"),
+                (PartySummary.RoomType.DOUBLE, "Double room"),
+                (PartySummary.RoomType.PRIVATE_2HOUR, "Private 2 hour"),
+                (PartySummary.RoomType.PRIVATE_3HOUR, "Private 3 hour"),
+            )
+        else:
+            self.fields["room_type"].choices = (
+                (PartySummary.RoomType.SINGLE, "Essential (single room)"),
+                (PartySummary.RoomType.DOUBLE, "Signature (double room)"),
+                (PartySummary.RoomType.TRIPLE, "Ultimate (triple room)"),
+                (PartySummary.RoomType.PRIVATE, "Private (whole venue hire)"),
+            )
         note_fields = [name for name in self.fields if name.endswith("_note")]
         for name in note_fields:
             self.fields[name].widget.attrs.update({"placeholder": "Optional notes", "class": "menu-note-input"})
@@ -279,7 +304,10 @@ class CustomerMenuForm(forms.Form):
                 label=f"{label} pizzas", min_value=0, max_value=4, required=False,
                 widget=forms.NumberInput(attrs={"inputmode": "numeric", "min": 0, "max": 4}),
             )
-        for prefix, choices in (("kids_hot", KIDS_HOT_FOOD_CHOICES),):
+        for prefix, choices in (
+            ("kids_hot", KIDS_HOT_FOOD_CHOICES),
+            ("kids_dessert", KIDS_DESSERT_CHOICES),
+        ):
             for index, (_value, label) in enumerate(choices):
                 self.fields[f"{prefix}_{index}_selected"] = forms.BooleanField(label=label, required=False)
                 self.fields[f"{prefix}_{index}_qty"] = forms.IntegerField(
@@ -294,7 +322,10 @@ class CustomerMenuForm(forms.Form):
             )
 
         # Disabled fields are not submitted, but saved selections must remain editable on GET.
-        for prefix, choices in (("kids_hot", KIDS_HOT_FOOD_CHOICES),):
+        for prefix, choices in (
+            ("kids_hot", KIDS_HOT_FOOD_CHOICES),
+            ("kids_dessert", KIDS_DESSERT_CHOICES),
+        ):
             for index, _choice in enumerate(choices):
                 if self.initial.get(f"{prefix}_{index}_selected") or self.data.get(f"{prefix}_{index}_selected"):
                     self.fields[f"{prefix}_{index}_qty"].widget.attrs.pop("disabled", None)
@@ -316,6 +347,10 @@ class CustomerMenuForm(forms.Form):
     @property
     def kids_hot_rows(self):
         return self._rows("kids_hot", KIDS_HOT_FOOD_CHOICES)
+
+    @property
+    def kids_dessert_rows(self):
+        return self._rows("kids_dessert", KIDS_DESSERT_CHOICES)
 
     @property
     def extra_rows(self):
@@ -354,6 +389,8 @@ class CustomerMenuForm(forms.Form):
         kids_count = cleaned.get("kids_count")
         if kids_count:
             self._validate_checkbox_group(cleaned, "kids_hot", KIDS_HOT_FOOD_CHOICES, kids_count, "hot food")
+            if self.is_canberra:
+                self._validate_checkbox_group(cleaned, "kids_dessert", KIDS_DESSERT_CHOICES, kids_count, "dessert")
         room_type = cleaned.get("room_type")
         package_required_choices = {
             PartySummary.RoomType.SINGLE: ("triple_fryer",),
@@ -369,7 +406,11 @@ class CustomerMenuForm(forms.Form):
                 "triple_pasta", "private_sandwich", "triple_toast", "triple_sushi",
             ),
         }
-        if not self.is_canberra and room_type in package_required_choices:
+        if self.is_canberra and room_type == PartySummary.RoomType.DOUBLE:
+            self._validate_required_choices(
+                cleaned, ("adult_fryer", "adult_starter", "adult_main", "adult_pasta"),
+            )
+        elif not self.is_canberra and room_type in package_required_choices:
             self._validate_required_choices(cleaned, package_required_choices[room_type])
             pizza_total = sum(
                 cleaned.get(f"triple_pizza_{index}_qty") or 0

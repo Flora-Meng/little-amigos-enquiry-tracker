@@ -10,9 +10,12 @@ from accounts.models import Location
 class PartySummary(models.Model):
     class RoomType(models.TextChoices):
         SINGLE = "single", "Single"
+        DOUBLE_LITE = "double_lite", "Double room Lite"
         DOUBLE = "double", "Double"
         TRIPLE = "triple", "Triple"
         PRIVATE = "private", "Private"
+        PRIVATE_2HOUR = "private_2hour", "Private 2 hour"
+        PRIVATE_3HOUR = "private_3hour", "Private 3 hour"
         SMALL_GATHERING = "small_gathering", "Small gathering"
 
     class Gender(models.TextChoices):
@@ -135,7 +138,12 @@ class PartySummary(models.Model):
     @property
     def food_voucher_amount(self):
         if self.location.code == Location.Code.CANBERRA:
-            return Decimal("100.00")
+            return {
+                self.RoomType.SINGLE: Decimal("100.00"),
+                self.RoomType.DOUBLE_LITE: Decimal("180.00"),
+                self.RoomType.PRIVATE_2HOUR: Decimal("400.00"),
+                self.RoomType.PRIVATE_3HOUR: Decimal("400.00"),
+            }.get(self.room_type, Decimal("0.00"))
         return Decimal("0.00")
 
     @property

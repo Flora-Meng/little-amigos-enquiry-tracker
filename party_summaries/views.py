@@ -23,6 +23,7 @@ from .forms import (
     ADULT_PASTA_CHOICES,
     ADULT_STARTER_CHOICES,
     EXTRA_MENU_OPTIONS,
+    KIDS_DESSERT_CHOICES,
     KIDS_HOT_FOOD_CHOICES,
     PRIVATE_SANDWICH_CHOICES,
     TRIPLE_BURGER_CHOICES,
@@ -155,9 +156,26 @@ def _form_context(form, formsets, summary=None, request=None):
             {"value": str(value), "label": label, "price": str(prices[value])}
             for value, label in PartySummary.package_choices_for_location(location_code)
         ]
+    room_catalog = {
+        str(Location.Code.SOUTHLAND): [
+            {"value": str(PartySummary.RoomType.SINGLE), "label": "Single"},
+            {"value": str(PartySummary.RoomType.DOUBLE), "label": "Double"},
+            {"value": str(PartySummary.RoomType.TRIPLE), "label": "Triple"},
+            {"value": str(PartySummary.RoomType.PRIVATE), "label": "Private"},
+            {"value": str(PartySummary.RoomType.SMALL_GATHERING), "label": "Small gathering"},
+        ],
+        str(Location.Code.CANBERRA): [
+            {"value": str(PartySummary.RoomType.SINGLE), "label": "Single room"},
+            {"value": str(PartySummary.RoomType.DOUBLE_LITE), "label": "Double room Lite"},
+            {"value": str(PartySummary.RoomType.DOUBLE), "label": "Double room"},
+            {"value": str(PartySummary.RoomType.PRIVATE_2HOUR), "label": "Private 2 hour"},
+            {"value": str(PartySummary.RoomType.PRIVATE_3HOUR), "label": "Private 3 hour"},
+        ],
+    }
     context = {"form": form, "summary": summary, **formsets, "adult_menu_options": ADULT_MENU_OPTIONS,
         "kids_menu_options": KIDS_MENU_OPTIONS,
         "package_catalog": package_catalog,
+        "room_catalog": room_catalog,
         "location_codes": {str(location.id): location.code for location in Location.objects.all()},
         "default_package_location": getattr(form, "package_location_code", Location.Code.SOUTHLAND)}
     if summary is not None and request is not None:
@@ -222,17 +240,29 @@ def _choice_values(choices):
 
 
 def _customer_menu_initial(summary):
+    if summary.location.code == Location.Code.CANBERRA:
+        valid_room_types = {
+            PartySummary.RoomType.SINGLE,
+            PartySummary.RoomType.DOUBLE_LITE,
+            PartySummary.RoomType.DOUBLE,
+            PartySummary.RoomType.PRIVATE_2HOUR,
+            PartySummary.RoomType.PRIVATE_3HOUR,
+        }
+        default_room_type = PartySummary.RoomType.SINGLE
+    else:
+        valid_room_types = {
+            PartySummary.RoomType.SINGLE,
+            PartySummary.RoomType.DOUBLE,
+            PartySummary.RoomType.TRIPLE,
+            PartySummary.RoomType.PRIVATE,
+        }
+        default_room_type = PartySummary.RoomType.DOUBLE
     initial = {
         "party_date": summary.party_date,
         "party_time": summary.party_time,
         "owner_name": summary.owner_name,
         "owner_number": summary.owner_number,
-        "room_type": summary.room_type if summary.room_type in {
-            PartySummary.RoomType.SINGLE,
-            PartySummary.RoomType.DOUBLE,
-            PartySummary.RoomType.TRIPLE,
-            PartySummary.RoomType.PRIVATE,
-        } else PartySummary.RoomType.DOUBLE,
+        "room_type": summary.room_type if summary.room_type in valid_room_types else default_room_type,
         "kids_count": summary.kids_count or 1,
         "adults_count": summary.adults_count,
         "dietary_requirements": summary.dietary_requirements,
@@ -293,7 +323,10 @@ def _customer_menu_initial(summary):
         initial["triple_drinks_note"] = drinks.notes
 
     kids_by_name = {item.item: item for item in kids_items}
-    for prefix, choices in (("kids_hot", KIDS_HOT_FOOD_CHOICES),):
+    for prefix, choices in (
+        ("kids_hot", KIDS_HOT_FOOD_CHOICES),
+        ("kids_dessert", KIDS_DESSERT_CHOICES),
+    ):
         for index, (value, _label) in enumerate(choices):
             item = kids_by_name.get(value)
             if item:
@@ -370,7 +403,30 @@ def _save_customer_menu(summary, cleaned):
 
     rows = []
     room_type = cleaned["room_type"]
-    if summary.location.code != Location.Code.CANBERRA:
+    if summary.location.code == Location.Code.CANBERRA and room_type == PartySummary.RoomType.DOUBLE:
+        adult_items = [
+            ("1 platter (50pcs)", cleaned["adult_fryer"], cleaned.get("adult_food_avoid", "")),
+            ("1 platter", "Seasonal fruit platter", cleaned.get("triple_fruit_note", "")),
+            ("1 platter", cleaned["adult_starter"], ""),
+        ]
+        if cleaned["adult_main"] == "__four_pizzas__":
+            adult_items.extend((
+                ("1", "Pizza (Margherita)", ""),
+                ("1", "Pizza (Pepperoni)", ""),
+                ("1", "Pizza (Vegetarian)", ""),
+                ("1", "Pizza (Cheese)", ""),
+            ))
+        else:
+            adult_items.append(("1 platter (12pcs)", cleaned["adult_main"], ""))
+        adult_items.extend((
+            ("1 bowl", cleaned["adult_pasta"], ""),
+            ("2 jugs", "Soft drinks / juice", cleaned.get("triple_drinks_note", "")),
+            ("1 jug", "Refillable water", ""),
+        ))
+        for position, (quantity, item, notes) in enumerate(adult_items):
+            rows.append(PartyMenuItem(summary=summary, category=PartyMenuItem.Category.ADULT,
+                quantity=quantity, item=item, notes=notes, position=position))
+    elif summary.location.code != Location.Code.CANBERRA:
         adult_items = [
             ("1 platter (50pcs)", cleaned["triple_fryer"], cleaned.get("triple_fryer_note", "")),
             ("1 platter", "Seasonal fruit platter", cleaned.get("triple_fruit_note", "")),
@@ -417,7 +473,10 @@ def _save_customer_menu(summary, cleaned):
                 quantity=quantity, item=item, notes=notes, position=position))
 
     kids_items = []
-    for prefix, choices in (("kids_hot", KIDS_HOT_FOOD_CHOICES),):
+    kids_groups = [("kids_hot", KIDS_HOT_FOOD_CHOICES)]
+    if summary.location.code == Location.Code.CANBERRA:
+        kids_groups.append(("kids_dessert", KIDS_DESSERT_CHOICES))
+    for prefix, choices in kids_groups:
         for index, (item, _label) in enumerate(choices):
             if cleaned.get(f"{prefix}_{index}_selected"):
                 kids_items.append((str(cleaned[f"{prefix}_{index}_qty"]), item))
@@ -426,11 +485,18 @@ def _save_customer_menu(summary, cleaned):
         rows.append(PartyMenuItem(summary=summary, category=PartyMenuItem.Category.KIDS,
             quantity=quantity, item=item, position=position))
 
-    for index, (item, price) in enumerate(EXTRA_MENU_OPTIONS):
-        if cleaned.get(f"extra_{index}_selected"):
-            quantity = cleaned[f"extra_{index}_qty"]
-            rows.append(PartyMenuItem(summary=summary, category=PartyMenuItem.Category.EXTRA,
-                quantity=str(quantity), item=item, amount=Decimal(price) * quantity, position=index))
+    uses_voucher_menu = summary.location.code != Location.Code.CANBERRA or room_type in {
+        PartySummary.RoomType.SINGLE,
+        PartySummary.RoomType.DOUBLE_LITE,
+        PartySummary.RoomType.PRIVATE_2HOUR,
+        PartySummary.RoomType.PRIVATE_3HOUR,
+    }
+    if uses_voucher_menu:
+        for index, (item, price) in enumerate(EXTRA_MENU_OPTIONS):
+            if cleaned.get(f"extra_{index}_selected"):
+                quantity = cleaned[f"extra_{index}_qty"]
+                rows.append(PartyMenuItem(summary=summary, category=PartyMenuItem.Category.EXTRA,
+                    quantity=str(quantity), item=item, amount=Decimal(price) * quantity, position=index))
     summary.menu_items.all().delete()
     PartyMenuItem.objects.bulk_create(rows)
 

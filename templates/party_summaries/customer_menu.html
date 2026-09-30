@@ -56,8 +56,8 @@
     </div>
 
     <section class="customer-menu-card">
-      <div class="customer-section-heading kids-heading"><span>2</span><div><h2>Kids' food</h2><p>Every child receives one hot food and a kids' size drink. Split the hot food between no more than two choices.</p></div></div>
-      <div class="customer-rule-callout"><strong>One hot food per child, plus one kids' size drink.</strong> You have <b data-kids-total>{{ form.kids_count.value|default:0 }}</b> children, so select exactly <b data-kids-total>{{ form.kids_count.value|default:0 }}</b> hot food portions. You may split them between a maximum of two choices.</div>
+      <div class="customer-section-heading kids-heading"><span>2</span><div><h2>Kids' food</h2><p>Every child receives one hot food{% if is_canberra %}, one dessert{% endif %} and a kids' size drink. Split each food category between no more than two choices.</p></div></div>
+      <div class="customer-rule-callout"><strong>One hot food{% if is_canberra %}, one dessert{% endif %} per child, plus one kids' size drink.</strong> You have <b data-kids-total>{{ form.kids_count.value|default:0 }}</b> children, so select exactly <b data-kids-total>{{ form.kids_count.value|default:0 }}</b> {% if is_canberra %}portions in each category{% else %}hot food portions{% endif %}. You may split each category between a maximum of two choices.</div>
       <h3>Hot food</h3>
       <div class="customer-checkbox-choices" data-kids-group="hot food">
         {% for row in form.kids_hot_rows %}
@@ -68,6 +68,18 @@
         {% endfor %}
         <div class="customer-allocation-status" data-allocation-status>Choose up to two options.</div>
       </div>
+      {% if is_canberra %}
+      <h3>Dessert</h3>
+      <div class="customer-checkbox-choices" data-kids-group="dessert">
+        {% for row in form.kids_dessert_rows %}
+        <div class="customer-checkbox-row" data-choice-row>
+          <label class="customer-choice-check">{{ row.selected }}<span>{{ row.label }}{% if row.tags %}<span class="customer-choice-tags">{% for slug, title in row.tags %}<i class="diet-dot {{ slug }}" role="img" aria-label="{{ title }}" title="{{ title }}"></i>{% endfor %}</span>{% endif %}</span></label>
+          <div class="customer-quantity-field"><span>Portions</span>{{ row.quantity }}{% for error in row.selected.errors %}<p class="field-error">{{ error }}</p>{% endfor %}{% for error in row.quantity.errors %}<p class="field-error">{{ error }}</p>{% endfor %}</div>
+        </div>
+        {% endfor %}
+        <div class="customer-allocation-status" data-allocation-status>Choose up to two options.</div>
+      </div>
+      {% endif %}
     </section>
 
     {% if not is_canberra %}<section class="customer-menu-card" data-room-menu="single double triple private">
@@ -95,7 +107,8 @@
     </section>{% endif %}
 
     <section class="customer-menu-card">
-      <div class="customer-section-heading {% if is_canberra %}adult-heading{% else %}extra-heading{% endif %}"><span>{% if is_canberra %}3{% else %}4{% endif %}</span><div><h2>{% if is_canberra %}Adults food{% else %}Extra food add-ons{% endif %}</h2><p>{% if is_canberra %}Your package includes a $100 food voucher for this adult food order. Tick an item and enter the quantity you would like.{% else %}Optional. Tick an item and enter how many you would like. The total updates automatically.{% endif %}</p></div></div>
+      <div class="customer-section-heading {% if is_canberra %}adult-heading{% else %}extra-heading{% endif %}"><span>{% if is_canberra %}3{% else %}4{% endif %}</span><div><h2>{% if is_canberra %}Adults food{% else %}Extra food add-ons{% endif %}</h2>{% if is_canberra %}<p data-canberra-voucher-description>Your package includes a <strong><span data-food-voucher-label>$100</span> food voucher</strong> for this adult food order. Tick an item and enter the quantity you would like.</p><p data-canberra-double-description hidden>All food choices in this section are included in the Double room package. Choose one option from each group.</p>{% else %}<p>Optional. Tick an item and enter how many you would like. The total updates automatically.</p>{% endif %}</div></div>
+      <div{% if is_canberra %} data-canberra-voucher-menu{% endif %}>
       <div class="customer-extra-list">
         {% for group in form.extra_groups %}
         <section class="customer-extra-group">
@@ -115,10 +128,21 @@
       {% if is_canberra %}
       <div class="customer-voucher-summary" aria-live="polite">
         <div><span>Adult food order total</span><strong data-extra-total data-food-order-total>$0.00</strong></div>
-        <div><span>Included food voucher</span><strong>-$100.00</strong></div>
+        <div><span>Included food voucher</span><strong>-<span data-food-voucher-amount>$100.00</span></strong></div>
         <div class="customer-voucher-balance"><span>Balance after voucher</span><strong data-food-balance>$0.00</strong></div>
       </div>
       {% else %}<div class="customer-extra-total"><span>Extra food add-on total</span><strong data-extra-total>$0.00</strong></div>{% endif %}
+      </div>
+      {% if is_canberra %}
+      <div class="triple-menu-list triple-menu-pdf-layout" data-canberra-double-menu hidden>
+        <article class="triple-menu-item triple-menu-wide"><div class="triple-menu-quantity">Pick one</div><div><h3>Fryer platter</h3><p class="triple-pick-rule">Pick one fryer platter</p><div class="triple-radio-field">{{ form.adult_fryer }}{% for error in form.adult_fryer.errors %}<p class="field-error">{{ error }}</p>{% endfor %}</div>{% include "enquiries/_field.html" with field=form.adult_food_avoid %}</div></article>
+        <article class="triple-menu-item triple-menu-wide"><div class="triple-menu-quantity">Included</div><div><h3>Seasonal fruit platter 🥕 🌿</h3><p class="muted">One seasonal fruit platter is included.</p>{% include "enquiries/_field.html" with field=form.triple_fruit_note %}</div></article>
+        <article class="triple-menu-item triple-menu-wide"><div class="triple-menu-quantity">Pick one</div><div><h3>Mini burger sliders or finger sandwiches</h3><p class="triple-pick-rule">Pick one option</p><div class="triple-radio-field triple-radio-columns">{{ form.adult_starter }}{% for error in form.adult_starter.errors %}<p class="field-error">{{ error }}</p>{% endfor %}</div></div></article>
+        <article class="triple-menu-item triple-menu-wide"><div class="triple-menu-quantity">Pick one</div><div><h3>Taco platter or four pizzas</h3><p class="triple-pick-rule">Pick one taco flavour or four pizzas</p><div class="triple-radio-field">{{ form.adult_main }}{% for error in form.adult_main.errors %}<p class="field-error">{{ error }}</p>{% endfor %}</div></div></article>
+        <article class="triple-menu-item triple-menu-wide"><div class="triple-menu-quantity">Pick one</div><div><h3>Pasta or salad bowl</h3><p class="triple-pick-rule">Pick one option</p><div class="triple-radio-field triple-radio-columns">{{ form.adult_pasta }}{% for error in form.adult_pasta.errors %}<p class="field-error">{{ error }}</p>{% endfor %}</div></div></article>
+        <article class="triple-menu-item triple-menu-wide"><div class="triple-menu-quantity">Included</div><div><h3>2 drink jars and 1 water jar</h3><div class="triple-included-row"><span>✓ <b>2</b> jars of drink (juice &amp; soft drinks)</span><span>✓ 1 refillable water jar</span></div>{% include "enquiries/_field.html" with field=form.triple_drinks_note %}</div></article>
+      </div>
+      {% endif %}
     </section>
 
     </fieldset>
@@ -130,14 +154,17 @@
   const kidsInput = document.getElementById('id_kids_count');
   const number = value => Number.parseInt(value || '0', 10) || 0;
   const money = value => value.toLocaleString('en-AU', {style: 'currency', currency: 'AUD'});
-  const foodVoucher = {% if is_canberra %}100{% else %}0{% endif %};
+  const canberraFoodVouchers = {single: 100, double_lite: 180, private_2hour: 400, private_3hour: 400};
 
   const roomType = document.getElementById('id_room_type');
   const packageCapacities = {
     single: {kids: 8, adults: 10, pizzas: 2, drinks: 1},
+    double_lite: {kids: 15, adults: 20, pizzas: 4, drinks: 2},
     double: {kids: 15, adults: 20, pizzas: 4, drinks: 2},
     triple: {kids: 25, adults: 30, pizzas: 4, drinks: 6},
     private: {kids: 35, adults: 40, pizzas: 4, drinks: 8},
+    private_2hour: {kids: 35, adults: 40, pizzas: 4, drinks: 8},
+    private_3hour: {kids: 35, adults: 40, pizzas: 4, drinks: 8},
   };
   function updateRoomMenu() {
     document.querySelectorAll('[data-room-menu]').forEach(section => {
@@ -153,6 +180,20 @@
       card.hidden = !included;
       card.querySelectorAll('input, select, textarea').forEach(input => { input.disabled = !included; });
     });
+    const voucherMenu = document.querySelector('[data-canberra-voucher-menu]');
+    const doubleMenu = document.querySelector('[data-canberra-double-menu]');
+    if (voucherMenu && doubleMenu) {
+      const usesIncludedMenu = roomType.value === 'double';
+      voucherMenu.hidden = usesIncludedMenu;
+      doubleMenu.hidden = !usesIncludedMenu;
+      voucherMenu.querySelectorAll('input, select, textarea').forEach(input => { input.disabled = usesIncludedMenu; });
+      doubleMenu.querySelectorAll('input, select, textarea').forEach(input => { input.disabled = !usesIncludedMenu; });
+      document.querySelector('[data-canberra-voucher-description]').hidden = usesIncludedMenu;
+      document.querySelector('[data-canberra-double-description]').hidden = !usesIncludedMenu;
+      const voucher = canberraFoodVouchers[roomType.value] || 0;
+      document.querySelectorAll('[data-food-voucher-label]').forEach(node => { node.textContent = money(voucher).replace('.00', ''); });
+      document.querySelectorAll('[data-food-voucher-amount]').forEach(node => { node.textContent = money(voucher); });
+    }
   }
   roomType.addEventListener('change', updateRoomMenu);
   updateRoomMenu();
@@ -232,18 +273,22 @@
 
   function updateExtras() {
     let total = 0;
+    const voucherMenu = document.querySelector('[data-canberra-voucher-menu]');
+    const voucherMenuActive = !voucherMenu || !voucherMenu.hidden;
     document.querySelectorAll('[data-extra-row]').forEach(row => {
       const checkbox = row.querySelector('input[type="checkbox"]');
       const quantity = row.querySelector('input[type="number"]');
-      quantity.disabled = !checkbox.checked;
+      checkbox.disabled = !voucherMenuActive;
+      quantity.disabled = !voucherMenuActive || !checkbox.checked;
       row.classList.toggle('choice-selected', checkbox.checked);
-      const subtotal = checkbox.checked ? number(quantity.value) * Number.parseFloat(row.dataset.unitPrice) : 0;
+      const subtotal = voucherMenuActive && checkbox.checked ? number(quantity.value) * Number.parseFloat(row.dataset.unitPrice) : 0;
       row.querySelector('[data-extra-subtotal]').textContent = money(subtotal);
       total += subtotal;
     });
     document.querySelector('[data-extra-total]').textContent = money(total);
     const balance = document.querySelector('[data-food-balance]');
-    if (balance) balance.textContent = money(Math.max(total - foodVoucher, 0));
+    const voucher = canberraFoodVouchers[roomType.value] || 0;
+    if (balance) balance.textContent = money(Math.max(total - voucher, 0));
   }
   document.querySelector('.customer-extra-list').addEventListener('change', event => {
     const row = event.target.closest('[data-extra-row]');
@@ -255,6 +300,7 @@
     updateExtras();
   });
   document.querySelector('.customer-extra-list').addEventListener('input', updateExtras);
+  roomType.addEventListener('change', updateExtras);
   updateExtras();
 })();
 </script>
