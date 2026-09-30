@@ -465,17 +465,45 @@ class PartySummaryTests(TestCase):
             "adult_starter": "Mini Burger sliders - 10pcs (Pork)",
             "adult_main": "__four_pizzas__",
             "adult_pasta": "Chicken Pesto Pasta Bowl",
+            "triple_pizza_0_qty": "2",
+            "triple_pizza_1_qty": "1",
+            "triple_pizza_2_qty": "1",
+            "triple_pizza_3_qty": "0",
             "triple_fruit_note": "No kiwi",
+            "triple_pizza_note": "Cut into small slices",
             "triple_drinks_note": "Coke and juice",
         })
         response = self.client.post(reverse("customer_menu", args=(summary.customer_menu_token,)), data)
         self.assertRedirects(response, reverse("customer_menu_thanks", args=(summary.customer_menu_token,)))
         summary.refresh_from_db()
-        self.assertEqual(summary.menu_items.filter(category="adult", item__startswith="Pizza").count(), 4)
+        pizza_rows = summary.menu_items.filter(category="adult", item__startswith="Pizza")
+        self.assertEqual(pizza_rows.count(), 3)
+        self.assertEqual(sum(int(row.quantity) for row in pizza_rows), 4)
+        self.assertEqual(pizza_rows.first().notes, "Cut into small slices")
         self.assertTrue(summary.menu_items.filter(category="adult", item="Seasonal fruit platter").exists())
         self.assertTrue(summary.menu_items.filter(category="kids", item="Mini cupcakes").exists())
         self.assertTrue(summary.menu_items.filter(category="kids", item="Yogurt berries smoothie").exists())
         self.assertFalse(summary.menu_items.filter(category="extra").exists())
+
+    def test_canberra_double_pizza_flavour_quantities_must_add_up_to_four(self):
+        summary = self._create_summary(location=self.canberra, user=self.emma)
+        data = self._customer_menu_data()
+        data.update({
+            "room_type": PartySummary.RoomType.DOUBLE,
+            "adult_fryer": "Mixed Fryer platter",
+            "adult_starter": "Mini Burger sliders - 10pcs (Pork)",
+            "adult_main": "__four_pizzas__",
+            "adult_pasta": "Chicken Pesto Pasta Bowl",
+            "triple_pizza_0_qty": "1",
+            "triple_pizza_1_qty": "1",
+            "triple_pizza_2_qty": "1",
+            "triple_pizza_3_qty": "0",
+        })
+        response = self.client.post(reverse("customer_menu", args=(summary.customer_menu_token,)), data)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "pizza flavour quantities must add up to 4")
+        summary.refresh_from_db()
+        self.assertIsNone(summary.customer_menu_submitted_at)
 
     def test_customer_menu_is_read_only_within_72_hours_of_party(self):
         summary = self._create_summary()

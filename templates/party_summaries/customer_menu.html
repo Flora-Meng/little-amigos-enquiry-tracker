@@ -138,7 +138,7 @@
         <article class="triple-menu-item triple-menu-wide"><div class="triple-menu-quantity">Pick one</div><div><h3>Fryer platter</h3><p class="triple-pick-rule">Pick one fryer platter</p><div class="triple-radio-field">{{ form.adult_fryer }}{% for error in form.adult_fryer.errors %}<p class="field-error">{{ error }}</p>{% endfor %}</div>{% include "enquiries/_field.html" with field=form.adult_food_avoid %}</div></article>
         <article class="triple-menu-item triple-menu-wide"><div class="triple-menu-quantity">Included</div><div><h3>Seasonal fruit platter 🥕 🌿</h3><p class="muted">One seasonal fruit platter is included.</p>{% include "enquiries/_field.html" with field=form.triple_fruit_note %}</div></article>
         <article class="triple-menu-item triple-menu-wide"><div class="triple-menu-quantity">Pick one</div><div><h3>Mini burger sliders or finger sandwiches</h3><p class="triple-pick-rule">Pick one option</p><div class="triple-radio-field triple-radio-columns">{{ form.adult_starter }}{% for error in form.adult_starter.errors %}<p class="field-error">{{ error }}</p>{% endfor %}</div></div></article>
-        <article class="triple-menu-item triple-menu-wide"><div class="triple-menu-quantity">Pick one</div><div><h3>Taco platter or four pizzas</h3><p class="triple-pick-rule">Pick one taco flavour or four pizzas</p><div class="triple-radio-field">{{ form.adult_main }}{% for error in form.adult_main.errors %}<p class="field-error">{{ error }}</p>{% endfor %}</div></div></article>
+        <article class="triple-menu-item triple-menu-wide"><div class="triple-menu-quantity">Pick one</div><div><h3>Taco platter or four pizzas</h3><p class="triple-pick-rule">Pick one taco flavour or choose quantities for four pizzas</p><div class="triple-main-choice-layout" data-canberra-adult-main><div class="triple-main-choice-group"><h4>Taco platter (12 pieces) — pick one flavour</h4>{% for option in form.adult_main %}{% if not forloop.last %}{{ option }}{% endif %}{% endfor %}</div><div class="triple-choice-or">OR</div><div class="triple-main-choice-group"><h4>Four pizzas</h4>{% for option in form.adult_main %}{% if forloop.last %}{{ option }}{% endif %}{% endfor %}</div></div>{% for error in form.adult_main.errors %}<p class="field-error">{{ error }}</p>{% endfor %}<div class="triple-pizza-flavours" data-canberra-pizza-flavours hidden><h4>Choose quantities for 4 pizzas</h4><p class="muted">The four flavour quantities must add up to exactly 4.</p><div class="triple-pizza-grid" data-triple-pizzas>{% for row in form.triple_pizza_rows %}<div class="triple-pizza-choice"><label>{{ row.label }}{% if row.label == "Vegetarian" %} <i class="diet-dot vegetarian" role="img" aria-label="Vegetarian"></i>{% endif %}</label>{{ row.quantity }}{% for error in row.quantity.errors %}<p class="field-error">{{ error }}</p>{% endfor %}</div>{% endfor %}</div><div class="customer-allocation-status" data-pizza-status></div>{% include "enquiries/_field.html" with field=form.triple_pizza_note %}</div></div></article>
         <article class="triple-menu-item triple-menu-wide"><div class="triple-menu-quantity">Pick one</div><div><h3>Pasta or salad bowl</h3><p class="triple-pick-rule">Pick one option</p><div class="triple-radio-field triple-radio-columns">{{ form.adult_pasta }}{% for error in form.adult_pasta.errors %}<p class="field-error">{{ error }}</p>{% endfor %}</div></div></article>
         <article class="triple-menu-item triple-menu-wide"><div class="triple-menu-quantity">Included</div><div><h3>2 drink jars and 1 water jar</h3><div class="triple-included-row"><span>✓ <b>2</b> jars of drink (juice &amp; soft drinks)</span><span>✓ 1 refillable water jar</span></div>{% include "enquiries/_field.html" with field=form.triple_drinks_note %}</div></article>
       </div>
@@ -225,6 +225,21 @@
   roomType.addEventListener('change', updatePizzaTotal);
   pizzaInputs.forEach(input => input.addEventListener('input', updatePizzaTotal));
   updatePizzaTotal();
+
+  const canberraAdultMain = [...document.querySelectorAll('input[name="adult_main"]')];
+  const canberraPizzaFlavours = document.querySelector('[data-canberra-pizza-flavours]');
+  function updateCanberraPizzaChoice() {
+    if (!canberraPizzaFlavours) return;
+    const pizzasSelected = canberraAdultMain.find(input => input.checked)?.value === '__four_pizzas__';
+    canberraPizzaFlavours.hidden = !pizzasSelected;
+    canberraPizzaFlavours.querySelectorAll('input, textarea').forEach(input => {
+      input.disabled = !pizzasSelected || roomType.value !== 'double';
+    });
+    updatePizzaTotal();
+  }
+  canberraAdultMain.forEach(input => input.addEventListener('change', updateCanberraPizzaChoice));
+  roomType.addEventListener('change', updateCanberraPizzaChoice);
+  updateCanberraPizzaChoice();
 
   function updateKidsGroup(group) {
     const rows = [...group.querySelectorAll('[data-choice-row]')];

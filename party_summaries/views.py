@@ -410,12 +410,10 @@ def _save_customer_menu(summary, cleaned):
             ("1 platter", cleaned["adult_starter"], ""),
         ]
         if cleaned["adult_main"] == "__four_pizzas__":
-            adult_items.extend((
-                ("1", "Pizza (Margherita)", ""),
-                ("1", "Pizza (Pepperoni)", ""),
-                ("1", "Pizza (Vegetarian)", ""),
-                ("1", "Pizza (Cheese)", ""),
-            ))
+            for index, (pizza, _label) in enumerate(TRIPLE_PIZZA_CHOICES):
+                quantity = cleaned.get(f"triple_pizza_{index}_qty") or 0
+                if quantity:
+                    adult_items.append((str(quantity), pizza, cleaned.get("triple_pizza_note", "")))
         else:
             adult_items.append(("1 platter (12pcs)", cleaned["adult_main"], ""))
         adult_items.extend((

@@ -410,6 +410,16 @@ class CustomerMenuForm(forms.Form):
             self._validate_required_choices(
                 cleaned, ("adult_fryer", "adult_starter", "adult_main", "adult_pasta"),
             )
+            if cleaned.get("adult_main") == "__four_pizzas__":
+                pizza_total = sum(
+                    cleaned.get(f"triple_pizza_{index}_qty") or 0
+                    for index in range(len(TRIPLE_PIZZA_CHOICES))
+                )
+                if pizza_total != 4:
+                    self.add_error(
+                        None,
+                        f"The pizza flavour quantities must add up to 4. You currently have {pizza_total}.",
+                    )
         elif not self.is_canberra and room_type in package_required_choices:
             self._validate_required_choices(cleaned, package_required_choices[room_type])
             pizza_total = sum(
