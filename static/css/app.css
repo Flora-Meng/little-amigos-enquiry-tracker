@@ -363,6 +363,8 @@ th { color: var(--muted); font-size: .75rem; letter-spacing: .06em; text-transfo
 .customer-extra-total { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-top: 18px; padding: 18px 20px; border-radius: 15px; color: #2f6720; background: #e9f7dc; font-weight: 800; }
 .customer-extra-total strong { font-size: 1.45rem; }
 .customer-voucher-summary { display: grid; gap: 8px; margin-top: 18px; padding: 18px 20px; border-radius: 15px; background: #f0fbf8; }
+.customer-voucher-notes { margin-top: 18px; }
+.staff-voucher-notes { margin: 20px 24px 24px; padding-top: 20px; border-top: 1px solid #e4eadc; }
 .customer-voucher-summary > div { display: flex; align-items: center; justify-content: space-between; gap: 18px; color: #286b62; font-weight: 750; }
 .customer-voucher-summary .customer-voucher-balance { margin-top: 4px; padding-top: 12px; border-top: 1px solid #b9ddd6; color: #174f48; font-size: 1.08rem; }
 .customer-voucher-summary strong { font-size: 1.2rem; }

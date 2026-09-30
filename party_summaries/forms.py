@@ -133,7 +133,7 @@ class PartySummaryForm(forms.ModelForm):
             "location", "party_date", "party_time", "owner_name", "owner_number",
             "food_ready", "room_type", "kids_count", "adults_count", "deposit_method",
             "kids_name", "gender", "age", "theme", "balloon_color", "special_note",
-            "dietary_requirements", "adult_food_avoid",
+            "dietary_requirements", "voucher_menu_notes",
             "deposit_amount", "package_name", "package_amount", "other_charges",
         )
         labels = {
@@ -141,7 +141,7 @@ class PartySummaryForm(forms.ModelForm):
             "food_ready": "Food ready", "kids_count": "Kids", "adults_count": "Adults",
             "deposit_method": "Deposit method", "kids_name": "Kids name", "balloon_color": "Balloon color",
             "special_note": "Special note", "deposit_amount": "Deposit paid", "package_name": "Package",
-            "dietary_requirements": "Dietary requirements", "adult_food_avoid": "Adult food to avoid",
+            "dietary_requirements": "Dietary requirements", "voucher_menu_notes": "Food voucher menu notes",
             "package_amount": "Package price", "other_charges": "Other charges / adjustments",
         }
         widgets = {
@@ -153,7 +153,7 @@ class PartySummaryForm(forms.ModelForm):
             "adults_count": forms.NumberInput(attrs={"min": 0}),
             "special_note": forms.Textarea(attrs={"rows": 4}),
             "dietary_requirements": forms.Textarea(attrs={"rows": 3}),
-            "adult_food_avoid": forms.Textarea(attrs={"rows": 3}),
+            "voucher_menu_notes": forms.Textarea(attrs={"rows": 3}),
             "deposit_amount": forms.NumberInput(attrs={"min": 0, "step": "0.01"}),
             "package_amount": forms.NumberInput(attrs={"min": 0, "step": "0.01"}),
             "other_charges": forms.NumberInput(attrs={"step": "0.01"}),
@@ -253,6 +253,10 @@ class CustomerMenuForm(forms.Form):
     )
     adult_fryer = forms.ChoiceField(label="Fryer platter - pick one", choices=ADULT_FRYER_CHOICES, required=False, widget=forms.RadioSelect)
     adult_food_avoid = forms.CharField(label="Food to avoid", required=False, max_length=250)
+    voucher_menu_notes = forms.CharField(
+        label="Notes", required=False, max_length=1000,
+        widget=forms.Textarea(attrs={"rows": 3, "placeholder": "Add any notes for your adult food order."}),
+    )
     adult_starter = forms.ChoiceField(label="Burger or sandwiches - pick one", choices=ADULT_STARTER_CHOICES, required=False, widget=forms.RadioSelect)
     adult_main = forms.ChoiceField(label="Taco platter or four pizzas - pick one", choices=ADULT_MAIN_CHOICES, required=False, widget=forms.RadioSelect)
     adult_pasta = forms.ChoiceField(label="Pasta or salad - pick one", choices=ADULT_PASTA_CHOICES, required=False, widget=forms.RadioSelect)

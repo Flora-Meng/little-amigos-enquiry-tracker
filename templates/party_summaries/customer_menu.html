@@ -131,6 +131,7 @@
         <div><span>Included food voucher</span><strong>-<span data-food-voucher-amount>$100.00</span></strong></div>
         <div class="customer-voucher-balance"><span>Balance after voucher</span><strong data-food-balance>$0.00</strong></div>
       </div>
+      <div class="customer-voucher-notes">{% include "enquiries/_field.html" with field=form.voucher_menu_notes wide=True %}</div>
       {% else %}<div class="customer-extra-total"><span>Extra food add-on total</span><strong data-extra-total>$0.00</strong></div>{% endif %}
       </div>
       {% if is_canberra %}

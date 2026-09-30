@@ -91,6 +91,7 @@
         {% for row in extra_formset %}<div class="menu-row"><div>{{ row.quantity }}{{ row.quantity.errors }}</div><div>{{ row.item }}{{ row.item.errors }}</div><div>{{ row.notes }}{{ row.notes.errors }}</div><div>{{ row.amount }}{{ row.amount.errors }}</div>{{ row.DELETE.as_hidden }}<button class="menu-delete-button" type="button" aria-label="Delete this extra food row" title="Delete row"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 9v8m4-8v8m4-8v8M5 6h14m-9-3h4l1 3H9l1-3Zm-3 3 1 15h8l1-15"/></svg></button></div>{% endfor %}
       </div>
       <template data-empty-menu="extra"><div class="menu-row"><div>{{ extra_formset.empty_form.quantity }}</div><div>{{ extra_formset.empty_form.item }}</div><div>{{ extra_formset.empty_form.notes }}</div><div>{{ extra_formset.empty_form.amount }}</div>{{ extra_formset.empty_form.DELETE.as_hidden }}<button class="menu-delete-button" type="button" aria-label="Delete this extra food row" title="Delete row"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 9v8m4-8v8m4-8v8M5 6h14m-9-3h4l1 3H9l1-3Zm-3 3 1 15h8l1-15"/></svg></button></div></template>
+      <div class="staff-voucher-notes" id="staff-voucher-notes" hidden>{% include "enquiries/_field.html" with field=form.voucher_menu_notes wide=True %}</div>
     </section>
 
     <div class="party-bottom-grid">
@@ -104,7 +105,6 @@
           {% include "enquiries/_field.html" with field=form.balloon_color %}
           {% include "enquiries/_field.html" with field=form.special_note wide=True %}
           {% include "enquiries/_field.html" with field=form.dietary_requirements wide=True %}
-          {% include "enquiries/_field.html" with field=form.adult_food_avoid wide=True %}
           <div class="field field-wide decoration-upload{% if form.decoration_example_upload.errors %} field-invalid{% endif %}">
             <label for="{{ form.decoration_example_upload.id_for_label }}">Decoration example</label>
             {% if summary.decoration_example %}<img class="decoration-preview" src="{% url 'party_summary_decoration' summary.id %}" alt="Current decoration example"><span class="decoration-file-name">{{ summary.decoration_example_name }}</span>{% endif %}
@@ -174,7 +174,9 @@
     const extra = [...document.querySelectorAll('[data-menu="extra"] input[name$="-amount"]')].reduce((sum, input) => sum + number(input), 0);
     const voucher = activeLocationCode() === 'canberra' ? (canberraFoodVouchers[roomSelect?.value] || 0) : 0;
     const voucherLine = document.getElementById('food-voucher-line');
+    const voucherNotes = document.getElementById('staff-voucher-notes');
     voucherLine.hidden = voucher === 0;
+    if (voucherNotes) voucherNotes.hidden = voucher === 0;
     document.getElementById('food-voucher-total').textContent = '-' + money(voucher);
     document.getElementById('extra-total').textContent = money(extra);
     document.getElementById('balance-total').textContent = money(number(packageAmount) - number(deposit) + Math.max(extra - voucher, 0) + number(other));

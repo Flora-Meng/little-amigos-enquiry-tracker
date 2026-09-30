@@ -425,12 +425,14 @@ class PartySummaryTests(TestCase):
         self.assertContains(response, "Mini cupcakes")
         self.assertContains(response, "Yogurt berries smoothie")
         self.assertContains(response, 'name="kids_dessert_0_selected"', html=False)
+        self.assertContains(response, 'name="voucher_menu_notes"', html=False)
         self.assertNotContains(response, 'name="triple_fryer"', html=False)
 
     def test_canberra_customer_food_balance_deducts_voucher(self):
         summary = self._create_summary(location=self.canberra, user=self.emma)
         data = self._customer_menu_data()
         data["room_type"] = PartySummary.RoomType.SINGLE
+        data["voucher_menu_notes"] = "Please label the vegetarian platters."
         response = self.client.post(
             reverse("customer_menu", args=(summary.customer_menu_token,)),
             data,
@@ -442,6 +444,16 @@ class PartySummaryTests(TestCase):
         self.assertEqual(summary.food_voucher_amount, Decimal("100.00"))
         self.assertEqual(summary.extra_food_balance, Decimal("170.00"))
         self.assertEqual(summary.total_balance, Decimal("969.00"))
+        self.assertEqual(summary.voucher_menu_notes, "Please label the vegetarian platters.")
+
+    def test_staff_form_replaces_adult_food_to_avoid_with_voucher_notes(self):
+        summary = self._create_summary(location=self.canberra, user=self.emma)
+        summary.room_type = PartySummary.RoomType.SINGLE
+        summary.save(update_fields=("room_type",))
+        self.client.force_login(self.emma)
+        response = self.client.get(reverse("party_summary_edit", args=(summary.id,)))
+        self.assertNotContains(response, "Adult food to avoid")
+        self.assertContains(response, "Food voucher menu notes")
 
     def test_canberra_voucher_amount_depends_on_room_type(self):
         summary = self._create_summary(location=self.canberra, user=self.emma)

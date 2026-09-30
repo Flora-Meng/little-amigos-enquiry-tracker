@@ -267,6 +267,7 @@ def _customer_menu_initial(summary):
         "adults_count": summary.adults_count,
         "dietary_requirements": summary.dietary_requirements,
         "adult_food_avoid": summary.adult_food_avoid,
+        "voucher_menu_notes": summary.voucher_menu_notes,
     }
     if summary.food_ready.lower().startswith("ready 30") or summary.food_ready.lower().startswith("30 min"):
         initial["food_ready_choice"] = "after_30"
@@ -381,6 +382,13 @@ def _customer_menu_deadline(summary):
 
 
 def _save_customer_menu(summary, cleaned):
+    room_type = cleaned["room_type"]
+    uses_voucher_menu = summary.location.code == Location.Code.CANBERRA and room_type in {
+        PartySummary.RoomType.SINGLE,
+        PartySummary.RoomType.DOUBLE_LITE,
+        PartySummary.RoomType.PRIVATE_2HOUR,
+        PartySummary.RoomType.PRIVATE_3HOUR,
+    }
     summary.party_date = cleaned["party_date"]
     summary.party_time = cleaned["party_time"]
     summary.owner_name = cleaned["owner_name"]
@@ -390,6 +398,7 @@ def _save_customer_menu(summary, cleaned):
     summary.adults_count = cleaned["adults_count"]
     summary.dietary_requirements = cleaned.get("dietary_requirements", "")
     summary.adult_food_avoid = cleaned.get("adult_food_avoid", "")
+    summary.voucher_menu_notes = cleaned.get("voucher_menu_notes", "") if uses_voucher_menu else ""
     if cleaned["food_ready_choice"] == "after_30":
         summary.food_ready = "Ready 30 minutes after the party starts"
     else:
@@ -397,12 +406,11 @@ def _save_customer_menu(summary, cleaned):
     summary.customer_menu_submitted_at = timezone.now()
     summary.save(update_fields=(
         "party_date", "party_time", "owner_name", "owner_number", "room_type",
-        "kids_count", "adults_count", "dietary_requirements", "adult_food_avoid",
+        "kids_count", "adults_count", "dietary_requirements", "adult_food_avoid", "voucher_menu_notes",
         "food_ready", "customer_menu_submitted_at", "updated_at",
     ))
 
     rows = []
-    room_type = cleaned["room_type"]
     if summary.location.code == Location.Code.CANBERRA and room_type == PartySummary.RoomType.DOUBLE:
         adult_items = [
             ("1 platter (50pcs)", cleaned["adult_fryer"], cleaned.get("adult_food_avoid", "")),
@@ -483,13 +491,7 @@ def _save_customer_menu(summary, cleaned):
         rows.append(PartyMenuItem(summary=summary, category=PartyMenuItem.Category.KIDS,
             quantity=quantity, item=item, position=position))
 
-    uses_voucher_menu = summary.location.code != Location.Code.CANBERRA or room_type in {
-        PartySummary.RoomType.SINGLE,
-        PartySummary.RoomType.DOUBLE_LITE,
-        PartySummary.RoomType.PRIVATE_2HOUR,
-        PartySummary.RoomType.PRIVATE_3HOUR,
-    }
-    if uses_voucher_menu:
+    if summary.location.code != Location.Code.CANBERRA or uses_voucher_menu:
         for index, (item, price) in enumerate(EXTRA_MENU_OPTIONS):
             if cleaned.get(f"extra_{index}_selected"):
                 quantity = cleaned[f"extra_{index}_qty"]

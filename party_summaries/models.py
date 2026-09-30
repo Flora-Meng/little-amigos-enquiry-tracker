@@ -110,6 +110,7 @@ class PartySummary(models.Model):
     customer_menu_submitted_at = models.DateTimeField(null=True, blank=True, editable=False)
     dietary_requirements = models.TextField(blank=True)
     adult_food_avoid = models.TextField(blank=True)
+    voucher_menu_notes = models.TextField(blank=True)
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="created_party_summaries")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
