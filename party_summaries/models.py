@@ -152,8 +152,15 @@ class PartySummary(models.Model):
         return max(self.extra_food_total - self.food_voucher_amount, Decimal("0.00"))
 
     @property
+    def custom_charges_total(self):
+        return self.bill_items.aggregate(total=models.Sum("amount"))["total"] or Decimal("0.00")
+
+    @property
     def total_balance(self):
-        return self.package_amount - self.deposit_amount + self.extra_food_balance + self.other_charges
+        return (
+            self.package_amount - self.deposit_amount + self.extra_food_balance
+            + self.other_charges + self.custom_charges_total
+        )
 
 
 class PartyMenuItem(models.Model):
@@ -174,3 +181,15 @@ class PartyMenuItem(models.Model):
     class Meta:
         db_table = "party_menu_items"
         ordering = ("category", "position", "id")
+
+
+class PartyBillItem(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    summary = models.ForeignKey(PartySummary, on_delete=models.CASCADE, related_name="bill_items")
+    name = models.CharField(max_length=200)
+    amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    position = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        db_table = "party_bill_items"
+        ordering = ("position", "id")

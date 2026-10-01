@@ -38,7 +38,7 @@ from .forms import (
     PartySummaryForm,
     menu_formsets,
 )
-from .models import PartyMenuItem, PartySummary
+from .models import PartyBillItem, PartyMenuItem, PartySummary
 from .pdf import build_party_summary_pdf
 
 
@@ -90,13 +90,14 @@ def _visible_or_404(user, summary_id):
 
 def _menu_initial(summary=None):
     if summary is None:
-        return {"adult": [{"quantity": "2 Jar", "item": "Drink"}, {"quantity": "1 Jar", "item": "Water"}], "kids": [], "extra": []}
-    result = {"adult": [], "kids": [], "extra": []}
+        return {"adult": [{"quantity": "2 Jar", "item": "Drink"}, {"quantity": "1 Jar", "item": "Water"}], "kids": [], "extra": [], "bill": []}
+    result = {"adult": [], "kids": [], "extra": [], "bill": []}
     for item in summary.menu_items.all():
         row = {"quantity": item.quantity, "item": item.item, "notes": item.notes}
         if item.category == PartyMenuItem.Category.EXTRA:
             row["amount"] = item.amount
         result[item.category].append(row)
+    result["bill"] = [{"name": item.name, "amount": item.amount} for item in summary.bill_items.all()]
     return result
 
 
@@ -116,6 +117,19 @@ def _save_menu_items(summary, formsets):
                 notes=(form.cleaned_data.get("notes") or "").strip(),
                 amount=form.cleaned_data.get("amount") or Decimal("0.00"), position=position))
     PartyMenuItem.objects.bulk_create(rows)
+    summary.bill_items.all().delete()
+    bill_rows = []
+    for position, form in enumerate(formsets["bill_formset"]):
+        if not form.cleaned_data or form.cleaned_data.get("DELETE"):
+            continue
+        name = (form.cleaned_data.get("name") or "").strip()
+        if not name:
+            continue
+        bill_rows.append(PartyBillItem(
+            summary=summary, name=name,
+            amount=form.cleaned_data.get("amount") or Decimal("0.00"), position=position,
+        ))
+    PartyBillItem.objects.bulk_create(bill_rows)
 
 
 def _save_decoration_example(summary, form):

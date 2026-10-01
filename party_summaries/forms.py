@@ -496,17 +496,38 @@ class ExtraMenuItemForm(StandardMenuItemForm):
         widget=forms.NumberInput(attrs={"placeholder": "$0.00", "min": 0, "step": "0.01"}))
 
 
+class BillItemForm(forms.Form):
+    name = forms.CharField(required=False, max_length=200,
+        widget=forms.TextInput(attrs={"placeholder": "Charge name"}))
+    amount = forms.DecimalField(required=False, min_value=0, max_digits=10, decimal_places=2,
+        widget=forms.NumberInput(attrs={"placeholder": "$0.00", "min": 0, "step": "0.01"}))
+
+    def clean(self):
+        cleaned = super().clean()
+        name = (cleaned.get("name") or "").strip()
+        amount = cleaned.get("amount")
+        if amount is not None and not name:
+            self.add_error("name", "Enter a name for this charge.")
+        if name and amount is None:
+            self.add_error("amount", "Enter the price for this charge.")
+        cleaned["name"] = name
+        return cleaned
+
+
 def menu_formsets(*, data=None, initial=None, editing=False):
     initial = initial or {}
     adult_initial = initial.get("adult", [])
     kids_initial = initial.get("kids", [])
     extra_initial = initial.get("extra", [])
+    bill_initial = initial.get("bill", [])
     options = {"can_delete": True, "max_num": 20, "validate_max": True}
     AdultSet = formset_factory(StandardMenuItemForm, extra=1 if editing else max(0, 8 - len(adult_initial)), **options)
     KidsSet = formset_factory(StandardMenuItemForm, extra=1 if editing else max(0, 3 - len(kids_initial)), **options)
     ExtraSet = formset_factory(ExtraMenuItemForm, extra=1 if editing else max(0, 5 - len(extra_initial)), **options)
+    BillSet = formset_factory(BillItemForm, extra=1, **options)
     return {
         "adult_formset": AdultSet(data, prefix="adult", initial=adult_initial),
         "kids_formset": KidsSet(data, prefix="kids", initial=kids_initial),
         "extra_formset": ExtraSet(data, prefix="extra", initial=extra_initial),
+        "bill_formset": BillSet(data, prefix="bill", initial=bill_initial),
     }

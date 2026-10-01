@@ -71,6 +71,7 @@ def _jpeg_dimensions(data):
 
 def _build_fallback_pdf(summary):
     menu_items = list(summary.menu_items.all())
+    bill_items = list(summary.bill_items.all())
     sections = [
         ("PARTY DETAILS", [
             f"Date: {summary.party_date:%d %B %Y}    Party time: {summary.party_time}    Food ready: {summary.food_ready}",
@@ -90,6 +91,7 @@ def _build_fallback_pdf(summary):
         ("BILL", [
             f"Deposit paid: -${summary.deposit_amount:,.2f}    Package: {summary.get_package_name_display()} ${summary.package_amount:,.2f}",
             f"Extra food: ${summary.extra_food_total:,.2f}    Food voucher: -${summary.food_voucher_amount:,.2f}    Other charges: ${summary.other_charges:,.2f}",
+            *[f"{item.name}: ${item.amount:,.2f}" for item in bill_items],
             f"TOTAL BALANCE: ${summary.total_balance:,.2f}",
         ]),
     ]
@@ -302,6 +304,7 @@ def build_party_summary_pdf(summary):
     ]
     if summary.food_voucher_amount:
         bill_lines.append(("Food voucher", -summary.food_voucher_amount))
+    bill_lines.extend((item.name, item.amount) for item in summary.bill_items.all())
     bill_lines.append(("Other charges", summary.other_charges))
     bill_y = setup_top - 42
     pdf.setFont("Helvetica", 7.5)

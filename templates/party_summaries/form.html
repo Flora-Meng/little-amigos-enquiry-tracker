@@ -27,7 +27,7 @@
 
   <form method="post" enctype="multipart/form-data" class="party-summary-form" novalidate>
     {% csrf_token %}
-    {% if form.errors or adult_formset.errors or kids_formset.errors or extra_formset.errors %}
+    {% if form.errors or adult_formset.errors or kids_formset.errors or extra_formset.errors or bill_formset.errors %}
     <div class="party-save-errors" role="alert">
       <strong>Party summary was not saved. Please check:</strong>
       <ul>
@@ -36,6 +36,7 @@
         {% for row in adult_formset %}{% for field in row %}{% for error in field.errors %}<li><b>Adult menu — {{ field.label }}:</b> {{ error }}</li>{% endfor %}{% endfor %}{% endfor %}
         {% for row in kids_formset %}{% for field in row %}{% for error in field.errors %}<li><b>Kids menu — {{ field.label }}:</b> {{ error }}</li>{% endfor %}{% endfor %}{% endfor %}
         {% for row in extra_formset %}{% for field in row %}{% for error in field.errors %}<li><b>Extra food — {{ field.label }}:</b> {{ error }}</li>{% endfor %}{% endfor %}{% endfor %}
+        {% for row in bill_formset %}{% for field in row %}{% for error in field.errors %}<li><b>Bill item — {{ field.label }}:</b> {{ error }}</li>{% endfor %}{% endfor %}{% endfor %}
       </ul>
     </div>
     {% endif %}
@@ -125,8 +126,20 @@
           {% include "enquiries/_field.html" with field=form.package_name %}
           {% include "enquiries/_field.html" with field=form.package_amount %}
           {% include "enquiries/_field.html" with field=form.other_charges %}
+          <div class="bill-custom-charges">
+            <div class="bill-custom-heading">
+              <div><strong>Additional bill items</strong><small>Add your own charge name and price</small></div>
+              <button class="menu-add-button" id="add-bill-item" type="button" aria-label="Add another bill item"><span aria-hidden="true">+</span> Add charge</button>
+            </div>
+            {{ bill_formset.management_form }}
+            <div class="bill-custom-rows" id="bill-custom-rows">
+              {% for row in bill_formset %}<div class="bill-custom-row" data-bill-row><div>{{ row.name }}{{ row.name.errors }}</div><div>{{ row.amount }}{{ row.amount.errors }}</div>{{ row.DELETE.as_hidden }}<button class="menu-delete-button" type="button" data-delete-bill aria-label="Delete this bill item" title="Delete bill item"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 9v8m4-8v8m4-8v8M5 6h14m-9-3h4l1 3H9l1-3Zm-3 3 1 15h8l1-15"/></svg></button></div>{% endfor %}
+            </div>
+            <template id="empty-bill-item"><div class="bill-custom-row" data-bill-row><div>{{ bill_formset.empty_form.name }}</div><div>{{ bill_formset.empty_form.amount }}</div>{{ bill_formset.empty_form.DELETE.as_hidden }}<button class="menu-delete-button" type="button" data-delete-bill aria-label="Delete this bill item" title="Delete bill item"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 9v8m4-8v8m4-8v8M5 6h14m-9-3h4l1 3H9l1-3Zm-3 3 1 15h8l1-15"/></svg></button></div></template>
+          </div>
           <div class="bill-line"><span>Extra food</span><strong id="extra-total">$0.00</strong></div>
           <div class="bill-line" id="food-voucher-line" hidden><span>Food voucher</span><strong id="food-voucher-total">-$0.00</strong></div>
+          <div class="bill-line"><span>Additional bill items</span><strong id="custom-charges-total">$0.00</strong></div>
           <div class="bill-total"><span>Total balance</span><strong id="balance-total">$0.00</strong></div>
         </div>
       </section>
@@ -175,6 +188,7 @@
   const canberraFoodVouchers = {single: 100, double_lite: 180, private_2hour: 400, private_3hour: 400};
   function calculate() {
     const extra = [...document.querySelectorAll('[data-menu="extra"] input[name$="-amount"]')].reduce((sum, input) => sum + number(input), 0);
+    const customCharges = [...document.querySelectorAll('[data-bill-row]:not(.menu-row-deleted) input[name$="-amount"]')].reduce((sum, input) => sum + number(input), 0);
     const voucher = activeLocationCode() === 'canberra' ? (canberraFoodVouchers[roomSelect?.value] || 0) : 0;
     const voucherLine = document.getElementById('food-voucher-line');
     const voucherNotes = document.getElementById('staff-voucher-notes');
@@ -182,7 +196,8 @@
     if (voucherNotes) voucherNotes.hidden = voucher === 0;
     document.getElementById('food-voucher-total').textContent = '-' + money(voucher);
     document.getElementById('extra-total').textContent = money(extra);
-    document.getElementById('balance-total').textContent = money(number(packageAmount) - number(deposit) + Math.max(extra - voucher, 0) + number(other));
+    document.getElementById('custom-charges-total').textContent = money(customCharges);
+    document.getElementById('balance-total').textContent = money(number(packageAmount) - number(deposit) + Math.max(extra - voucher, 0) + number(other) + customCharges);
   }
   const activeLocationCode = () => locationSelect ? (locationCodes[locationSelect.value] || defaultPackageLocation) : defaultPackageLocation;
   const activePackages = () => packageCatalog[activeLocationCode()] || packageCatalog.southland || [];
@@ -213,6 +228,16 @@
   roomSelect?.addEventListener('change', calculate);
   [packageAmount, deposit, other].forEach(input => input?.addEventListener('input', calculate));
   document.querySelector('[data-menu="extra"]')?.addEventListener('input', calculate);
+  document.getElementById('bill-custom-rows')?.addEventListener('input', calculate);
+  document.getElementById('bill-custom-rows')?.addEventListener('click', event => {
+    const button = event.target.closest('[data-delete-bill]');
+    if (!button) return;
+    const row = button.closest('[data-bill-row]');
+    const deleteInput = row.querySelector('input[name$="-DELETE"]');
+    if (deleteInput) deleteInput.value = 'on';
+    row.classList.add('menu-row-deleted');
+    calculate();
+  });
   document.querySelectorAll('.menu-rows').forEach(container => {
     container.addEventListener('click', event => {
       const button = event.target.closest('.menu-delete-button');
@@ -251,6 +276,15 @@
       updateWaterNotes();
       calculate();
     });
+  });
+  document.getElementById('add-bill-item')?.addEventListener('click', () => {
+    const totalInput = document.getElementById('id_bill-TOTAL_FORMS');
+    const total = Number.parseInt(totalInput.value, 10);
+    if (total >= 20) return;
+    const wrapper = document.createElement('div');
+    wrapper.innerHTML = document.getElementById('empty-bill-item').innerHTML.replaceAll('__prefix__', total).trim();
+    document.getElementById('bill-custom-rows').appendChild(wrapper.firstElementChild);
+    totalInput.value = total + 1;
   });
   const decorationInput = document.getElementById('id_decoration_example_upload');
   decorationInput?.addEventListener('change', async () => {

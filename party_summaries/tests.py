@@ -67,6 +67,7 @@ class PartySummaryTests(TestCase):
         ]))
         data.update(formset_data("kids", [{"quantity": "12", "item": "Nuggets & Chips"}]))
         data.update(formset_data("extra", [{"quantity": "1", "item": "Fruit Platter", "amount": "75.50"}]))
+        data.update(formset_data("bill", []))
         return data
 
     def _create_summary(self, location=None, user=None):
@@ -165,6 +166,22 @@ class PartySummaryTests(TestCase):
         self.assertEqual(summary.menu_items.filter(category="extra").count(), 1)
         self.assertEqual(summary.extra_food_total, Decimal("75.50"))
         self.assertEqual(summary.total_balance, Decimal("894.50"))
+
+    def test_custom_bill_items_are_saved_and_included_in_balance(self):
+        self.client.force_login(self.flora)
+        data = self._post_data()
+        data.update(formset_data("bill", [
+            {"name": "Extra entertainer", "amount": "120.00"},
+            {"name": "Balloon upgrade", "amount": "35.50"},
+        ]))
+        response = self.client.post(reverse("party_summary_create"), data)
+        self.assertRedirects(response, reverse("party_summary_list"))
+        summary = PartySummary.objects.get(owner_name="Rebecca Power")
+        self.assertEqual(list(summary.bill_items.values_list("name", flat=True)), [
+            "Extra entertainer", "Balloon upgrade",
+        ])
+        self.assertEqual(summary.custom_charges_total, Decimal("155.50"))
+        self.assertEqual(summary.total_balance, Decimal("1050.00"))
 
     def test_staff_summary_is_forced_to_their_location(self):
         self.client.force_login(self.kiva)

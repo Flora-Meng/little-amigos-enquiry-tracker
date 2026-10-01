@@ -205,6 +205,14 @@ th { color: var(--muted); font-size: .75rem; letter-spacing: .06em; text-transfo
 .padded-grid > .field { padding: 18px 20px; }
 .bill-fields { display: grid; }
 .bill-fields > .field { padding: 14px 20px; border-bottom: 1px solid #f0ede6; }
+.bill-custom-charges { display: grid; gap: 10px; padding: 16px 20px; border-bottom: 1px solid #f0ede6; }
+.bill-custom-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.bill-custom-heading > div { display: grid; gap: 2px; }
+.bill-custom-heading small { color: var(--muted); font-size: .72rem; }
+.bill-custom-rows { display: grid; gap: 8px; }
+.bill-custom-row { display: grid; grid-template-columns: minmax(0, 1fr) 108px 34px; align-items: start; gap: 8px; }
+.bill-custom-row input[type="text"], .bill-custom-row input[type="number"] { width: 100%; min-height: 42px; padding: 0 10px; border: 1px solid #d7d3ca; border-radius: 10px; color: var(--ink); font: inherit; }
+.bill-custom-row input:focus { outline: 3px solid rgba(246,143,111,.2); border-color: var(--peach); }
 .bill-line, .bill-total { display: flex; justify-content: space-between; align-items: center; gap: 18px; padding: 17px 20px; }
 .bill-line { border-bottom: 1px solid #f0ede6; }
 .bill-line span { color: var(--muted); }
