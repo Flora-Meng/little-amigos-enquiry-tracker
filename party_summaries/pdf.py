@@ -1,4 +1,5 @@
 from io import BytesIO
+from pathlib import Path
 import re
 
 try:
@@ -6,6 +7,8 @@ try:
     from reportlab.lib.pagesizes import A4
     from reportlab.lib.utils import ImageReader
     from reportlab.pdfbase.pdfmetrics import stringWidth
+    from reportlab.pdfbase import pdfmetrics
+    from reportlab.pdfbase.ttfonts import TTFont
     from reportlab.pdfgen import canvas
     REPORTLAB_AVAILABLE = True
 except ImportError:  # Lightweight local fallback until dependencies are installed.
@@ -13,6 +16,8 @@ except ImportError:  # Lightweight local fallback until dependencies are install
     A4 = (595.2756, 841.8898)
     ImageReader = None
     stringWidth = None
+    pdfmetrics = None
+    TTFont = None
     canvas = None
     REPORTLAB_AVAILABLE = False
 
@@ -26,19 +31,66 @@ if REPORTLAB_AVAILABLE:
     BORDER = colors.HexColor("#DED9CF")
     PALE = colors.HexColor("#FCFAF5")
     AQUA = colors.HexColor("#E7F7F3")
+    FONT_DIR = Path(__file__).resolve().parent.parent / "static" / "fonts"
+    UNICODE_FONT = "NotoSansSC"
+    EMOJI_FONT = "NotoEmoji"
+    unicode_font = TTFont(UNICODE_FONT, FONT_DIR / "NotoSansSC.ttf")
+    emoji_font = TTFont(EMOJI_FONT, FONT_DIR / "NotoEmoji.ttf")
+    pdfmetrics.registerFont(unicode_font)
+    pdfmetrics.registerFont(emoji_font)
+    EMOJI_CODEPOINTS = set(emoji_font.face.charToGlyph)
 else:
     PEACH = INK = MUTED = BORDER = PALE = AQUA = None
+    UNICODE_FONT = EMOJI_FONT = None
+    EMOJI_CODEPOINTS = set()
 
 
 def _safe(value):
     return str(value or "").replace("\u2013", "-").replace("\u2014", "-").replace("\u2011", "-")
 
 
+def _font_for_character(character, base_font):
+    codepoint = ord(character)
+    if codepoint in EMOJI_CODEPOINTS and codepoint > 255:
+        return EMOJI_FONT
+    if codepoint > 255:
+        return UNICODE_FONT
+    return base_font
+
+
+def _text_runs(text, base_font="Helvetica"):
+    runs = []
+    for character in _safe(text):
+        font = _font_for_character(character, base_font)
+        if runs and runs[-1][0] == font:
+            runs[-1] = (font, runs[-1][1] + character)
+        else:
+            runs.append((font, character))
+    return runs
+
+
+def _text_width(text, base_font="Helvetica", size=8):
+    return sum(stringWidth(run, font, size) for font, run in _text_runs(text, base_font))
+
+
+def _draw_text(pdf, x, y, text, base_font="Helvetica", size=8):
+    cursor = x
+    for font, run in _text_runs(text, base_font):
+        pdf.setFont(font, size)
+        pdf.drawString(cursor, y, run)
+        cursor += stringWidth(run, font, size)
+    return cursor
+
+
+def _draw_text_right(pdf, right_x, y, text, base_font="Helvetica", size=8):
+    return _draw_text(pdf, right_x - _text_width(text, base_font, size), y, text, base_font, size)
+
+
 def _fit(text, width, font="Helvetica", size=8):
     text = _safe(text)
-    if stringWidth(text, font, size) <= width:
+    if _text_width(text, font, size) <= width:
         return text
-    while text and stringWidth(text + "...", font, size) > width:
+    while text and _text_width(text + "...", font, size) > width:
         text = text[:-1]
     return text.rstrip() + "..."
 
@@ -47,20 +99,38 @@ def _wrap_lines(text, width, font="Helvetica", size=8):
     paragraphs = _safe(text).splitlines() or [""]
     lines = []
     for paragraph in paragraphs:
-        words = paragraph.split()
-        if not words:
+        tokens = []
+        buffer = ""
+        for character in paragraph:
+            codepoint = ord(character)
+            if character.isspace() or codepoint > 255:
+                if buffer:
+                    tokens.append(buffer)
+                    buffer = ""
+                tokens.append(character)
+            else:
+                buffer += character
+        if buffer:
+            tokens.append(buffer)
+        if not tokens:
             lines.append("")
             continue
         line = ""
-        for word in words:
-            candidate = f"{line} {word}".strip()
-            if not line or stringWidth(candidate, font, size) <= width:
+        for token in tokens:
+            candidate = f"{line}{token}"
+            if not line or _text_width(candidate, font, size) <= width:
                 line = candidate
             else:
-                lines.append(line)
-                line = word
+                lines.append(line.rstrip())
+                line = token.lstrip()
+            while line and _text_width(line, font, size) > width:
+                split_at = len(line) - 1
+                while split_at > 1 and _text_width(line[:split_at], font, size) > width:
+                    split_at -= 1
+                lines.append(line[:split_at])
+                line = line[split_at:]
         if line:
-            lines.append(line)
+            lines.append(line.rstrip())
     return lines or [""]
 
 
@@ -193,7 +263,7 @@ def _label_value(pdf, x, y, label, value, width, font_size=9):
     pdf.setFont("Helvetica", font_size)
     pdf.setFillColor(INK)
     for index, line in enumerate(_wrap_lines(value, width, size=font_size)):
-        pdf.drawString(x, y - 11 - index * (font_size + 2), line)
+        _draw_text(pdf, x, y - 11 - index * (font_size + 2), line, size=font_size)
 
 
 def _section_box(pdf, x, top, width, height, title):
@@ -239,7 +309,7 @@ def _menu_column(pdf, x, top, width, height, title, items, show_amount=False):
         pdf.setFillColor(INK)
         pdf.setFont("Helvetica", font_size)
         for index, line in enumerate(item_lines):
-            pdf.drawString(x + qty_width + 5, y - index * (font_size + 2), line)
+            _draw_text(pdf, x + qty_width + 5, y - index * (font_size + 2), line, size=font_size)
         if show_amount:
             pdf.drawRightString(x + width - 8, y, f"${item.amount:,.2f}")
         y -= row_height
@@ -275,7 +345,7 @@ def _kids_menu_column(pdf, x, top, width, height, items, dietary_requirements):
         pdf.setFillColor(INK)
         pdf.setFont("Helvetica", font_size)
         for index, line in enumerate(item_lines):
-            pdf.drawString(x + 49, y - index * (font_size + 2), line)
+            _draw_text(pdf, x + 49, y - index * (font_size + 2), line, size=font_size)
         y -= row_height
     divider_y = top - height + dietary_height
     pdf.setStrokeColor(BORDER)
@@ -293,7 +363,7 @@ def _kids_menu_column(pdf, x, top, width, height, items, dietary_requirements):
             break
     pdf.setFont("Helvetica", dietary_size)
     for index, line in enumerate(dietary_lines):
-        pdf.drawString(x + 10, divider_y - 29 - index * (dietary_size + 3), line)
+        _draw_text(pdf, x + 10, divider_y - 29 - index * (dietary_size + 3), line, size=dietary_size)
 
 
 def _extra_food_column(pdf, x, top, width, height, items, summary):
@@ -328,7 +398,8 @@ def _extra_food_column(pdf, x, top, width, height, items, summary):
         pdf.setFillColor(INK)
         pdf.setFont("Helvetica", font_size)
         for index, line in enumerate(item_lines):
-            pdf.drawString(x + 47, y - index * (font_size + 2), line)
+            _draw_text(pdf, x + 47, y - index * (font_size + 2), line, size=font_size)
+        pdf.setFont("Helvetica", font_size)
         pdf.drawRightString(x + width - 10, y, f"${item.amount:,.2f}")
         y -= row_height
     if not image_data:
@@ -361,7 +432,7 @@ def _extra_food_column(pdf, x, top, width, height, items, summary):
 def _draw_wrapped(pdf, text, x, y, width, font_size=7):
     lines = _wrap_lines(text, width, size=font_size)
     for index, value in enumerate(lines):
-        pdf.drawString(x, y - index * (font_size + 3), value)
+        _draw_text(pdf, x, y - index * (font_size + 3), value, size=font_size)
     return len(lines)
 
 
@@ -383,7 +454,7 @@ def build_party_summary_pdf(summary):
     pdf.setFont("Helvetica-Bold", 20)
     pdf.drawString(margin, height - 50, "Party Summary")
     pdf.setFont("Helvetica-Bold", 10)
-    pdf.drawRightString(width - margin, height - 34, _safe(summary.location.name))
+    _draw_text_right(pdf, width - margin, height - 34, summary.location.name, "Helvetica-Bold", 10)
     pdf.setFont("Helvetica", 8)
     pdf.setFillColor(MUTED)
     pdf.drawRightString(width - margin, height - 49, f"Updated {summary.updated_at:%d %b %Y}")
@@ -490,7 +561,8 @@ def build_party_summary_pdf(summary):
     for label_lines, amount, row_height in prepared_bill_lines:
         pdf.setFillColor(INK)
         for index, line in enumerate(label_lines):
-            pdf.drawString(bill_x + 10, bill_y - index * (bill_font_size + 3), line)
+            _draw_text(pdf, bill_x + 10, bill_y - index * (bill_font_size + 3), line, size=bill_font_size)
+        pdf.setFont("Helvetica", bill_font_size)
         pdf.drawRightString(bill_x + bill_width - 10, bill_y, f"${amount:,.2f}")
         bill_y -= row_height
     pdf.setFillColor(AQUA)

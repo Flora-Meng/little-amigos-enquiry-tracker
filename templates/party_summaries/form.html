@@ -229,15 +229,33 @@
   [packageAmount, deposit, other].forEach(input => input?.addEventListener('input', calculate));
   document.querySelector('[data-menu="extra"]')?.addEventListener('input', calculate);
   document.getElementById('bill-custom-rows')?.addEventListener('input', calculate);
-  document.getElementById('bill-custom-rows')?.addEventListener('click', event => {
-    const button = event.target.closest('[data-delete-bill]');
-    if (!button) return;
+  function deleteBillRow(button) {
     const row = button.closest('[data-bill-row]');
+    if (!row) return;
     const deleteInput = row.querySelector('input[name$="-DELETE"]');
-    if (deleteInput) deleteInput.value = 'on';
+    const nameInput = row.querySelector('input[name$="-name"]');
+    const amountInput = row.querySelector('input[name$="-amount"]');
+    if (deleteInput) {
+      deleteInput.value = 'on';
+      deleteInput.checked = true;
+    }
+    // Blank the visible values as well. The bill formset is rebuilt on save,
+    // so this guarantees a removed row cannot be recreated by stale values.
+    if (nameInput) nameInput.value = '';
+    if (amountInput) amountInput.value = '';
     row.classList.add('menu-row-deleted');
+    row.hidden = true;
     calculate();
-  });
+  }
+  function bindBillDeleteButton(button) {
+    if (button.dataset.deleteBound) return;
+    button.dataset.deleteBound = 'true';
+    button.addEventListener('click', event => {
+      event.preventDefault();
+      deleteBillRow(button);
+    });
+  }
+  document.querySelectorAll('[data-delete-bill]').forEach(bindBillDeleteButton);
   document.querySelectorAll('.menu-rows').forEach(container => {
     container.addEventListener('click', event => {
       const button = event.target.closest('.menu-delete-button');
@@ -283,7 +301,9 @@
     if (total >= 20) return;
     const wrapper = document.createElement('div');
     wrapper.innerHTML = document.getElementById('empty-bill-item').innerHTML.replaceAll('__prefix__', total).trim();
-    document.getElementById('bill-custom-rows').appendChild(wrapper.firstElementChild);
+    const row = wrapper.firstElementChild;
+    document.getElementById('bill-custom-rows').appendChild(row);
+    bindBillDeleteButton(row.querySelector('[data-delete-bill]'));
     totalInput.value = total + 1;
   });
   const decorationInput = document.getElementById('id_decoration_example_upload');

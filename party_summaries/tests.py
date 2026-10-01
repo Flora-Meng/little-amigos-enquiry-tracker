@@ -12,7 +12,7 @@ from django.utils.formats import date_format
 from accounts.models import Location
 
 from .forms import TRIPLE_FRYER_CHOICES
-from .models import PartyMenuItem, PartySummary
+from .models import PartyBillItem, PartyMenuItem, PartySummary
 from .pdf import _numeric_quantity
 
 
@@ -184,6 +184,18 @@ class PartySummaryTests(TestCase):
         self.assertEqual(summary.custom_charges_total, Decimal("155.50"))
         self.assertEqual(summary.total_balance, Decimal("1050.00"))
 
+    def test_deleted_custom_bill_item_is_not_recreated_on_save(self):
+        summary = self._create_summary()
+        PartyBillItem.objects.create(summary=summary, name="Balloon upgrade", amount="35.50")
+        self.client.force_login(self.flora)
+        data = self._post_data()
+        data.update(formset_data("bill", [
+            {"name": "", "amount": "", "DELETE": "on"},
+        ]))
+        response = self.client.post(reverse("party_summary_edit", args=(summary.id,)), data)
+        self.assertRedirects(response, reverse("party_summary_list"))
+        self.assertFalse(summary.bill_items.exists())
+
     def test_staff_summary_is_forced_to_their_location(self):
         self.client.force_login(self.kiva)
         data = self._post_data()
@@ -351,6 +363,17 @@ class PartySummaryTests(TestCase):
         self.assertIn(b"/Count 1", pdf)
         self.client.force_login(self.emma)
         self.assertEqual(self.client.get(reverse("party_summary_pdf", args=(summary.id,))).status_code, 404)
+
+    def test_pdf_embeds_fonts_for_chinese_and_emoji(self):
+        summary = self._create_summary()
+        summary.owner_name = "小明 🎂"
+        summary.dietary_requirements = "不要花生 🥜"
+        summary.save(update_fields=("owner_name", "dietary_requirements"))
+        self.client.force_login(self.flora)
+        response = self.client.get(reverse("party_summary_pdf", args=(summary.id,)))
+        pdf = b"".join(response.streaming_content)
+        self.assertIn(b"NotoSansSC", pdf)
+        self.assertIn(b"NotoEmoji", pdf)
 
     def test_pdf_adult_menu_quantities_only_show_the_number(self):
         self.assertEqual(_numeric_quantity("1 platter"), "1")
