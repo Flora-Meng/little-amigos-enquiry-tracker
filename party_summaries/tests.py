@@ -13,6 +13,7 @@ from accounts.models import Location
 
 from .forms import TRIPLE_FRYER_CHOICES
 from .models import PartyMenuItem, PartySummary
+from .pdf import _numeric_quantity
 
 
 def formset_data(prefix, rows):
@@ -350,6 +351,12 @@ class PartySummaryTests(TestCase):
         self.assertIn(b"/Count 1", pdf)
         self.client.force_login(self.emma)
         self.assertEqual(self.client.get(reverse("party_summary_pdf", args=(summary.id,))).status_code, 404)
+
+    def test_pdf_adult_menu_quantities_only_show_the_number(self):
+        self.assertEqual(_numeric_quantity("1 platter"), "1")
+        self.assertEqual(_numeric_quantity("1 bowl"), "1")
+        self.assertEqual(_numeric_quantity("4 pizzas"), "4")
+        self.assertEqual(_numeric_quantity("6 jugs"), "6")
 
     def test_save_and_download_action_redirects_to_pdf(self):
         self.client.force_login(self.flora)

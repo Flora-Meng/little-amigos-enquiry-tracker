@@ -1,4 +1,5 @@
 from io import BytesIO
+import re
 
 try:
     from reportlab.lib import colors
@@ -61,6 +62,11 @@ def _wrap_lines(text, width, font="Helvetica", size=8):
         if line:
             lines.append(line)
     return lines or [""]
+
+
+def _numeric_quantity(value):
+    match = re.match(r"\s*(\d+(?:\.\d+)?)", _safe(value))
+    return match.group(1) if match else _safe(value)
 
 
 def _pdf_escape(value):
@@ -180,8 +186,8 @@ def _build_fallback_pdf(summary):
     return output
 
 
-def _label_value(pdf, x, y, label, value, width, font_size=8):
-    pdf.setFont("Helvetica-Bold", 6.5)
+def _label_value(pdf, x, y, label, value, width, font_size=9):
+    pdf.setFont("Helvetica-Bold", 7)
     pdf.setFillColor(MUTED)
     pdf.drawString(x, y, label.upper())
     pdf.setFont("Helvetica", font_size)
@@ -199,7 +205,7 @@ def _section_box(pdf, x, top, width, height, title):
     pdf.roundRect(x, top - 24, width, 24, 8, fill=1, stroke=0)
     pdf.rect(x, top - 24, width, 8, fill=1, stroke=0)
     pdf.setFillColor(INK)
-    pdf.setFont("Helvetica-Bold", 9)
+    pdf.setFont("Helvetica-Bold", 10)
     pdf.drawString(x + 10, top - 16, title)
     return bottom
 
@@ -210,12 +216,12 @@ def _menu_column(pdf, x, top, width, height, title, items, show_amount=False):
     amount_width = 42 if show_amount else 0
     item_width = width - qty_width - amount_width - 18
     available_height = height - 34
-    font_size = 8
+    font_size = 10
     prepared = []
-    for candidate_size in (8, 7.5, 7, 6.5, 6, 5.5, 5, 4.5):
+    for candidate_size in (10, 9.5, 9, 8.5, 8, 7.5, 7, 6.5, 6, 5.5, 5, 4.5):
         candidate_rows = []
         for item in items[:20]:
-            quantity_lines = _wrap_lines(item.quantity, qty_width - 4, "Helvetica-Bold", candidate_size)
+            quantity_lines = _wrap_lines(_numeric_quantity(item.quantity), qty_width - 4, "Helvetica-Bold", candidate_size)
             item_text = f"{item.item}\nNotes: {item.notes}" if item.notes else item.item
             item_lines = _wrap_lines(item_text, item_width, size=candidate_size)
             line_count = max(len(quantity_lines), len(item_lines))
@@ -246,9 +252,9 @@ def _kids_menu_column(pdf, x, top, width, height, items, dietary_requirements):
     available_height = max(48, top - 30 - menu_bottom)
     qty_width = 39
     item_width = width - qty_width - 22
-    font_size = 8
+    font_size = 10
     prepared = []
-    for candidate_size in (8, 7.5, 7, 6.5, 6, 5.5, 5, 4.5):
+    for candidate_size in (10, 9.5, 9, 8.5, 8, 7.5, 7, 6.5, 6, 5.5, 5, 4.5):
         candidate_rows = []
         for item in items[:20]:
             quantity_lines = _wrap_lines(item.quantity, qty_width, "Helvetica-Bold", candidate_size)
@@ -275,12 +281,12 @@ def _kids_menu_column(pdf, x, top, width, height, items, dietary_requirements):
     pdf.setStrokeColor(BORDER)
     pdf.line(x + 10, divider_y, x + width - 10, divider_y)
     pdf.setFillColor(MUTED)
-    pdf.setFont("Helvetica-Bold", 6.5)
+    pdf.setFont("Helvetica-Bold", 7)
     pdf.drawString(x + 10, divider_y - 15, "DIETARY REQUIREMENTS")
     pdf.setFillColor(INK)
-    dietary_size = 7.5
+    dietary_size = 9
     dietary_lines = []
-    for candidate_size in (7.5, 7, 6.5, 6, 5.5):
+    for candidate_size in (9, 8.5, 8, 7.5, 7, 6.5, 6, 5.5):
         dietary_lines = _wrap_lines(dietary_requirements or "None advised", width - 20, size=candidate_size)
         dietary_size = candidate_size
         if len(dietary_lines) * (candidate_size + 3) <= dietary_height - 31:
@@ -299,9 +305,9 @@ def _extra_food_column(pdf, x, top, width, height, items, summary):
     qty_width = 32
     amount_width = 44
     item_width = width - qty_width - amount_width - 22
-    font_size = 8
+    font_size = 9.5
     prepared = []
-    for candidate_size in (8, 7.5, 7, 6.5, 6, 5.5, 5, 4.5):
+    for candidate_size in (9.5, 9, 8.5, 8, 7.5, 7, 6.5, 6, 5.5, 5, 4.5):
         candidate_rows = []
         for item in items[:20]:
             quantity_lines = _wrap_lines(item.quantity, qty_width, "Helvetica-Bold", candidate_size)
@@ -331,7 +337,7 @@ def _extra_food_column(pdf, x, top, width, height, items, summary):
     pdf.setStrokeColor(BORDER)
     pdf.line(x + 10, label_y + 10, x + width - 10, label_y + 10)
     pdf.setFillColor(MUTED)
-    pdf.setFont("Helvetica-Bold", 6.5)
+    pdf.setFont("Helvetica-Bold", 7)
     pdf.drawString(x + 10, label_y, "DECORATION EXAMPLE")
     try:
         image = ImageReader(BytesIO(image_data))
@@ -391,8 +397,8 @@ def build_party_summary_pdf(summary):
     col_width = content_width / 3
     detail_row_heights = []
     for row in detail_rows:
-        max_lines = max(len(_wrap_lines(value, col_width - 18, size=8)) for _label, value in row)
-        detail_row_heights.append(max(27, 15 + max_lines * 10))
+        max_lines = max(len(_wrap_lines(value, col_width - 18, size=9)) for _label, value in row)
+        detail_row_heights.append(max(29, 15 + max_lines * 11))
     details_height = 31 + sum(detail_row_heights)
     _section_box(pdf, margin, details_top, content_width, details_height, "Party details")
     detail_y = details_top - 40
@@ -434,10 +440,10 @@ def build_party_summary_pdf(summary):
     setup_rows = [setup_fields[index:index + 2] for index in range(0, len(setup_fields), 2)]
     setup_row_heights = []
     for row in setup_rows:
-        max_lines = max(len(_wrap_lines(value, field_width, size=8)) for _label, value in row)
-        setup_row_heights.append(max(27, 15 + max_lines * 10))
-    special_note_lines = _wrap_lines(summary.special_note, right_width - 20, size=7)
-    special_note_height = 17 + len(special_note_lines) * 10
+        max_lines = max(len(_wrap_lines(value, field_width, size=9)) for _label, value in row)
+        setup_row_heights.append(max(29, 15 + max_lines * 11))
+    special_note_lines = _wrap_lines(summary.special_note, right_width - 20, size=8)
+    special_note_height = 17 + len(special_note_lines) * 11
     setup_height = max(148, 35 + sum(setup_row_heights) + special_note_height)
     _section_box(pdf, right_x, setup_top, right_width, setup_height, "Birthday child & setup")
     for index, (label, value) in enumerate(setup_fields):
@@ -447,11 +453,11 @@ def build_party_summary_pdf(summary):
         _label_value(pdf, right_x + 10 + col * (field_width + 10), row_y, label, value, field_width)
     special_label_y = setup_top - 39 - sum(setup_row_heights)
     pdf.setFillColor(MUTED)
-    pdf.setFont("Helvetica-Bold", 6.5)
+    pdf.setFont("Helvetica-Bold", 7)
     pdf.drawString(right_x + 10, special_label_y, "SPECIAL NOTE")
     pdf.setFillColor(INK)
-    pdf.setFont("Helvetica", 7)
-    _draw_wrapped(pdf, summary.special_note, right_x + 10, special_label_y - 12, right_width - 20)
+    pdf.setFont("Helvetica", 8)
+    _draw_wrapped(pdf, summary.special_note, right_x + 10, special_label_y - 12, right_width - 20, font_size=8)
 
     bill_top = setup_top - setup_height - 10
     bill_height = bill_top - page_bottom
@@ -468,9 +474,9 @@ def build_party_summary_pdf(summary):
     bill_lines.extend((item.name, item.amount) for item in summary.bill_items.all())
     bill_lines.append(("Other charges", summary.other_charges))
     available_bill_height = max(35, bill_height - 80)
-    bill_font_size = 7.5
+    bill_font_size = 9
     prepared_bill_lines = []
-    for candidate_size in (7.5, 7, 6.5, 6, 5.5, 5):
+    for candidate_size in (9, 8.5, 8, 7.5, 7, 6.5, 6, 5.5, 5):
         candidate_lines = []
         for label, amount in bill_lines:
             label_lines = _wrap_lines(label, bill_width - 72, size=candidate_size)
