@@ -109,6 +109,7 @@
     <section class="customer-menu-card">
       <div class="customer-section-heading {% if is_canberra %}adult-heading{% else %}extra-heading{% endif %}"><span>{% if is_canberra %}3{% else %}4{% endif %}</span><div><h2>{% if is_canberra %}Adults food{% else %}Extra food add-ons{% endif %}</h2>{% if is_canberra %}<p data-canberra-voucher-description>Your package includes a <strong><span data-food-voucher-label>$100</span> food voucher</strong> for this adult food order. Tick an item and enter the quantity you would like.</p><p data-canberra-double-description hidden>All food choices in this section are included in the Double room package. Choose one option from each group.</p>{% else %}<p>Optional. Tick an item and enter how many you would like. The total updates automatically.</p>{% endif %}</div></div>
       <div{% if is_canberra %} data-canberra-voucher-menu{% endif %}>
+      {% if is_canberra %}<div class="customer-double-extra-heading" data-canberra-double-extra-heading hidden><h3>Extra food add-ons</h3><p>Optional. Tick an item and enter how many you would like. Extra food is charged at the listed price.</p></div>{% endif %}
       <div class="customer-extra-list">
         {% for group in form.extra_groups %}
         <section class="customer-extra-group">
@@ -126,12 +127,13 @@
         {% endfor %}
       </div>
       {% if is_canberra %}
-      <div class="customer-voucher-summary" aria-live="polite">
+      <div class="customer-voucher-summary" data-canberra-voucher-summary aria-live="polite">
         <div><span>Adult food order total</span><strong data-extra-total data-food-order-total>$0.00</strong></div>
         <div><span>Included food voucher</span><strong>-<span data-food-voucher-amount>$100.00</span></strong></div>
         <div class="customer-voucher-balance"><span>Balance after voucher</span><strong data-food-balance>$0.00</strong></div>
       </div>
-      <div class="customer-voucher-notes">{% include "enquiries/_field.html" with field=form.voucher_menu_notes wide=True %}</div>
+      <div class="customer-voucher-notes" data-canberra-voucher-notes>{% include "enquiries/_field.html" with field=form.voucher_menu_notes wide=True %}</div>
+      <div class="customer-extra-total" data-canberra-double-extra-total hidden><span>Extra food add-on total</span><strong data-extra-total>$0.00</strong></div>
       {% else %}<div class="customer-extra-total"><span>Extra food add-on total</span><strong data-extra-total>$0.00</strong></div>{% endif %}
       </div>
       {% if is_canberra %}
@@ -185,12 +187,16 @@
     const doubleMenu = document.querySelector('[data-canberra-double-menu]');
     if (voucherMenu && doubleMenu) {
       const usesIncludedMenu = roomType.value === 'double';
-      voucherMenu.hidden = usesIncludedMenu;
       doubleMenu.hidden = !usesIncludedMenu;
-      voucherMenu.querySelectorAll('input, select, textarea').forEach(input => { input.disabled = usesIncludedMenu; });
       doubleMenu.querySelectorAll('input, select, textarea').forEach(input => { input.disabled = !usesIncludedMenu; });
       document.querySelector('[data-canberra-voucher-description]').hidden = usesIncludedMenu;
       document.querySelector('[data-canberra-double-description]').hidden = !usesIncludedMenu;
+      document.querySelector('[data-canberra-double-extra-heading]').hidden = !usesIncludedMenu;
+      document.querySelector('[data-canberra-voucher-summary]').hidden = usesIncludedMenu;
+      document.querySelector('[data-canberra-voucher-notes]').hidden = usesIncludedMenu;
+      document.querySelector('[data-canberra-double-extra-total]').hidden = !usesIncludedMenu;
+      if (usesIncludedMenu) doubleMenu.after(voucherMenu);
+      else document.querySelector('.customer-section-heading.adult-heading').after(voucherMenu);
       const voucher = canberraFoodVouchers[roomType.value] || 0;
       document.querySelectorAll('[data-food-voucher-label]').forEach(node => { node.textContent = money(voucher).replace('.00', ''); });
       document.querySelectorAll('[data-food-voucher-amount]').forEach(node => { node.textContent = money(voucher); });
@@ -289,19 +295,17 @@
 
   function updateExtras() {
     let total = 0;
-    const voucherMenu = document.querySelector('[data-canberra-voucher-menu]');
-    const voucherMenuActive = !voucherMenu || !voucherMenu.hidden;
     document.querySelectorAll('[data-extra-row]').forEach(row => {
       const checkbox = row.querySelector('input[type="checkbox"]');
       const quantity = row.querySelector('input[type="number"]');
-      checkbox.disabled = !voucherMenuActive;
-      quantity.disabled = !voucherMenuActive || !checkbox.checked;
+      checkbox.disabled = false;
+      quantity.disabled = !checkbox.checked;
       row.classList.toggle('choice-selected', checkbox.checked);
-      const subtotal = voucherMenuActive && checkbox.checked ? number(quantity.value) * Number.parseFloat(row.dataset.unitPrice) : 0;
+      const subtotal = checkbox.checked ? number(quantity.value) * Number.parseFloat(row.dataset.unitPrice) : 0;
       row.querySelector('[data-extra-subtotal]').textContent = money(subtotal);
       total += subtotal;
     });
-    document.querySelector('[data-extra-total]').textContent = money(total);
+    document.querySelectorAll('[data-extra-total]').forEach(node => { node.textContent = money(total); });
     const balance = document.querySelector('[data-food-balance]');
     const voucher = canberraFoodVouchers[roomType.value] || 0;
     if (balance) balance.textContent = money(Math.max(total - voucher, 0));

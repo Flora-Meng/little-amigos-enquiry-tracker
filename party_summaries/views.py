@@ -491,12 +491,11 @@ def _save_customer_menu(summary, cleaned):
         rows.append(PartyMenuItem(summary=summary, category=PartyMenuItem.Category.KIDS,
             quantity=quantity, item=item, position=position))
 
-    if summary.location.code != Location.Code.CANBERRA or uses_voucher_menu:
-        for index, (item, price) in enumerate(EXTRA_MENU_OPTIONS):
-            if cleaned.get(f"extra_{index}_selected"):
-                quantity = cleaned[f"extra_{index}_qty"]
-                rows.append(PartyMenuItem(summary=summary, category=PartyMenuItem.Category.EXTRA,
-                    quantity=str(quantity), item=item, amount=Decimal(price) * quantity, position=index))
+    for index, (item, price) in enumerate(EXTRA_MENU_OPTIONS):
+        if cleaned.get(f"extra_{index}_selected"):
+            quantity = cleaned[f"extra_{index}_qty"]
+            rows.append(PartyMenuItem(summary=summary, category=PartyMenuItem.Category.EXTRA,
+                quantity=str(quantity), item=item, amount=Decimal(price) * quantity, position=index))
     summary.menu_items.all().delete()
     PartyMenuItem.objects.bulk_create(rows)
 

@@ -152,7 +152,7 @@ class PartySummaryForm(forms.ModelForm):
             "kids_count": forms.NumberInput(attrs={"min": 0}),
             "adults_count": forms.NumberInput(attrs={"min": 0}),
             "special_note": forms.Textarea(attrs={"rows": 4}),
-            "dietary_requirements": forms.Textarea(attrs={"rows": 3}),
+            "dietary_requirements": forms.Textarea(attrs={"rows": 2, "class": "compact-dietary-input"}),
             "voucher_menu_notes": forms.Textarea(attrs={"rows": 3}),
             "deposit_amount": forms.NumberInput(attrs={"min": 0, "step": "0.01"}),
             "package_amount": forms.NumberInput(attrs={"min": 0, "step": "0.01"}),

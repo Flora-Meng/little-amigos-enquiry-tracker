@@ -454,6 +454,9 @@ class PartySummaryTests(TestCase):
         response = self.client.get(reverse("party_summary_edit", args=(summary.id,)))
         self.assertNotContains(response, "Adult food to avoid")
         self.assertContains(response, "Food voucher menu notes")
+        content = response.content.decode()
+        self.assertEqual(content.count('name="dietary_requirements"'), 1)
+        self.assertLess(content.index('name="dietary_requirements"'), content.index("Adult menu"))
 
     def test_canberra_voucher_amount_depends_on_room_type(self):
         summary = self._create_summary(location=self.canberra, user=self.emma)
@@ -495,7 +498,8 @@ class PartySummaryTests(TestCase):
         self.assertTrue(summary.menu_items.filter(category="adult", item="Seasonal fruit platter").exists())
         self.assertTrue(summary.menu_items.filter(category="kids", item="Mini cupcakes").exists())
         self.assertTrue(summary.menu_items.filter(category="kids", item="Yogurt berries smoothie").exists())
-        self.assertFalse(summary.menu_items.filter(category="extra").exists())
+        self.assertEqual(summary.menu_items.filter(category="extra").count(), 2)
+        self.assertEqual(summary.extra_food_total, Decimal("270.00"))
 
     def test_canberra_double_pizza_flavour_quantities_must_add_up_to_four(self):
         summary = self._create_summary(location=self.canberra, user=self.emma)
