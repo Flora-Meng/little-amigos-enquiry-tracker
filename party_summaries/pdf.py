@@ -80,7 +80,10 @@ def _build_fallback_pdf(summary):
             f"Guests: {summary.kids_count} kids / {summary.adults_count} adults    Deposit method: {summary.deposit_method}",
         ]),
         ("ADULT MENU", [f"{item.quantity}  {item.item}{f' - {item.notes}' if item.notes else ''}" for item in menu_items if item.category == PartyMenuItem.Category.ADULT]),
-        ("KIDS MENU - 1 DRINK PER CHILD", [f"{item.quantity}  {item.item}{f' - {item.notes}' if item.notes else ''}" for item in menu_items if item.category == PartyMenuItem.Category.KIDS]),
+        ("KIDS MENU - 1 DRINK PER CHILD", [
+            *[f"{item.quantity}  {item.item}{f' - {item.notes}' if item.notes else ''}" for item in menu_items if item.category == PartyMenuItem.Category.KIDS],
+            f"Dietary requirements: {summary.dietary_requirements or 'None advised'}",
+        ]),
         ("EXTRA FOOD", [f"{item.quantity}  {item.item}{f' - {item.notes}' if item.notes else ''}  ${item.amount:,.2f}" for item in menu_items if item.category == PartyMenuItem.Category.EXTRA]),
         ("BIRTHDAY CHILD & SETUP", [
             f"Kids name: {summary.kids_name}    Gender: {summary.get_gender_display()}    Age: {summary.age}",
@@ -186,7 +189,7 @@ def _menu_column(pdf, x, top, width, height, title, items, show_amount=False):
     font_size = min(8, max(5.5, row_height - 3.5))
     y = top - 34
     for item in items[:20]:
-        qty_width = 32
+        qty_width = 48
         amount_width = 42 if show_amount else 0
         pdf.setFillColor(MUTED)
         pdf.setFont("Helvetica-Bold", font_size)
@@ -199,6 +202,85 @@ def _menu_column(pdf, x, top, width, height, title, items, show_amount=False):
         if show_amount:
             pdf.drawRightString(x + width - 8, y, f"${item.amount:,.2f}")
         y -= row_height
+
+
+def _kids_menu_column(pdf, x, top, width, height, items, dietary_requirements):
+    _section_box(pdf, x, top, width, height, "Kids menu - 1 drink per child")
+    dietary_height = 67
+    menu_bottom = top - height + dietary_height
+    available_height = max(48, top - 30 - menu_bottom)
+    rows = max(len(items), 1)
+    row_height = min(16, max(8, available_height / rows))
+    font_size = min(8.5, max(6, row_height - 4))
+    y = top - 37
+    for item in items[:20]:
+        pdf.setFillColor(MUTED)
+        pdf.setFont("Helvetica-Bold", font_size)
+        pdf.drawString(x + 10, y, _fit(item.quantity, 35, "Helvetica-Bold", font_size))
+        pdf.setFillColor(INK)
+        pdf.setFont("Helvetica", font_size)
+        item_text = f"{item.item} - {item.notes}" if item.notes else item.item
+        pdf.drawString(x + 49, y, _fit(item_text, width - 61, size=font_size))
+        y -= row_height
+    divider_y = top - height + dietary_height
+    pdf.setStrokeColor(BORDER)
+    pdf.line(x + 10, divider_y, x + width - 10, divider_y)
+    pdf.setFillColor(MUTED)
+    pdf.setFont("Helvetica-Bold", 6.5)
+    pdf.drawString(x + 10, divider_y - 15, "DIETARY REQUIREMENTS")
+    pdf.setFillColor(INK)
+    pdf.setFont("Helvetica", 7.5)
+    _draw_wrapped(
+        pdf, dietary_requirements or "None advised", x + 10, divider_y - 29,
+        width - 20, max_lines=3, font_size=7.5,
+    )
+
+
+def _extra_food_column(pdf, x, top, width, height, items, summary):
+    _section_box(pdf, x, top, width, height, "Extra food")
+    image_data = bytes(summary.decoration_example or b"")
+    image_label_height = 18 if image_data else 0
+    image_area_height = min(205, max(0, height * .56)) if image_data else 0
+    menu_area_height = height - 29 - image_area_height - image_label_height
+    rows = max(len(items), 1)
+    row_height = min(15, max(7, menu_area_height / rows))
+    font_size = min(8, max(5.5, row_height - 3.5))
+    y = top - 37
+    for item in items[:20]:
+        pdf.setFillColor(MUTED)
+        pdf.setFont("Helvetica-Bold", font_size)
+        pdf.drawString(x + 10, y, _fit(item.quantity, 32, "Helvetica-Bold", font_size))
+        pdf.setFillColor(INK)
+        pdf.setFont("Helvetica", font_size)
+        item_text = f"{item.item} - {item.notes}" if item.notes else item.item
+        pdf.drawString(x + 47, y, _fit(item_text, width - 105, size=font_size))
+        pdf.drawRightString(x + width - 10, y, f"${item.amount:,.2f}")
+        y -= row_height
+    if not image_data:
+        return
+    label_y = top - height + image_area_height + 7
+    pdf.setStrokeColor(BORDER)
+    pdf.line(x + 10, label_y + 10, x + width - 10, label_y + 10)
+    pdf.setFillColor(MUTED)
+    pdf.setFont("Helvetica-Bold", 6.5)
+    pdf.drawString(x + 10, label_y, "DECORATION EXAMPLE")
+    try:
+        image = ImageReader(BytesIO(image_data))
+        image_width, image_original_height = image.getSize()
+        max_width = width - 20
+        max_height = image_area_height - 14
+        ratio = min(max_width / image_width, max_height / image_original_height)
+        draw_width = image_width * ratio
+        draw_height = image_original_height * ratio
+        pdf.drawImage(
+            image, x + 10, top - height + 10,
+            width=draw_width, height=draw_height,
+            preserveAspectRatio=True, mask="auto",
+        )
+    except Exception:
+        pdf.setFillColor(INK)
+        pdf.setFont("Helvetica", 7)
+        pdf.drawString(x + 10, top - height + image_area_height - 12, "Decoration image could not be rendered.")
 
 
 def _draw_wrapped(pdf, text, x, y, width, max_lines=4, font_size=7):
@@ -264,20 +346,29 @@ def build_party_summary_pdf(summary):
     adult = [item for item in menu_items if item.category == PartyMenuItem.Category.ADULT]
     kids = [item for item in menu_items if item.category == PartyMenuItem.Category.KIDS]
     extra = [item for item in menu_items if item.category == PartyMenuItem.Category.EXTRA]
-    max_rows = max(len(adult), len(kids), len(extra), 1)
-    menu_height = min(250, max(118, 36 + max_rows * 15))
-    menu_top = details_top - details_height - 10
-    gap = 8
-    menu_col_width = (content_width - gap * 2) / 3
-    _menu_column(pdf, margin, menu_top, menu_col_width, menu_height, "Adult menu", adult)
-    _menu_column(pdf, margin + menu_col_width + gap, menu_top, menu_col_width, menu_height, "Kids menu - 1 drink per child", kids)
-    _menu_column(pdf, margin + (menu_col_width + gap) * 2, menu_top, menu_col_width, menu_height, "Extra food", extra, True)
+    columns_top = details_top - details_height - 10
+    gap = 10
+    left_width = content_width * .52
+    right_width = content_width - left_width - gap
+    right_x = margin + left_width + gap
+    page_bottom = 24
 
-    setup_top = menu_top - menu_height - 10
-    setup_height = 154
-    setup_width = content_width * 0.64
-    _section_box(pdf, margin, setup_top, setup_width, setup_height, "Birthday child & setup")
-    field_width = (setup_width - 30) / 2
+    adult_height = 220
+    _menu_column(pdf, margin, columns_top, left_width, adult_height, "Adult menu", adult)
+    extra_top = columns_top - adult_height - 10
+    extra_height = extra_top - page_bottom
+    _extra_food_column(pdf, margin, extra_top, left_width, extra_height, extra, summary)
+
+    kids_height = 248
+    _kids_menu_column(
+        pdf, right_x, columns_top, right_width, kids_height, kids,
+        summary.dietary_requirements,
+    )
+
+    setup_top = columns_top - kids_height - 10
+    setup_height = 148
+    _section_box(pdf, right_x, setup_top, right_width, setup_height, "Birthday child & setup")
+    field_width = (right_width - 30) / 2
     setup_fields = [
         ("Kids name", summary.kids_name), ("Gender", summary.get_gender_display()),
         ("Age", summary.age), ("Theme", summary.theme),
@@ -286,17 +377,19 @@ def build_party_summary_pdf(summary):
     for index, (label, value) in enumerate(setup_fields):
         col = index % 2
         row = index // 2
-        _label_value(pdf, margin + 10 + col * (field_width + 10), setup_top - 39 - row * 27, label, value, field_width)
+        _label_value(pdf, right_x + 10 + col * (field_width + 10), setup_top - 39 - row * 27, label, value, field_width)
     pdf.setFillColor(MUTED)
     pdf.setFont("Helvetica-Bold", 6.5)
-    pdf.drawString(margin + 10, setup_top - 119, "SPECIAL NOTE")
+    pdf.drawString(right_x + 10, setup_top - 116, "SPECIAL NOTE")
     pdf.setFillColor(INK)
     pdf.setFont("Helvetica", 7)
-    _draw_wrapped(pdf, summary.special_note, margin + 10, setup_top - 131, setup_width - 20, max_lines=2)
+    _draw_wrapped(pdf, summary.special_note, right_x + 10, setup_top - 128, right_width - 20, max_lines=2)
 
-    bill_x = margin + setup_width + 10
-    bill_width = content_width - setup_width - 10
-    _section_box(pdf, bill_x, setup_top, bill_width, setup_height, "Bill")
+    bill_top = setup_top - setup_height - 10
+    bill_height = bill_top - page_bottom
+    bill_x = right_x
+    bill_width = right_width
+    _section_box(pdf, bill_x, bill_top, bill_width, bill_height, "Bill")
     bill_lines = [
         ("Deposit paid", -summary.deposit_amount),
         (summary.get_package_name_display(), summary.package_amount),
@@ -306,37 +399,23 @@ def build_party_summary_pdf(summary):
         bill_lines.append(("Food voucher", -summary.food_voucher_amount))
     bill_lines.extend((item.name, item.amount) for item in summary.bill_items.all())
     bill_lines.append(("Other charges", summary.other_charges))
-    bill_y = setup_top - 42
-    pdf.setFont("Helvetica", 7.5)
+    available_bill_height = max(35, bill_height - 80)
+    bill_gap = min(19, max(10, available_bill_height / max(len(bill_lines), 1)))
+    bill_font_size = min(7.5, max(6, bill_gap - 4))
+    bill_y = bill_top - 42
+    pdf.setFont("Helvetica", bill_font_size)
     for label, amount in bill_lines:
         pdf.setFillColor(INK)
-        pdf.drawString(bill_x + 10, bill_y, _fit(label, bill_width - 72, size=7.5))
+        pdf.drawString(bill_x + 10, bill_y, _fit(label, bill_width - 72, size=bill_font_size))
         pdf.drawRightString(bill_x + bill_width - 10, bill_y, f"${amount:,.2f}")
-        bill_y -= 19
+        bill_y -= bill_gap
     pdf.setFillColor(AQUA)
-    pdf.roundRect(bill_x + 8, setup_top - setup_height + 10, bill_width - 16, 35, 6, fill=1, stroke=0)
+    pdf.roundRect(bill_x + 8, bill_top - bill_height + 10, bill_width - 16, 35, 6, fill=1, stroke=0)
     pdf.setFillColor(INK)
     pdf.setFont("Helvetica-Bold", 8)
-    pdf.drawString(bill_x + 16, setup_top - setup_height + 23, "TOTAL BALANCE")
+    pdf.drawString(bill_x + 16, bill_top - bill_height + 23, "TOTAL BALANCE")
     pdf.setFont("Helvetica-Bold", 13)
-    pdf.drawRightString(bill_x + bill_width - 16, setup_top - setup_height + 21, f"${summary.total_balance:,.2f}")
-
-    if summary.decoration_example:
-        image_top = setup_top - setup_height - 8
-        image_height = max(50, image_top - margin)
-        pdf.setFillColor(MUTED)
-        pdf.setFont("Helvetica-Bold", 6.5)
-        pdf.drawString(margin, image_top - 8, "DECORATION EXAMPLE")
-        try:
-            image = ImageReader(BytesIO(bytes(summary.decoration_example)))
-            image_width, image_original_height = image.getSize()
-            ratio = min(content_width / image_width, (image_height - 14) / image_original_height)
-            draw_width = image_width * ratio
-            draw_height = image_original_height * ratio
-            pdf.drawImage(image, margin, margin, width=draw_width, height=draw_height, preserveAspectRatio=True, mask="auto")
-        except Exception:
-            pdf.setFont("Helvetica", 7)
-            pdf.drawString(margin, image_top - 21, "Decoration image could not be rendered.")
+    pdf.drawRightString(bill_x + bill_width - 16, bill_top - bill_height + 21, f"${summary.total_balance:,.2f}")
 
     pdf.setFillColor(MUTED)
     pdf.setFont("Helvetica", 6)
