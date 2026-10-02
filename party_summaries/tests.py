@@ -1,5 +1,8 @@
 from datetime import timedelta
 from decimal import Decimal
+from io import BytesIO
+
+from pypdf import PdfReader
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
@@ -222,6 +225,44 @@ class PartySummaryTests(TestCase):
             with self.subTest(query=query):
                 response = self.client.get(reverse("party_summary_list"), {"search": query})
                 self.assertContains(response, "Rebecca Power")
+
+    def test_party_summary_list_groups_by_week_then_southland_and_canberra(self):
+        monday = timezone.localdate() + timedelta(days=(7 - timezone.localdate().weekday()))
+        southland_first = self._create_summary()
+        southland_first.party_date = monday + timedelta(days=1)
+        southland_first.save(update_fields=("party_date",))
+        southland_second = self._create_summary()
+        southland_second.party_date = monday + timedelta(days=4)
+        southland_second.save(update_fields=("party_date",))
+        canberra = self._create_summary(location=self.canberra, user=self.emma)
+        canberra.party_date = monday + timedelta(days=2)
+        canberra.save(update_fields=("party_date",))
+        self.client.force_login(self.flora)
+        response = self.client.get(reverse("party_summary_list"))
+        self.assertEqual(len(response.context["week_groups"]), 1)
+        week = response.context["week_groups"][0]
+        self.assertEqual(week["start"], monday)
+        self.assertEqual([group["location"].code for group in week["locations"]], [
+            Location.Code.SOUTHLAND, Location.Code.CANBERRA,
+        ])
+        self.assertEqual([len(group["summaries"]) for group in week["locations"]], [2, 1])
+
+    def test_weekly_location_pdf_has_one_page_per_party_and_respects_access(self):
+        monday = timezone.localdate() + timedelta(days=(7 - timezone.localdate().weekday()))
+        for offset in (1, 5):
+            summary = self._create_summary()
+            summary.party_date = monday + timedelta(days=offset)
+            summary.save(update_fields=("party_date",))
+        self._create_summary(location=self.canberra, user=self.emma)
+        url = reverse("party_summary_weekly_pdf", args=(Location.Code.SOUTHLAND, monday.isoformat()))
+        self.client.force_login(self.flora)
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "application/pdf")
+        pdf = b"".join(response.streaming_content)
+        self.assertEqual(len(PdfReader(BytesIO(pdf)).pages), 2)
+        self.client.force_login(self.emma)
+        self.assertEqual(self.client.get(url).status_code, 404)
 
     def test_visible_summary_can_be_updated_and_deleted(self):
         summary = self._create_summary()

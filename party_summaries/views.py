@@ -39,7 +39,7 @@ from .forms import (
     menu_formsets,
 )
 from .models import PartyBillItem, PartyMenuItem, PartySummary
-from .pdf import build_party_summary_pdf
+from .pdf import build_party_summaries_pdf, build_party_summary_pdf
 
 
 ADULT_MENU_OPTIONS = [
@@ -157,9 +157,23 @@ def party_summary_list(request):
             | Q(kids_name__icontains=search) | Q(theme__icontains=search) | Q(location__name__icontains=search))
     if party_date:
         summaries = summaries.filter(party_date=party_date)
-    summaries = summaries.order_by("-party_date", "-updated_at")
-    return render(request, "party_summaries/list.html", {"summaries": summaries,
-        "result_count": summaries.count(), "search": search, "party_date": party_date})
+    summaries = list(summaries.order_by("-party_date", "-updated_at"))
+    weeks = []
+    for summary in summaries:
+        week_start = summary.party_date - timedelta(days=summary.party_date.weekday())
+        if not weeks or weeks[-1]["start"] != week_start:
+            weeks.append({"start": week_start, "end": week_start + timedelta(days=6), "locations": []})
+        locations = weeks[-1]["locations"]
+        location_group = next((group for group in locations if group["location"].id == summary.location_id), None)
+        if location_group is None:
+            location_group = {"location": summary.location, "summaries": []}
+            locations.append(location_group)
+        location_group["summaries"].append(summary)
+    location_order = {Location.Code.SOUTHLAND: 0, Location.Code.CANBERRA: 1}
+    for week in weeks:
+        week["locations"].sort(key=lambda group: location_order.get(group["location"].code, 99))
+    return render(request, "party_summaries/list.html", {"summaries": summaries, "week_groups": weeks,
+        "result_count": len(summaries), "search": search, "party_date": party_date})
 
 
 def _form_context(form, formsets, summary=None, request=None):
@@ -593,3 +607,29 @@ def party_summary_pdf(request, summary_id):
     filename = "".join(character if character.isalnum() or character in "-_" else "-" for character in filename)
     response = FileResponse(pdf_buffer, content_type="application/pdf", as_attachment=True, filename=f"{filename}.pdf")
     return response
+
+
+@login_required
+def party_summary_weekly_pdf(request, location_code, week_start):
+    try:
+        week_start_date = datetime.strptime(week_start, "%Y-%m-%d").date()
+    except ValueError as error:
+        raise Http404 from error
+    if week_start_date.weekday() != 0:
+        raise Http404
+    location = get_object_or_404(Location, code=location_code)
+    summaries = list(
+        summaries_visible_to(request.user)
+        .filter(
+            location=location,
+            party_date__gte=week_start_date,
+            party_date__lte=week_start_date + timedelta(days=6),
+        )
+        .prefetch_related("menu_items", "bill_items")
+        .order_by("party_date", "party_time", "owner_name")
+    )
+    if not summaries:
+        raise Http404
+    pdf_buffer = build_party_summaries_pdf(summaries)
+    filename = f"party-summaries-{location.code}-week-{week_start_date.isoformat()}.pdf"
+    return FileResponse(pdf_buffer, content_type="application/pdf", as_attachment=True, filename=filename)

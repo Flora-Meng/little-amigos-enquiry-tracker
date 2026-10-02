@@ -166,6 +166,19 @@ th { color: var(--muted); font-size: .75rem; letter-spacing: .06em; text-transfo
 .party-filter .filter-search { grid-column: auto; }
 .party-filter .filter-actions { grid-column: auto; grid-row: auto; }
 .party-results { min-height: 260px; }
+.party-week-list { display: grid; gap: 34px; }
+.party-week { display: grid; gap: 16px; }
+.party-week-heading { display: flex; align-items: end; justify-content: space-between; gap: 18px; padding: 0 4px; }
+.party-week-heading .eyebrow { margin: 0 0 4px; }
+.party-week-heading h2 { font-size: 1.45rem; }
+.party-week-heading > span { color: var(--muted); font-size: .82rem; font-weight: 760; }
+.party-location-list { display: grid; gap: 18px; }
+.party-location-group { min-height: 0; }
+.party-location-heading { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 18px 22px; border-bottom: 1px solid var(--border); background: #fcfaf5; }
+.party-location-heading h3 { margin: 0; font-size: 1.08rem; }
+.party-location-heading span { display: block; margin-top: 3px; color: var(--muted); font-size: .78rem; }
+.button-download { min-height: 38px; color: #286b62; background: #ddf4ef; border: 1px solid #a8dbd2; }
+.button-download:hover { color: white; background: #39887c; }
 .table-actions { display: flex; gap: 7px; }
 .party-form-page { width: min(1280px, calc(100% - 48px)); }
 .party-summary-form { display: grid; gap: 22px; }
@@ -457,6 +470,7 @@ th { color: var(--muted); font-size: .75rem; letter-spacing: .06em; text-transfo
   .workflow-grid { grid-template-columns: 1fr; }
   .party-filter { grid-template-columns: 1fr 1fr; }
   .party-filter .filter-search { grid-column: 1 / -1; }
+  .party-location-heading { align-items: flex-start; }
   .party-menu-grid, .party-bottom-grid { grid-template-columns: 1fr; }
   .customer-link-panel { grid-template-columns: 1fr; }
   .customer-adult-grid, .customer-extra-group-grid, .customer-checkbox-choices { grid-template-columns: 1fr; }
@@ -479,6 +493,8 @@ th { color: var(--muted); font-size: .75rem; letter-spacing: .06em; text-transfo
   .detail-list div:nth-child(odd) { border-right: 0; }
   .note-item footer { display: grid; }
   .workspace-modules, .party-filter, .party-form-grid { grid-template-columns: 1fr; }
+  .party-week-heading, .party-location-heading { display: grid; }
+  .party-location-heading .button { width: 100%; }
   .party-form-grid > .field:nth-child(odd) { border-right: 0; }
   .party-form-grid .field-wide { grid-column: 1; }
   .menu-row, .menu-extra .menu-row { grid-template-columns: 70px minmax(140px, 1fr); }

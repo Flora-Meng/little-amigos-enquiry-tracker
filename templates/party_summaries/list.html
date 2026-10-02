@@ -27,29 +27,46 @@
     </div>
   </form>
 
-  <section class="panel party-results">
-    {% if summaries %}
-      <div class="table-scroll">
-        <table class="party-table">
-          <thead><tr><th>Date &amp; time</th><th>Owner</th><th>Location</th><th>Room</th><th>Guests</th><th>Balance</th><th>Actions</th></tr></thead>
-          <tbody>
-          {% for summary in summaries %}
-            <tr>
-              <td data-label="Date & time"><strong>{{ summary.party_date|date:"j M Y" }}</strong><span class="table-subtext">{{ summary.party_time }}</span></td>
-              <td data-label="Owner"><a class="record-link" href="{% url 'party_summary_edit' summary.id %}">{{ summary.owner_name }}</a><span class="table-subtext">{{ summary.owner_number }}</span></td>
-              <td data-label="Location">{{ summary.location.name }}</td>
-              <td data-label="Room"><span class="pill">{{ summary.get_room_type_display }}</span></td>
-              <td data-label="Guests">{{ summary.kids_count }} kids · {{ summary.adults_count }} adults</td>
-              <td data-label="Balance"><strong>${{ summary.total_balance|floatformat:2 }}</strong></td>
-              <td data-label="Actions"><div class="table-actions"><a class="button button-quiet button-small" href="{% url 'party_summary_edit' summary.id %}">Open / edit</a><a class="button button-quiet button-small" href="{% url 'party_summary_pdf' summary.id %}">PDF</a><a class="button button-danger button-small" href="{% url 'party_summary_delete' summary.id %}">Delete</a></div></td>
-            </tr>
-          {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    {% else %}
-      <div class="empty-state"><p>No party summaries found</p><span>Create the first summary or try a different search.</span></div>
-    {% endif %}
-  </section>
+  {% if week_groups %}
+    <div class="party-week-list">
+      {% for week in week_groups %}
+        <section class="party-week">
+          <header class="party-week-heading">
+            <div><p class="eyebrow">Week</p><h2>{{ week.start|date:"j M" }} - {{ week.end|date:"j M Y" }}</h2></div>
+            <span>{{ week.locations|length }} location{{ week.locations|length|pluralize }}</span>
+          </header>
+          <div class="party-location-list">
+            {% for location_group in week.locations %}
+              <article class="panel party-results party-location-group">
+                <header class="party-location-heading">
+                  <div><h3>{{ location_group.location.name }}</h3><span>{{ location_group.summaries|length }} part{{ location_group.summaries|length|pluralize:"y,ies" }}</span></div>
+                  <a class="button button-download" href="{% url 'party_summary_weekly_pdf' location_group.location.code week.start|date:'Y-m-d' %}">Download this week's PDFs</a>
+                </header>
+                <div class="table-scroll">
+                  <table class="party-table">
+                    <thead><tr><th>Date &amp; time</th><th>Owner</th><th>Room</th><th>Guests</th><th>Balance</th><th>Actions</th></tr></thead>
+                    <tbody>
+                    {% for summary in location_group.summaries %}
+                      <tr>
+                        <td data-label="Date & time"><strong>{{ summary.party_date|date:"D, j M Y" }}</strong><span class="table-subtext">{{ summary.party_time }}</span></td>
+                        <td data-label="Owner"><a class="record-link" href="{% url 'party_summary_edit' summary.id %}">{{ summary.owner_name }}</a><span class="table-subtext">{{ summary.owner_number }}</span></td>
+                        <td data-label="Room"><span class="pill">{{ summary.get_room_type_display }}</span></td>
+                        <td data-label="Guests">{{ summary.kids_count }} kids · {{ summary.adults_count }} adults</td>
+                        <td data-label="Balance"><strong>${{ summary.total_balance|floatformat:2 }}</strong></td>
+                        <td data-label="Actions"><div class="table-actions"><a class="button button-quiet button-small" href="{% url 'party_summary_edit' summary.id %}">Open / edit</a><a class="button button-quiet button-small" href="{% url 'party_summary_pdf' summary.id %}">PDF</a><a class="button button-danger button-small" href="{% url 'party_summary_delete' summary.id %}">Delete</a></div></td>
+                      </tr>
+                    {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
+              </article>
+            {% endfor %}
+          </div>
+        </section>
+      {% endfor %}
+    </div>
+  {% else %}
+    <section class="panel party-results"><div class="empty-state"><p>No party summaries found</p><span>Create the first summary or try a different search.</span></div></section>
+  {% endif %}
 </main>
 {% endblock %}

@@ -6,7 +6,7 @@
   <nav class="main-nav" aria-label="Primary navigation">
     <a href="{% url 'dashboard' %}"{% if request.resolver_match.url_name == 'dashboard' %} aria-current="page"{% endif %}>Dashboard</a>
     <a href="{% url 'enquiry_list' %}"{% if request.resolver_match.url_name == 'enquiry_list' %} aria-current="page"{% endif %}>Enquiries</a>
-    <a href="{% url 'party_summary_list' %}"{% if request.resolver_match.url_name == 'party_summary_list' or request.resolver_match.url_name == 'party_summary_create' or request.resolver_match.url_name == 'party_summary_edit' or request.resolver_match.url_name == 'party_summary_delete' or request.resolver_match.url_name == 'party_summary_pdf' %} aria-current="page"{% endif %}>Party Summaries</a>
+    <a href="{% url 'party_summary_list' %}"{% if request.resolver_match.url_name == 'party_summary_list' or request.resolver_match.url_name == 'party_summary_create' or request.resolver_match.url_name == 'party_summary_edit' or request.resolver_match.url_name == 'party_summary_delete' or request.resolver_match.url_name == 'party_summary_pdf' or request.resolver_match.url_name == 'party_summary_weekly_pdf' %} aria-current="page"{% endif %}>Party Summaries</a>
     {% if request.user.role == 'admin' %}<a href="{% url 'zumo_imports' %}"{% if request.resolver_match.url_name == 'zumo_imports' %} aria-current="page"{% endif %}>Zumo</a>{% endif %}
   </nav>
   <div class="account-menu">
