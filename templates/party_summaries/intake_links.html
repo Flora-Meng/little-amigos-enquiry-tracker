@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Customer form links · Little Amigos Workspace{% endblock %}
+{% block body %}
+{% include "accounts/_header.html" %}
+<main class="page-shell intake-links-page">
+  <a class="back-link" href="{% url 'party_summary_list' %}">← Party summaries</a>
+  <div class="page-heading">
+    <div><p class="eyebrow">Party setup</p><h1>Customer form links</h1><p class="muted">Create one private link for each booking. The customer’s submission will create a new Party Summary.</p></div>
+  </div>
+
+  <section class="panel intake-create-card">
+    <div class="panel-heading"><h2>Create a private customer link</h2></div>
+    <form method="post" class="intake-create-form" novalidate>
+      {% csrf_token %}
+      {% if form.location %}{% include "enquiries/_field.html" with field=form.location %}{% endif %}
+      {% include "enquiries/_field.html" with field=form.owner_name %}
+      {% include "enquiries/_field.html" with field=form.owner_number %}
+      {% include "enquiries/_field.html" with field=form.owner_email %}
+      <button class="button button-primary" type="submit">Create link</button>
+    </form>
+  </section>
+
+  <section class="panel intake-list-card">
+    <div class="panel-heading"><h2>Existing links</h2></div>
+    {% if intake_links %}
+      <div class="intake-link-list">
+      {% for intake in intake_links %}
+        <article class="intake-link-row">
+          <div class="intake-link-person">
+            <strong>{{ intake.owner_name }}</strong>
+            <span>{{ intake.location.name }}{% if intake.owner_email %} · {{ intake.owner_email }}{% endif %}</span>
+            {% if intake.submitted_at %}<b class="customer-submitted-status">Submitted {{ intake.submitted_at|date:"j M Y, g:i a" }}</b>{% else %}<b class="customer-awaiting-status">Waiting for customer</b>{% endif %}
+          </div>
+          <div class="intake-link-actions">
+            <input id="intake-url-{{ intake.id }}" type="text" value="{{ intake.customer_url }}" readonly aria-label="Private customer link for {{ intake.owner_name }}">
+            <button class="button button-quiet" type="button" data-copy-intake data-target="intake-url-{{ intake.id }}">Copy link</button>
+            <a class="button button-quiet" href="{{ intake.customer_url }}" target="_blank" rel="noopener noreferrer">Preview</a>
+            {% if intake.summary_id %}<a class="button button-primary" href="{% url 'party_summary_edit' intake.summary_id %}">Open summary</a>{% endif %}
+          </div>
+        </article>
+      {% endfor %}
+      </div>
+    {% else %}<div class="empty-state"><p>No customer links yet</p><span>Create the first private link above.</span></div>{% endif %}
+  </section>
+</main>
+<script>
+document.querySelectorAll('[data-copy-intake]').forEach(button => {
+  button.addEventListener('click', async () => {
+    const input = document.getElementById(button.dataset.target);
+    try { await navigator.clipboard.writeText(input.value); }
+    catch (_error) { input.select(); document.execCommand('copy'); }
+    button.textContent = 'Copied';
+    window.setTimeout(() => { button.textContent = 'Copy link'; }, 1800);
+  });
+});
+</script>
+{% endblock %}

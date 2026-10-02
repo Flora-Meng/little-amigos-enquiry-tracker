@@ -98,6 +98,7 @@ class PartySummary(models.Model):
     age = models.CharField(max_length=40, blank=True)
     theme = models.CharField(max_length=200, blank=True)
     balloon_color = models.CharField(max_length=200, blank=True)
+    rsvp_information = models.TextField(blank=True)
     special_note = models.TextField(blank=True)
     decoration_example = models.BinaryField(null=True, blank=True, editable=False)
     decoration_example_name = models.CharField(max_length=255, blank=True)
@@ -193,3 +194,30 @@ class PartyBillItem(models.Model):
     class Meta:
         db_table = "party_bill_items"
         ordering = ("position", "id")
+
+
+class PartyIntakeLink(models.Model):
+    """A private customer form that creates or updates one party summary."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    token = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+    location = models.ForeignKey(Location, on_delete=models.PROTECT, related_name="party_intake_links")
+    owner_name = models.CharField(max_length=200)
+    owner_number = models.CharField(max_length=50, blank=True)
+    owner_email = models.EmailField(blank=True)
+    summary = models.OneToOneField(
+        PartySummary, on_delete=models.SET_NULL, related_name="intake_link", null=True, blank=True,
+    )
+    submitted_at = models.DateTimeField(null=True, blank=True, editable=False)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="created_party_intake_links",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = "party_intake_links"
+        ordering = ("-created_at",)
+
+    def __str__(self):
+        return f"{self.owner_name} — {self.location.name}"

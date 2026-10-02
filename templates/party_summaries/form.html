@@ -6,7 +6,7 @@
   <a class="back-link" href="{% url 'party_summary_list' %}">← Party summaries</a>
   <div class="page-heading form-heading">
     <div><p class="eyebrow">Party summary</p><h1>{% if summary %}{{ summary.owner_name }} · {{ summary.party_date|date:"j M Y" }}{% else %}Create a party summary{% endif %}</h1><p class="muted">Based on the Melbourne party summary worksheet.</p></div>
-    {% if summary %}<div class="detail-actions"><a class="button button-quiet" href="{% url 'party_summary_pdf' summary.id %}">Download PDF</a><a class="button button-danger" href="{% url 'party_summary_delete' summary.id %}">Delete summary</a></div>{% endif %}
+    {% if summary %}<div class="detail-actions"><a class="button button-primary" href="{% url 'party_summary_confirmation_email' summary.id %}">Confirmation email</a><a class="button button-quiet" href="{% url 'party_summary_pdf' summary.id %}">Download PDF</a><a class="button button-danger" href="{% url 'party_summary_delete' summary.id %}">Delete summary</a></div>{% endif %}
   </div>
 
   {% if summary %}
@@ -108,6 +108,7 @@
           {% include "enquiries/_field.html" with field=form.age %}
           {% include "enquiries/_field.html" with field=form.theme %}
           {% include "enquiries/_field.html" with field=form.balloon_color %}
+          {% include "enquiries/_field.html" with field=form.rsvp_information wide=True %}
           {% include "enquiries/_field.html" with field=form.special_note wide=True %}
           <div class="field field-wide decoration-upload{% if form.decoration_example_upload.errors %} field-invalid{% endif %}">
             <label for="{{ form.decoration_example_upload.id_for_label }}">Decoration example</label>

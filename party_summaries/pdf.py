@@ -187,6 +187,7 @@ def _build_fallback_pdf(summary):
         ("BIRTHDAY CHILD & SETUP", [
             f"Kids name: {summary.kids_name}    Gender: {summary.get_gender_display()}    Age: {summary.age}",
             f"Theme: {summary.theme}    Balloon color: {summary.balloon_color}",
+            f"RSVP information: {summary.rsvp_information}",
             f"Special note: {summary.special_note}",
             f"Decoration example: {summary.decoration_example_name or 'None'}",
         ]),
@@ -509,6 +510,7 @@ def build_party_summary_pdf(summary):
         ("Kids name", summary.kids_name), ("Gender", summary.get_gender_display()),
         ("Age", summary.age), ("Theme", summary.theme),
         ("Balloon color", summary.balloon_color),
+        ("RSVP information", summary.rsvp_information),
     ]
     setup_rows = [setup_fields[index:index + 2] for index in range(0, len(setup_fields), 2)]
     setup_row_heights = []

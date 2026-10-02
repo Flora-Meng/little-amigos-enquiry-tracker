@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Your party invitation details · Little Amigos{% endblock %}
+{% block body %}
+<header class="customer-menu-header">
+  <div class="customer-brand"><img class="customer-brand-logo" src="{% static 'img/little-amigos-characters-stacked.png' %}" alt="Little Amigos characters"><div><strong>little amigos</strong><small>{{ intake.location.name }}</small></div></div>
+</header>
+<main class="customer-menu-shell customer-intake-shell">
+  <div class="customer-menu-intro">
+    <p class="eyebrow">E-invitation details</p>
+    <h1>Tell us about your party</h1>
+    <p>Hi {{ intake.owner_name }}, please provide the details below so our team can prepare your e-invitation.</p>
+  </div>
+  <form method="post" class="customer-menu-form" novalidate>
+    {% csrf_token %}
+    {% if form.errors %}<div class="customer-form-errors" role="alert"><strong>Please check the highlighted details below.</strong></div>{% endif %}
+    <section class="customer-menu-card customer-intake-card">
+      <div class="customer-section-heading"><span>1</span><div><h2>Invitation information</h2><p>You can return to this private link later if you need to update these details.</p></div></div>
+      <div class="customer-field-grid">
+        {% include "enquiries/_field.html" with field=form.party_date %}
+        {% include "enquiries/_field.html" with field=form.party_time %}
+        {% include "enquiries/_field.html" with field=form.theme %}
+        {% include "enquiries/_field.html" with field=form.kids_name %}
+        {% include "enquiries/_field.html" with field=form.age %}
+        {% include "enquiries/_field.html" with field=form.rsvp_information wide=True %}
+      </div>
+    </section>
+    <div class="customer-submit-row"><button class="button button-primary" type="submit">Submit party details</button></div>
+  </form>
+</main>
+{% endblock %}

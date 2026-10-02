@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block title %}Confirmation email · {{ summary.owner_name }}{% endblock %}
+{% block body %}
+{% include "accounts/_header.html" %}
+<main class="page-shell confirmation-email-page">
+  <a class="back-link" href="{% url 'party_summary_edit' summary.id %}">← Back to party summary</a>
+  <div class="page-heading confirmation-email-heading">
+    <div>
+      <p class="eyebrow">Customer communication</p>
+      <h1>Confirmation email</h1>
+      <p class="muted">Generated from the latest saved summary. Click into the email to make any final edits before copying.</p>
+    </div>
+    <button class="button button-primary" id="copy-confirmation-email" type="button">Copy email</button>
+  </div>
+
+  <div class="confirmation-copy-notice" id="confirmation-copy-notice" role="status" aria-live="polite" hidden>Email copied. You can paste it into your email.</div>
+
+  <section class="panel confirmation-email-card">
+    <div class="confirmation-email-toolbar">
+      <span><strong>To:</strong> {{ summary.owner_name }}</span>
+      <span><strong>Subject:</strong> Party details confirmation – {{ summary.party_date|date:"j F Y" }}</span>
+    </div>
+    <article id="confirmation-email-content" class="confirmation-email-content" contenteditable="true" spellcheck="true" aria-label="Editable confirmation email">
+      <p>Hi {{ summary.owner_name }},</p>
+      <p>I’d like to confirm all the party details with you. Please review the details below and let me know if everything is correct. Once confirmed, we will proceed with the final preparations.</p>
+
+      <h2>1. Birthday Child &amp; Theme</h2>
+      <p><strong>Kid’s Name:</strong> {{ summary.kids_name|default:"To be confirmed" }}<br>
+      <strong>Turning Age:</strong> {{ summary.age|default:"To be confirmed" }}<br>
+      <strong>Theme:</strong> {{ summary.theme|default:"To be confirmed" }}<br>
+      <strong>Balloon Colours:</strong> {{ summary.balloon_color|default:"Default" }}<br>
+      <strong>RSVP Information:</strong> {{ summary.rsvp_information|default:"To be confirmed" }}</p>
+
+      <h2>2. Menu &amp; Guest Numbers</h2>
+      <p><strong>Party Date:</strong> {{ summary.party_date|date:"j F Y" }}<br>
+      <strong>Party Time:</strong> {{ summary.party_time }}<br>
+      <strong>Food Ready Time:</strong> {{ summary.food_ready|default:"To be confirmed" }}<br>
+      <strong>Room Type:</strong> {{ summary.get_room_type_display }}<br>
+      <strong>Guest Numbers:</strong> {{ summary.kids_count }} kids &amp; {{ summary.adults_count }} adults</p>
+
+      <p><strong>Adult Menu:</strong></p>
+      {% if adult_items %}<ul>{% for item in adult_items %}<li>{{ item.email_quantity }} × {{ item.item }}{% if item.notes %}<ul><li>{{ item.notes }}</li></ul>{% endif %}</li>{% endfor %}</ul>{% else %}<p>None</p>{% endif %}
+
+      <p><strong>Kids Menu:</strong></p>
+      {% if kids_items %}<ul>{% for item in kids_items %}<li>{{ item.email_quantity }} × {{ item.item }}{% if item.notes %}<ul><li>{{ item.notes }}</li></ul>{% endif %}</li>{% endfor %}</ul>{% else %}<p>None</p>{% endif %}
+
+      <p><strong>Extra Food:</strong></p>
+      {% if extra_items %}<ul>{% for item in extra_items %}<li>{{ item.email_quantity }} × {{ item.item }}{% if item.notes %}<ul><li>{{ item.notes }}</li></ul>{% endif %}</li>{% endfor %}</ul>{% else %}<p>None</p>{% endif %}
+
+      <h2>3. Special Requirements</h2>
+      <ul>
+        {% if summary.theme %}<li>{{ summary.theme }} themed setup.</li>{% endif %}
+        {% if summary.special_note %}<li>{{ summary.special_note|linebreaksbr }}</li>{% endif %}
+        {% if summary.dietary_requirements %}<li><strong>Dietary requirements:</strong> {{ summary.dietary_requirements|linebreaksbr }}</li>{% else %}<li>No dietary requirements advised.</li>{% endif %}
+      </ul>
+
+      <h2>4. Bill</h2>
+      <p>Deposit Paid: <strong>${{ summary.deposit_amount|floatformat:2 }}</strong><br>
+      {{ summary.get_package_name_display }}: <strong>${{ summary.package_amount|floatformat:2 }}</strong><br>
+      Extra Food: <strong>${{ summary.extra_food_balance|floatformat:2 }}</strong><br>
+      Other Charges: <strong>${{ summary.other_charges|floatformat:2 }}</strong>{% for item in bill_items %}<br>
+      {{ item.name }}: <strong>${{ item.amount|floatformat:2 }}</strong>{% endfor %}</p>
+      <p><strong>Total Balance Remaining: ${{ summary.total_balance|floatformat:2 }}</strong></p>
+
+      <p>Please review the above details and let me know if everything is correct. Once confirmed, we will proceed with the final preparations.</p>
+      <p>Kind regards,<br>Flora</p>
+    </article>
+  </section>
+</main>
+<script>
+(() => {
+  const button = document.getElementById('copy-confirmation-email');
+  const content = document.getElementById('confirmation-email-content');
+  const notice = document.getElementById('confirmation-copy-notice');
+  button?.addEventListener('click', async () => {
+    const html = content.innerHTML;
+    const plain = content.innerText;
+    try {
+      if (window.ClipboardItem && navigator.clipboard?.write) {
+        await navigator.clipboard.write([new ClipboardItem({
+          'text/html': new Blob([html], {type: 'text/html'}),
+          'text/plain': new Blob([plain], {type: 'text/plain'}),
+        })]);
+      } else {
+        throw new Error('Rich clipboard is unavailable');
+      }
+    } catch (_error) {
+      const selection = window.getSelection();
+      const range = document.createRange();
+      range.selectNodeContents(content);
+      selection.removeAllRanges();
+      selection.addRange(range);
+      document.execCommand('copy');
+      selection.removeAllRanges();
+    }
+    button.textContent = 'Copied';
+    notice.hidden = false;
+    window.setTimeout(() => { button.textContent = 'Copy email'; notice.hidden = true; }, 2200);
+  });
+})();
+</script>
+{% endblock %}

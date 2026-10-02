@@ -9,7 +9,7 @@
       <h1>Party summaries</h1>
       <p class="muted">{{ result_count }} saved summar{{ result_count|pluralize:"y,ies" }}</p>
     </div>
-    <a class="button button-primary" href="{% url 'party_summary_create' %}">New party summary</a>
+    <div class="detail-actions"><a class="button button-quiet" href="{% url 'party_intake_links' %}">Customer form links</a><a class="button button-primary" href="{% url 'party_summary_create' %}">New party summary</a></div>
   </div>
 
   <form class="filter-panel party-filter" method="get">
@@ -53,7 +53,7 @@
                         <td data-label="Room"><span class="pill">{{ summary.get_room_type_display }}</span></td>
                         <td data-label="Guests">{{ summary.kids_count }} kids · {{ summary.adults_count }} adults</td>
                         <td data-label="Balance"><strong>${{ summary.total_balance|floatformat:2 }}</strong></td>
-                        <td data-label="Actions"><div class="table-actions"><a class="button button-quiet button-small" href="{% url 'party_summary_edit' summary.id %}">Open / edit</a><a class="button button-quiet button-small" href="{% url 'party_summary_pdf' summary.id %}">PDF</a><a class="button button-danger button-small" href="{% url 'party_summary_delete' summary.id %}">Delete</a></div></td>
+                        <td data-label="Actions"><div class="table-actions"><a class="button button-quiet button-small" href="{% url 'party_summary_edit' summary.id %}">Open / edit</a><a class="button button-primary button-small" href="{% url 'party_summary_confirmation_email' summary.id %}">Email</a><a class="button button-quiet button-small" href="{% url 'party_summary_pdf' summary.id %}">PDF</a><a class="button button-danger button-small" href="{% url 'party_summary_delete' summary.id %}">Delete</a></div></td>
                       </tr>
                     {% endfor %}
                     </tbody>

@@ -15,7 +15,7 @@ from django.utils.formats import date_format
 from accounts.models import Location
 
 from .forms import TRIPLE_FRYER_CHOICES
-from .models import PartyBillItem, PartyMenuItem, PartySummary
+from .models import PartyBillItem, PartyIntakeLink, PartyMenuItem, PartySummary
 from .pdf import _numeric_quantity
 
 
@@ -263,6 +263,131 @@ class PartySummaryTests(TestCase):
         self.assertEqual(len(PdfReader(BytesIO(pdf)).pages), 2)
         self.client.force_login(self.emma)
         self.assertEqual(self.client.get(url).status_code, 404)
+
+    def test_confirmation_email_is_generated_from_current_summary(self):
+        summary = self._create_summary()
+        summary.kids_name = "Indiana"
+        summary.age = "4"
+        summary.theme = "Princess"
+        summary.balloon_color = "Pink and gold"
+        summary.food_ready = "1:30pm"
+        summary.dietary_requirements = "No pineapple"
+        summary.special_note = "Place the kids food in the middle of the table."
+        summary.save()
+        PartyMenuItem.objects.create(
+            summary=summary, category=PartyMenuItem.Category.ADULT,
+            quantity="2 pizzas (10-inch)", item="Pizza (Margherita)", notes="Cut into small slices",
+        )
+        PartyMenuItem.objects.create(
+            summary=summary, category=PartyMenuItem.Category.KIDS,
+            quantity="12", item="Nuggets & Chips",
+        )
+        PartyBillItem.objects.create(summary=summary, name="Balloon upgrade", amount="35.50")
+        self.client.force_login(self.flora)
+
+        response = self.client.get(reverse("party_summary_confirmation_email", args=(summary.id,)))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Hi Rebecca Power,")
+        self.assertContains(response, "Indiana")
+        self.assertContains(response, "2 × Pizza (Margherita)")
+        self.assertContains(response, "Cut into small slices")
+        self.assertContains(response, "12 × Nuggets &amp; Chips")
+        self.assertContains(response, "No pineapple")
+        self.assertContains(response, "Balloon upgrade")
+        self.assertContains(response, "Copy email")
+
+    def test_confirmation_email_respects_staff_location_access(self):
+        canberra_summary = self._create_summary(location=self.canberra, user=self.emma)
+        self.client.force_login(self.kiva)
+        response = self.client.get(
+            reverse("party_summary_confirmation_email", args=(canberra_summary.id,))
+        )
+        self.assertEqual(response.status_code, 404)
+
+    def test_admin_can_create_private_customer_intake_link(self):
+        self.client.force_login(self.flora)
+        response = self.client.post(reverse("party_intake_links"), {
+            "location": str(self.southland.id),
+            "owner_name": "Beleni",
+            "owner_number": "0430 990 265",
+            "owner_email": "beleni@example.com",
+        })
+        self.assertRedirects(response, reverse("party_intake_links"))
+        intake = PartyIntakeLink.objects.get()
+        self.assertEqual(intake.location, self.southland)
+        self.assertEqual(intake.owner_name, "Beleni")
+        self.assertEqual(intake.created_by, self.flora)
+        page = self.client.get(reverse("party_intake_links"))
+        self.assertContains(page, reverse("customer_party_intake", args=(intake.token,)))
+        self.assertContains(page, "Waiting for customer")
+
+    def test_staff_intake_link_is_forced_to_their_location(self):
+        self.client.force_login(self.kiva)
+        response = self.client.post(reverse("party_intake_links"), {
+            "owner_name": "Southland Customer",
+            "owner_number": "0400 000 000",
+            "owner_email": "customer@example.com",
+        })
+        self.assertRedirects(response, reverse("party_intake_links"))
+        self.assertEqual(PartyIntakeLink.objects.get().location, self.southland)
+
+    def test_customer_intake_creates_then_updates_one_party_summary(self):
+        intake = PartyIntakeLink.objects.create(
+            location=self.southland,
+            owner_name="Beleni",
+            owner_number="0430 990 265",
+            owner_email="beleni@example.com",
+            created_by=self.flora,
+        )
+        url = reverse("customer_party_intake", args=(intake.token,))
+        first_response = self.client.post(url, {
+            "party_date": "2026-11-07",
+            "party_time": "1:00pm–3:00pm",
+            "theme": "Princess",
+            "kids_name": "Indiana",
+            "age": "4",
+            "rsvp_information": "RSVP to Beleni by 20 October",
+        })
+        self.assertRedirects(first_response, reverse("customer_party_intake_thanks", args=(intake.token,)))
+        intake.refresh_from_db()
+        summary = intake.summary
+        self.assertIsNotNone(intake.submitted_at)
+        self.assertEqual(summary.owner_name, "Beleni")
+        self.assertEqual(summary.location, self.southland)
+        self.assertEqual(summary.theme, "Princess")
+        self.assertEqual(summary.kids_name, "Indiana")
+        self.assertEqual(summary.rsvp_information, "RSVP to Beleni by 20 October")
+        self.assertEqual(summary.package_name, PartySummary.Package.CUSTOM)
+
+        second_response = self.client.post(url, {
+            "party_date": "2026-11-08",
+            "party_time": "2:00pm–4:00pm",
+            "theme": "Frozen",
+            "kids_name": "Indiana",
+            "age": "5",
+            "rsvp_information": "RSVP to Beleni by 21 October",
+        })
+        self.assertEqual(second_response.status_code, 302)
+        intake.refresh_from_db()
+        self.assertEqual(PartySummary.objects.count(), 1)
+        self.assertEqual(intake.summary_id, summary.id)
+        summary.refresh_from_db()
+        self.assertEqual(summary.party_date.isoformat(), "2026-11-08")
+        self.assertEqual(summary.theme, "Frozen")
+        self.assertEqual(summary.age, "5")
+
+    def test_staff_only_sees_intake_links_for_own_location(self):
+        southland_link = PartyIntakeLink.objects.create(
+            location=self.southland, owner_name="Southland Customer", created_by=self.flora,
+        )
+        PartyIntakeLink.objects.create(
+            location=self.canberra, owner_name="Canberra Customer", created_by=self.flora,
+        )
+        self.client.force_login(self.kiva)
+        response = self.client.get(reverse("party_intake_links"))
+        self.assertContains(response, southland_link.owner_name)
+        self.assertNotContains(response, "Canberra Customer")
 
     def test_visible_summary_can_be_updated_and_deleted(self):
         summary = self._create_summary()

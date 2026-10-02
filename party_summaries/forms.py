@@ -3,7 +3,7 @@ from django.forms import formset_factory
 
 from accounts.models import Location, User
 
-from .models import PartySummary
+from .models import PartyIntakeLink, PartySummary
 
 
 KIDS_HOT_FOOD_CHOICES = (
@@ -133,6 +133,7 @@ class PartySummaryForm(forms.ModelForm):
             "location", "party_date", "party_time", "owner_name", "owner_number",
             "food_ready", "room_type", "kids_count", "adults_count", "deposit_method",
             "kids_name", "gender", "age", "theme", "balloon_color", "special_note",
+            "rsvp_information",
             "dietary_requirements", "voucher_menu_notes",
             "deposit_amount", "package_name", "package_amount", "other_charges",
         )
@@ -140,7 +141,8 @@ class PartySummaryForm(forms.ModelForm):
             "party_time": "Party time", "owner_name": "Owner name", "owner_number": "Owner number",
             "food_ready": "Food ready", "kids_count": "Kids", "adults_count": "Adults",
             "deposit_method": "Deposit method", "kids_name": "Kids name", "balloon_color": "Balloon color",
-            "special_note": "Special note", "deposit_amount": "Deposit paid", "package_name": "Package",
+            "special_note": "Special note", "rsvp_information": "RSVP information",
+            "deposit_amount": "Deposit paid", "package_name": "Package",
             "dietary_requirements": "Dietary requirements", "voucher_menu_notes": "Food voucher menu notes",
             "package_amount": "Package price", "other_charges": "Other charges / adjustments",
         }
@@ -152,6 +154,7 @@ class PartySummaryForm(forms.ModelForm):
             "kids_count": forms.NumberInput(attrs={"min": 0}),
             "adults_count": forms.NumberInput(attrs={"min": 0}),
             "special_note": forms.Textarea(attrs={"rows": 4}),
+            "rsvp_information": forms.Textarea(attrs={"rows": 2}),
             "dietary_requirements": forms.Textarea(attrs={"rows": 2, "class": "compact-dietary-input"}),
             "voucher_menu_notes": forms.Textarea(attrs={"rows": 3}),
             "deposit_amount": forms.NumberInput(attrs={"min": 0, "step": "0.01"}),
@@ -228,6 +231,52 @@ class PartySummaryForm(forms.ModelForm):
         if upload.content_type not in {"image/jpeg", "image/png", "image/webp"}:
             raise forms.ValidationError("Choose a JPG, PNG or WebP image.")
         return upload
+
+
+class PartyIntakeLinkForm(forms.ModelForm):
+    class Meta:
+        model = PartyIntakeLink
+        fields = ("location", "owner_name", "owner_number", "owner_email")
+        labels = {
+            "owner_name": "Customer name",
+            "owner_number": "Customer phone",
+            "owner_email": "Customer email (optional)",
+        }
+        widgets = {
+            "owner_number": forms.TextInput(attrs={"inputmode": "tel"}),
+            "owner_email": forms.EmailInput(attrs={"placeholder": "Used only as a reference for now"}),
+        }
+
+    def __init__(self, *args, user, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.user = user
+        self.fields["location"].queryset = Location.objects.order_by("name")
+        if user.role == User.Role.STAFF:
+            self.fields.pop("location")
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        if self.user.role == User.Role.STAFF:
+            instance.location = self.user.location
+        if commit:
+            instance.save()
+        return instance
+
+
+class CustomerPartyIntakeForm(forms.Form):
+    party_date = forms.DateField(label="Party date", widget=forms.DateInput(attrs={"type": "date"}))
+    party_time = forms.CharField(
+        label="Party time", max_length=80,
+        widget=forms.TextInput(attrs={"placeholder": "e.g. 1:00pm–3:00pm"}),
+    )
+    theme = forms.CharField(label="Party theme", max_length=200)
+    kids_name = forms.CharField(label="Kid's name", max_length=250)
+    age = forms.CharField(label="Turning age", max_length=40)
+    rsvp_information = forms.CharField(
+        label="RSVP information", max_length=1000,
+        help_text="For example: RSVP contact name, phone number and RSVP deadline.",
+        widget=forms.Textarea(attrs={"rows": 3, "placeholder": "e.g. RSVP to Flora on 0400 000 000 by 20 October"}),
+    )
 
 
 class CustomerMenuForm(forms.Form):

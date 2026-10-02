@@ -35,10 +35,12 @@ from .forms import (
     TRIPLE_TACO_CHOICES,
     TRIPLE_TOAST_CHOICES,
     CustomerMenuForm,
+    CustomerPartyIntakeForm,
+    PartyIntakeLinkForm,
     PartySummaryForm,
     menu_formsets,
 )
-from .models import PartyBillItem, PartyMenuItem, PartySummary
+from .models import PartyBillItem, PartyIntakeLink, PartyMenuItem, PartySummary
 from .pdf import build_party_summaries_pdf, build_party_summary_pdf
 
 
@@ -86,6 +88,15 @@ def summaries_visible_to(user):
 
 def _visible_or_404(user, summary_id):
     return get_object_or_404(summaries_visible_to(user), id=summary_id)
+
+
+def intake_links_visible_to(user):
+    queryset = PartyIntakeLink.objects.select_related("location", "summary", "created_by")
+    if user.role == User.Role.ADMIN:
+        return queryset
+    if user.role == User.Role.STAFF and user.location_id:
+        return queryset.filter(location_id=user.location_id)
+    return queryset.none()
 
 
 def _menu_initial(summary=None):
@@ -174,6 +185,100 @@ def party_summary_list(request):
         week["locations"].sort(key=lambda group: location_order.get(group["location"].code, 99))
     return render(request, "party_summaries/list.html", {"summaries": summaries, "week_groups": weeks,
         "result_count": len(summaries), "search": search, "party_date": party_date})
+
+
+@login_required
+@transaction.atomic
+def party_intake_links(request):
+    if request.method == "POST":
+        form = PartyIntakeLinkForm(request.POST, user=request.user)
+        if form.is_valid():
+            intake = form.save(commit=False)
+            if request.user.role == User.Role.STAFF:
+                if not request.user.location_id:
+                    raise Http404
+                intake.location = request.user.location
+            intake.created_by = request.user
+            intake.save()
+            messages.success(request, f"Private customer form created for {intake.owner_name}.")
+            return redirect("party_intake_links")
+    else:
+        form = PartyIntakeLinkForm(user=request.user)
+    links = list(intake_links_visible_to(request.user))
+    for intake in links:
+        intake.customer_url = request.build_absolute_uri(
+            reverse("customer_party_intake", args=(intake.token,))
+        )
+    return render(request, "party_summaries/intake_links.html", {"form": form, "intake_links": links})
+
+
+def _party_intake_initial(intake):
+    if not intake.summary_id:
+        return {}
+    summary = intake.summary
+    return {
+        "party_date": summary.party_date,
+        "party_time": summary.party_time,
+        "theme": summary.theme,
+        "kids_name": summary.kids_name,
+        "age": summary.age,
+        "rsvp_information": summary.rsvp_information,
+    }
+
+
+@csrf_exempt
+@require_http_methods(["GET", "POST"])
+@transaction.atomic
+def customer_party_intake(request, token):
+    queryset = PartyIntakeLink.objects.select_related("location", "summary", "created_by")
+    if request.method == "POST":
+        queryset = queryset.select_for_update()
+    intake = get_object_or_404(queryset, token=token)
+    if request.method == "POST":
+        form = CustomerPartyIntakeForm(request.POST)
+        if form.is_valid():
+            cleaned = form.cleaned_data
+            summary = intake.summary
+            if summary is None:
+                summary = PartySummary(
+                    location=intake.location,
+                    owner_name=intake.owner_name,
+                    owner_number=intake.owner_number,
+                    room_type=PartySummary.RoomType.SINGLE,
+                    kids_count=0,
+                    adults_count=0,
+                    package_name=PartySummary.Package.CUSTOM,
+                    package_amount=Decimal("0.00"),
+                    created_by=intake.created_by,
+                )
+            summary.party_date = cleaned["party_date"]
+            summary.party_time = cleaned["party_time"]
+            summary.theme = cleaned["theme"]
+            summary.kids_name = cleaned["kids_name"]
+            summary.age = cleaned["age"]
+            summary.rsvp_information = cleaned["rsvp_information"]
+            summary.save()
+            intake.summary = summary
+            intake.submitted_at = timezone.now()
+            intake.save(update_fields=("summary", "submitted_at", "updated_at"))
+            return redirect("customer_party_intake_thanks", token=intake.token)
+    else:
+        form = CustomerPartyIntakeForm(initial=_party_intake_initial(intake))
+    return _no_store(render(request, "party_summaries/customer_party_intake.html", {
+        "intake": intake, "form": form,
+    }))
+
+
+@require_http_methods(["GET"])
+def customer_party_intake_thanks(request, token):
+    intake = get_object_or_404(
+        PartyIntakeLink.objects.select_related("location", "summary"), token=token,
+    )
+    if not intake.summary_id:
+        return redirect("customer_party_intake", token=token)
+    return _no_store(render(request, "party_summaries/customer_party_intake_thanks.html", {
+        "intake": intake,
+    }))
 
 
 def _form_context(form, formsets, summary=None, request=None):
@@ -607,6 +712,31 @@ def party_summary_pdf(request, summary_id):
     filename = "".join(character if character.isalnum() or character in "-_" else "-" for character in filename)
     response = FileResponse(pdf_buffer, content_type="application/pdf", as_attachment=True, filename=f"{filename}.pdf")
     return response
+
+
+@login_required
+def party_summary_confirmation_email(request, summary_id):
+    """Build a copy-ready confirmation email from the current live summary."""
+    summary = _visible_or_404(request.user, summary_id)
+    summary = (
+        PartySummary.objects.select_related("location", "created_by")
+        .prefetch_related("menu_items", "bill_items")
+        .get(id=summary.id)
+    )
+    menu_items = list(summary.menu_items.all())
+    for item in menu_items:
+        # Staff summaries historically stored quantities such as "1 platter"
+        # and "2 jugs". Customer emails use the cleaner "1 ×" / "2 ×" style.
+        match = re.match(r"\s*(\d+(?:\.\d+)?)", item.quantity or "")
+        item.email_quantity = match.group(1) if match else (item.quantity or "1")
+    context = {
+        "summary": summary,
+        "adult_items": [item for item in menu_items if item.category == PartyMenuItem.Category.ADULT],
+        "kids_items": [item for item in menu_items if item.category == PartyMenuItem.Category.KIDS],
+        "extra_items": [item for item in menu_items if item.category == PartyMenuItem.Category.EXTRA],
+        "bill_items": list(summary.bill_items.all()),
+    }
+    return render(request, "party_summaries/confirmation_email.html", context)
 
 
 @login_required
