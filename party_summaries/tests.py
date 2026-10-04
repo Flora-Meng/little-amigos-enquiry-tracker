@@ -5,8 +5,10 @@ from io import BytesIO
 from pypdf import PdfReader
 
 from django.contrib.auth import get_user_model
+from django.db import connection
 from django.test import TestCase
 from django.test import Client
+from django.test.utils import CaptureQueriesContext
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 from django.utils import timezone
@@ -376,6 +378,39 @@ class PartySummaryTests(TestCase):
         self.assertEqual(summary.party_date.isoformat(), "2026-11-08")
         self.assertEqual(summary.theme, "Frozen")
         self.assertEqual(summary.age, "5")
+
+    def test_customer_intake_post_does_not_lock_across_nullable_summary_join(self):
+        intake = PartyIntakeLink.objects.create(
+            location=self.canberra,
+            owner_name="First submission",
+            owner_number="",
+            owner_email="first@example.com",
+            created_by=self.flora,
+        )
+        url = reverse("customer_party_intake", args=(intake.token,))
+
+        with CaptureQueriesContext(connection) as queries:
+            response = self.client.post(url, {
+                "party_date": "2026-12-06",
+                "party_time": "1:00pm–3:00pm",
+                "theme": "Bluey",
+                "kids_name": "Alex",
+                "age": "5",
+                "rsvp_information": "RSVP by 20 November",
+            })
+
+        intake_select = next(
+            query["sql"] for query in queries.captured_queries
+            if 'FROM "party_intake_links"' in query["sql"]
+        )
+        self.assertNotIn('JOIN "party_summaries"', intake_select)
+
+        self.assertRedirects(
+            response, reverse("customer_party_intake_thanks", args=(intake.token,)),
+        )
+        intake.refresh_from_db()
+        self.assertIsNotNone(intake.summary_id)
+        self.assertEqual(intake.summary.location, self.canberra)
 
     def test_staff_only_sees_intake_links_for_own_location(self):
         southland_link = PartyIntakeLink.objects.create(
