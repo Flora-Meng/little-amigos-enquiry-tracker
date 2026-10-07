@@ -178,7 +178,7 @@ def _build_fallback_pdf(summary):
             f"Location: {summary.location.name}    Room: {summary.get_room_type_display()}",
             f"Guests: {summary.kids_count} kids / {summary.adults_count} adults    Deposit method: {summary.deposit_method}",
         ]),
-        ("ADULT MENU", [f"{item.quantity}  {item.item}{f' - {item.notes}' if item.notes else ''}" for item in menu_items if item.category == PartyMenuItem.Category.ADULT]),
+        ("ADULT MENU", [f"{item.quantity}  {item.item}{f' - {item.notes}' if item.notes else ''}{f'  ${item.amount:,.2f}' if summary.uses_food_voucher and item.amount else ''}" for item in menu_items if item.category == PartyMenuItem.Category.ADULT]),
         ("KIDS MENU - 1 DRINK PER CHILD", [
             *[f"{item.quantity}  {item.item}{f' - {item.notes}' if item.notes else ''}" for item in menu_items if item.category == PartyMenuItem.Category.KIDS],
             f"Dietary requirements: {summary.dietary_requirements or 'None advised'}",
@@ -193,7 +193,7 @@ def _build_fallback_pdf(summary):
         ]),
         ("BILL", [
             f"Deposit paid: -${summary.deposit_amount:,.2f}    Package: {summary.get_package_name_display()} ${summary.package_amount:,.2f}",
-            f"Extra food: ${summary.extra_food_total:,.2f}    Food voucher: -${summary.food_voucher_amount:,.2f}    Other charges: ${summary.other_charges:,.2f}",
+            f"{'Food ordered' if summary.uses_food_voucher else 'Extra food'}: ${summary.food_ordered_total if summary.uses_food_voucher else summary.extra_food_total:,.2f}    Food voucher: -${summary.food_voucher_amount:,.2f}    Other charges: ${summary.other_charges:,.2f}",
             *[f"{item.name}: ${item.amount:,.2f}" for item in bill_items],
             f"TOTAL BALANCE: ${summary.total_balance:,.2f}",
         ]),
@@ -493,7 +493,7 @@ def build_party_summary_pdf(summary):
     page_bottom = 24
 
     adult_height = 220
-    _menu_column(pdf, margin, columns_top, left_width, adult_height, "Adult menu", adult)
+    _menu_column(pdf, margin, columns_top, left_width, adult_height, "Adult menu", adult, show_amount=summary.uses_food_voucher)
     extra_top = columns_top - adult_height - 10
     extra_height = extra_top - page_bottom
     _extra_food_column(pdf, margin, extra_top, left_width, extra_height, extra, summary)
@@ -542,7 +542,7 @@ def build_party_summary_pdf(summary):
     bill_lines = [
         ("Deposit paid", -summary.deposit_amount),
         (summary.get_package_name_display(), summary.package_amount),
-        ("Extra food", summary.extra_food_total),
+        ("Food ordered" if summary.uses_food_voucher else "Extra food", summary.food_ordered_total if summary.uses_food_voucher else summary.extra_food_total),
     ]
     if summary.food_voucher_amount:
         bill_lines.append(("Food voucher", -summary.food_voucher_amount))

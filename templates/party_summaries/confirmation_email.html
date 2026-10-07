@@ -57,7 +57,8 @@
       <h2>4. Bill</h2>
       <p>Deposit Paid: <strong>${{ summary.deposit_amount|floatformat:2 }}</strong><br>
       {{ summary.get_package_name_display }}: <strong>${{ summary.package_amount|floatformat:2 }}</strong><br>
-      Extra Food: <strong>${{ summary.extra_food_balance|floatformat:2 }}</strong><br>
+      {% if summary.uses_food_voucher %}Food Ordered: <strong>${{ summary.food_ordered_total|floatformat:2 }}</strong><br>
+      Food Voucher: <strong>-${{ summary.food_voucher_amount|floatformat:2 }}</strong>{% else %}Extra Food: <strong>${{ summary.extra_food_balance|floatformat:2 }}</strong>{% endif %}<br>
       Other Charges: <strong>${{ summary.other_charges|floatformat:2 }}</strong>{% for item in bill_items %}<br>
       {{ item.name }}: <strong>${{ item.amount|floatformat:2 }}</strong>{% endfor %}</p>
       <p><strong>Total Balance Remaining: ${{ summary.total_balance|floatformat:2 }}</strong></p>

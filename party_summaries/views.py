@@ -104,9 +104,7 @@ def _menu_initial(summary=None):
         return {"adult": [{"quantity": "2 Jar", "item": "Drink"}, {"quantity": "1 Jar", "item": "Water"}], "kids": [], "extra": [], "bill": []}
     result = {"adult": [], "kids": [], "extra": [], "bill": []}
     for item in summary.menu_items.all():
-        row = {"quantity": item.quantity, "item": item.item, "notes": item.notes}
-        if item.category == PartyMenuItem.Category.EXTRA:
-            row["amount"] = item.amount
+        row = {"quantity": item.quantity, "item": item.item, "notes": item.notes, "amount": item.amount}
         result[item.category].append(row)
     result["bill"] = [{"name": item.name, "amount": item.amount} for item in summary.bill_items.all()]
     return result
@@ -633,7 +631,8 @@ def _save_customer_menu(summary, cleaned):
     for index, (item, price) in enumerate(EXTRA_MENU_OPTIONS):
         if cleaned.get(f"extra_{index}_selected"):
             quantity = cleaned[f"extra_{index}_qty"]
-            rows.append(PartyMenuItem(summary=summary, category=PartyMenuItem.Category.EXTRA,
+            category = PartyMenuItem.Category.ADULT if uses_voucher_menu else PartyMenuItem.Category.EXTRA
+            rows.append(PartyMenuItem(summary=summary, category=category,
                 quantity=str(quantity), item=item, amount=Decimal(price) * quantity, position=index))
     summary.menu_items.all().delete()
     PartyMenuItem.objects.bulk_create(rows)

@@ -1,6 +1,12 @@
 {% extends "base.html" %}
 {% block title %}{% if summary %}Edit {{ summary.owner_name }}{% else %}New party summary{% endif %} · Little Amigos{% endblock %}
 {% block body %}
+<style>
+  .menu-adult .menu-row.voucher-priced-row { grid-template-columns: 70px minmax(145px, 1fr) minmax(120px, .7fr) 105px auto; }
+  @media (max-width: 480px) {
+    .menu-adult .menu-row.voucher-priced-row { grid-template-columns: 70px minmax(140px, 1fr); }
+  }
+</style>
 {% include "accounts/_header.html" %}
 <main class="page-shell party-form-page">
   <a class="back-link" href="{% url 'party_summary_list' %}">← Party summaries</a>
@@ -71,11 +77,11 @@
       <section class="panel party-menu-card">
         <div class="panel-heading"><h2>Adult menu</h2><button class="menu-add-button" type="button" data-add-menu="adult" aria-label="Add adult menu row"><span aria-hidden="true">+</span> Add row</button></div>
         {{ adult_formset.management_form }}
-        <div class="menu-rows menu-standard" data-menu="adult">
-          <div class="menu-row menu-header"><span>Qty</span><span>Item</span><span>Notes</span><span></span></div>
-          {% for row in adult_formset %}<div class="menu-row"><div>{{ row.quantity }}{{ row.quantity.errors }}</div><div>{{ row.item }}{{ row.item.errors }}</div><div>{{ row.notes }}{{ row.notes.errors }}</div>{{ row.DELETE.as_hidden }}<button class="menu-delete-button" type="button" aria-label="Delete this adult menu row" title="Delete row"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 9v8m4-8v8m4-8v8M5 6h14m-9-3h4l1 3H9l1-3Zm-3 3 1 15h8l1-15"/></svg></button></div>{% endfor %}
+        <div class="menu-rows menu-standard menu-adult" data-menu="adult">
+          <div class="menu-row menu-header{% if summary.uses_food_voucher %} voucher-priced-row{% endif %}"><span>Qty</span><span>Item</span><span>Notes</span><span data-voucher-price{% if not summary.uses_food_voucher %} hidden{% endif %}>Price</span><span></span></div>
+          {% for row in adult_formset %}<div class="menu-row{% if summary.uses_food_voucher %} voucher-priced-row{% endif %}"><div>{{ row.quantity }}{{ row.quantity.errors }}</div><div>{{ row.item }}{{ row.item.errors }}</div><div>{{ row.notes }}{{ row.notes.errors }}</div><div data-voucher-price{% if not summary.uses_food_voucher %} hidden{% endif %}>{{ row.amount }}{{ row.amount.errors }}</div>{{ row.DELETE.as_hidden }}<button class="menu-delete-button" type="button" aria-label="Delete this adult menu row" title="Delete row"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 9v8m4-8v8m4-8v8M5 6h14m-9-3h4l1 3H9l1-3Zm-3 3 1 15h8l1-15"/></svg></button></div>{% endfor %}
         </div>
-        <template data-empty-menu="adult"><div class="menu-row"><div>{{ adult_formset.empty_form.quantity }}</div><div>{{ adult_formset.empty_form.item }}</div><div>{{ adult_formset.empty_form.notes }}</div>{{ adult_formset.empty_form.DELETE.as_hidden }}<button class="menu-delete-button" type="button" aria-label="Delete this adult menu row" title="Delete row"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 9v8m4-8v8m4-8v8M5 6h14m-9-3h4l1 3H9l1-3Zm-3 3 1 15h8l1-15"/></svg></button></div></template>
+        <template data-empty-menu="adult"><div class="menu-row"><div>{{ adult_formset.empty_form.quantity }}</div><div>{{ adult_formset.empty_form.item }}</div><div>{{ adult_formset.empty_form.notes }}</div><div data-voucher-price hidden>{{ adult_formset.empty_form.amount }}</div>{{ adult_formset.empty_form.DELETE.as_hidden }}<button class="menu-delete-button" type="button" aria-label="Delete this adult menu row" title="Delete row"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 9v8m4-8v8m4-8v8M5 6h14m-9-3h4l1 3H9l1-3Zm-3 3 1 15h8l1-15"/></svg></button></div></template>
       </section>
       <section class="panel party-menu-card">
         <div class="panel-heading"><div><h2>Kids menu</h2><small class="kids-menu-note">1 drink per child</small></div><button class="menu-add-button" type="button" data-add-menu="kids" aria-label="Add kids menu row"><span aria-hidden="true">+</span> Add row</button></div>
@@ -138,7 +144,7 @@
             </div>
             <template id="empty-bill-item"><div class="bill-custom-row" data-bill-row><div>{{ bill_formset.empty_form.name }}</div><div>{{ bill_formset.empty_form.amount }}</div>{{ bill_formset.empty_form.DELETE.as_hidden }}<button class="menu-delete-button" type="button" data-delete-bill aria-label="Delete this bill item" title="Delete bill item"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 9v8m4-8v8m4-8v8M5 6h14m-9-3h4l1 3H9l1-3Zm-3 3 1 15h8l1-15"/></svg></button></div></template>
           </div>
-          <div class="bill-line"><span>Extra food</span><strong id="extra-total">$0.00</strong></div>
+          <div class="bill-line"><span id="food-ordered-label">{% if summary.uses_food_voucher %}Food ordered{% else %}Extra food{% endif %}</span><strong id="food-ordered-total">{% if summary.uses_food_voucher %}${{ summary.food_ordered_total|floatformat:2 }}{% elif summary %}${{ summary.extra_food_total|floatformat:2 }}{% else %}$0.00{% endif %}</strong></div>
           <div class="bill-line" id="food-voucher-line" hidden><span>Food voucher</span><strong id="food-voucher-total">-$0.00</strong></div>
           <div class="bill-line"><span>Additional bill items</span><strong id="custom-charges-total">$0.00</strong></div>
           <div class="bill-total"><span>Total balance</span><strong id="balance-total">$0.00</strong></div>
@@ -189,16 +195,21 @@
   const canberraFoodVouchers = {single: 100, double_lite: 180, private_2hour: 400, private_3hour: 400};
   function calculate() {
     const extra = [...document.querySelectorAll('[data-menu="extra"] input[name$="-amount"]')].reduce((sum, input) => sum + number(input), 0);
+    const adultFood = [...document.querySelectorAll('[data-menu="adult"] input[name$="-amount"]')].reduce((sum, input) => sum + number(input), 0);
     const customCharges = [...document.querySelectorAll('[data-bill-row]:not(.menu-row-deleted) input[name$="-amount"]')].reduce((sum, input) => sum + number(input), 0);
     const voucher = activeLocationCode() === 'canberra' ? (canberraFoodVouchers[roomSelect?.value] || 0) : 0;
     const voucherLine = document.getElementById('food-voucher-line');
     const voucherNotes = document.getElementById('staff-voucher-notes');
     voucherLine.hidden = voucher === 0;
     if (voucherNotes) voucherNotes.hidden = voucher === 0;
+    document.querySelectorAll('[data-voucher-price]').forEach(element => { element.hidden = voucher === 0; });
+    document.querySelectorAll('[data-menu="adult"] .menu-row').forEach(row => row.classList.toggle('voucher-priced-row', voucher > 0));
     document.getElementById('food-voucher-total').textContent = '-' + money(voucher);
-    document.getElementById('extra-total').textContent = money(extra);
+    const foodOrdered = voucher ? adultFood + extra : extra;
+    document.getElementById('food-ordered-label').textContent = voucher ? 'Food ordered' : 'Extra food';
+    document.getElementById('food-ordered-total').textContent = money(foodOrdered);
     document.getElementById('custom-charges-total').textContent = money(customCharges);
-    document.getElementById('balance-total').textContent = money(number(packageAmount) - number(deposit) + Math.max(extra - voucher, 0) + number(other) + customCharges);
+    document.getElementById('balance-total').textContent = money(number(packageAmount) - number(deposit) + Math.max(foodOrdered - voucher, 0) + number(other) + customCharges);
   }
   const activeLocationCode = () => locationSelect ? (locationCodes[locationSelect.value] || defaultPackageLocation) : defaultPackageLocation;
   const activePackages = () => packageCatalog[activeLocationCode()] || packageCatalog.southland || [];
@@ -229,6 +240,7 @@
   roomSelect?.addEventListener('change', calculate);
   [packageAmount, deposit, other].forEach(input => input?.addEventListener('input', calculate));
   document.querySelector('[data-menu="extra"]')?.addEventListener('input', calculate);
+  document.querySelector('[data-menu="adult"]')?.addEventListener('input', calculate);
   document.getElementById('bill-custom-rows')?.addEventListener('input', calculate);
   function deleteBillRow(button) {
     const row = button.closest('[data-bill-row]');

@@ -149,8 +149,22 @@ class PartySummary(models.Model):
         return Decimal("0.00")
 
     @property
+    def uses_food_voucher(self):
+        return self.food_voucher_amount > 0
+
+    @property
+    def food_ordered_total(self):
+        """Total priced food for voucher packages, including legacy extra rows."""
+        if not self.uses_food_voucher:
+            return self.extra_food_total
+        return self.menu_items.filter(
+            category__in=(PartyMenuItem.Category.ADULT, PartyMenuItem.Category.EXTRA)
+        ).aggregate(total=models.Sum("amount"))["total"] or Decimal("0.00")
+
+    @property
     def extra_food_balance(self):
-        return max(self.extra_food_total - self.food_voucher_amount, Decimal("0.00"))
+        chargeable_food = self.food_ordered_total if self.uses_food_voucher else self.extra_food_total
+        return max(chargeable_food - self.food_voucher_amount, Decimal("0.00"))
 
     @property
     def custom_charges_total(self):

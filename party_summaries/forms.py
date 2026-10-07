@@ -532,6 +532,8 @@ class StandardMenuItemForm(forms.Form):
     quantity = forms.CharField(required=False, max_length=40, widget=forms.TextInput(attrs={"placeholder": "Qty"}))
     item = forms.CharField(required=False, max_length=250, widget=forms.TextInput(attrs={"placeholder": "Select or type an item"}))
     notes = forms.CharField(required=False, max_length=500, widget=forms.TextInput(attrs={"placeholder": "Notes"}))
+    amount = forms.DecimalField(required=False, min_value=0, max_digits=10, decimal_places=2,
+        widget=forms.NumberInput(attrs={"placeholder": "$0.00", "min": 0, "step": "0.01"}))
 
     def clean(self):
         cleaned = super().clean()
