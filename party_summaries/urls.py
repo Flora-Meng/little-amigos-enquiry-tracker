@@ -15,6 +15,8 @@ urlpatterns = [
         name="party_summary_weekly_pdf"),
     path("<uuid:summary_id>/edit/", views.party_summary_edit, name="party_summary_edit"),
     path("<uuid:summary_id>/delete/", views.party_summary_delete, name="party_summary_delete"),
+    path("<uuid:summary_id>/toggle-confirmed/", views.party_summary_toggle_confirmed,
+        name="party_summary_toggle_confirmed"),
     path("<uuid:summary_id>/decoration/", views.party_summary_decoration, name="party_summary_decoration"),
     path("<uuid:summary_id>/confirmation-email/", views.party_summary_confirmation_email,
         name="party_summary_confirmation_email"),

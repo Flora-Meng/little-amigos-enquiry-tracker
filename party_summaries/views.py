@@ -12,7 +12,7 @@ from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
-from django.views.decorators.http import require_http_methods
+from django.views.decorators.http import require_http_methods, require_POST
 from django.views.decorators.csrf import csrf_exempt
 
 from accounts.models import Location, User
@@ -40,7 +40,10 @@ from .forms import (
     PartySummaryForm,
     menu_formsets,
 )
-from .models import PartyBillItem, PartyIntakeLink, PartyMenuItem, PartySummary
+from .models import (
+    PartyBillItem, PartyIntakeLink, PartyMenuItem, PartySummary,
+    VOUCHER_FOOD_PRICE_LOOKUP, menu_quantity_number, voucher_food_unit_price,
+)
 from .pdf import build_party_summaries_pdf, build_party_summary_pdf
 
 
@@ -105,6 +108,11 @@ def _menu_initial(summary=None):
     result = {"adult": [], "kids": [], "extra": [], "bill": []}
     for item in summary.menu_items.all():
         row = {"quantity": item.quantity, "item": item.item, "notes": item.notes, "amount": item.amount}
+        if summary.uses_food_voucher and item.category == PartyMenuItem.Category.ADULT:
+            unit_price = voucher_food_unit_price(item.item)
+            quantity = menu_quantity_number(item.quantity)
+            if unit_price and (not item.amount or (quantity > 1 and item.amount == unit_price * quantity)):
+                row["amount"] = unit_price
         result[item.category].append(row)
     result["bill"] = [{"name": item.name, "amount": item.amount} for item in summary.bill_items.all()]
     return result
@@ -303,6 +311,7 @@ def _form_context(form, formsets, summary=None, request=None):
         ],
         str(Location.Code.CANBERRA): [
             {"value": str(PartySummary.RoomType.SINGLE), "label": "Single room"},
+            {"value": str(PartySummary.RoomType.SINGLE_VOUCHER), "label": "Single (voucher)"},
             {"value": str(PartySummary.RoomType.DOUBLE_LITE), "label": "Double room Lite"},
             {"value": str(PartySummary.RoomType.DOUBLE), "label": "Double room"},
             {"value": str(PartySummary.RoomType.PRIVATE_2HOUR), "label": "Private 2 hour"},
@@ -314,6 +323,7 @@ def _form_context(form, formsets, summary=None, request=None):
         "package_catalog": package_catalog,
         "room_catalog": room_catalog,
         "location_codes": {str(location.id): location.code for location in Location.objects.all()},
+        "voucher_food_prices": {name: str(price) for name, price in VOUCHER_FOOD_PRICE_LOOKUP.items()},
         "default_package_location": getattr(form, "package_location_code", Location.Code.SOUTHLAND)}
     if summary is not None and request is not None:
         context["customer_menu_url"] = request.build_absolute_uri(
@@ -380,6 +390,7 @@ def _customer_menu_initial(summary):
     if summary.location.code == Location.Code.CANBERRA:
         valid_room_types = {
             PartySummary.RoomType.SINGLE,
+            PartySummary.RoomType.SINGLE_VOUCHER,
             PartySummary.RoomType.DOUBLE_LITE,
             PartySummary.RoomType.DOUBLE,
             PartySummary.RoomType.PRIVATE_2HOUR,
@@ -521,7 +532,7 @@ def _customer_menu_deadline(summary):
 def _save_customer_menu(summary, cleaned):
     room_type = cleaned["room_type"]
     uses_voucher_menu = summary.location.code == Location.Code.CANBERRA and room_type in {
-        PartySummary.RoomType.SINGLE,
+        PartySummary.RoomType.SINGLE_VOUCHER,
         PartySummary.RoomType.DOUBLE_LITE,
         PartySummary.RoomType.PRIVATE_2HOUR,
         PartySummary.RoomType.PRIVATE_3HOUR,
@@ -548,22 +559,26 @@ def _save_customer_menu(summary, cleaned):
     ))
 
     rows = []
-    if summary.location.code == Location.Code.CANBERRA and room_type == PartySummary.RoomType.DOUBLE:
+    if summary.location.code == Location.Code.CANBERRA and room_type in {
+        PartySummary.RoomType.SINGLE, PartySummary.RoomType.DOUBLE,
+    }:
         adult_items = [
             ("1 platter (50pcs)", cleaned["adult_fryer"], cleaned.get("adult_food_avoid", "")),
             ("1 platter", "Seasonal fruit platter", cleaned.get("triple_fruit_note", "")),
             ("1 platter", cleaned["adult_starter"], ""),
         ]
-        if cleaned["adult_main"] == "__four_pizzas__":
-            for index, (pizza, _label) in enumerate(TRIPLE_PIZZA_CHOICES):
-                quantity = cleaned.get(f"triple_pizza_{index}_qty") or 0
-                if quantity:
-                    adult_items.append((str(quantity), pizza, cleaned.get("triple_pizza_note", "")))
-        else:
-            adult_items.append(("1 platter (12pcs)", cleaned["adult_main"], ""))
+        if room_type == PartySummary.RoomType.DOUBLE:
+            if cleaned["adult_main"] == "__four_pizzas__":
+                for index, (pizza, _label) in enumerate(TRIPLE_PIZZA_CHOICES):
+                    quantity = cleaned.get(f"triple_pizza_{index}_qty") or 0
+                    if quantity:
+                        adult_items.append((str(quantity), pizza, cleaned.get("triple_pizza_note", "")))
+            else:
+                adult_items.append(("1 platter (12pcs)", cleaned["adult_main"], ""))
+            adult_items.append(("1 bowl", cleaned["adult_pasta"], ""))
+        drink_quantity = "1 jug" if room_type == PartySummary.RoomType.SINGLE else "2 jugs"
         adult_items.extend((
-            ("1 bowl", cleaned["adult_pasta"], ""),
-            ("2 jugs", "Soft drinks / juice", cleaned.get("triple_drinks_note", "")),
+            (drink_quantity, "Soft drinks / juice", cleaned.get("triple_drinks_note", "")),
             ("1 jug", "Refillable water", ""),
         ))
         for position, (quantity, item, notes) in enumerate(adult_items):
@@ -633,7 +648,9 @@ def _save_customer_menu(summary, cleaned):
             quantity = cleaned[f"extra_{index}_qty"]
             category = PartyMenuItem.Category.ADULT if uses_voucher_menu else PartyMenuItem.Category.EXTRA
             rows.append(PartyMenuItem(summary=summary, category=category,
-                quantity=str(quantity), item=item, amount=Decimal(price) * quantity, position=index))
+                quantity=str(quantity), item=item,
+                amount=Decimal(price) if uses_voucher_menu else Decimal(price) * quantity,
+                position=index))
     summary.menu_items.all().delete()
     PartyMenuItem.objects.bulk_create(rows)
 
@@ -692,6 +709,16 @@ def party_summary_delete(request, summary_id):
         messages.success(request, f"Party summary for {owner_name} was deleted.")
         return redirect("party_summary_list")
     return render(request, "party_summaries/delete.html", {"summary": summary})
+
+
+@login_required
+@require_POST
+def party_summary_toggle_confirmed(request, summary_id):
+    summary = _visible_or_404(request.user, summary_id)
+    summary.confirmed = not summary.confirmed
+    summary.save(update_fields=("confirmed", "updated_at"))
+    messages.success(request, "Party marked as confirmed." if summary.confirmed else "Party confirmation removed.")
+    return redirect("party_summary_edit", summary_id=summary.id)
 
 
 @login_required

@@ -1,6 +1,9 @@
 {% extends "base.html" %}
 {% block title %}Party summaries · Little Amigos Workspace{% endblock %}
 {% block body %}
+<style>
+  .confirmed-status { display: inline-flex; align-items: center; min-height: 36px; padding: 0 12px; border-radius: 11px; color: #247047; background: #e7f7ed; font-size: .78rem; font-weight: 850; white-space: nowrap; }
+</style>
 {% include "accounts/_header.html" %}
 <main class="page-shell">
   <div class="page-heading">
@@ -53,7 +56,7 @@
                         <td data-label="Room"><span class="pill">{{ summary.get_room_type_display }}</span></td>
                         <td data-label="Guests">{{ summary.kids_count }} kids · {{ summary.adults_count }} adults</td>
                         <td data-label="Balance"><strong>${{ summary.total_balance|floatformat:2 }}</strong></td>
-                        <td data-label="Actions"><div class="table-actions"><a class="button button-quiet button-small" href="{% url 'party_summary_edit' summary.id %}">Open / edit</a><a class="button button-primary button-small" href="{% url 'party_summary_confirmation_email' summary.id %}">Email</a><a class="button button-quiet button-small" href="{% url 'party_summary_pdf' summary.id %}">PDF</a><a class="button button-danger button-small" href="{% url 'party_summary_delete' summary.id %}">Delete</a></div></td>
+                        <td data-label="Actions"><div class="table-actions"><a class="button button-quiet button-small" href="{% url 'party_summary_edit' summary.id %}">Open / edit</a><a class="button button-primary button-small" href="{% url 'party_summary_confirmation_email' summary.id %}">Email</a><a class="button button-quiet button-small" href="{% url 'party_summary_pdf' summary.id %}">PDF</a>{% if summary.confirmed %}<span class="confirmed-status">✓ Confirmed</span>{% endif %}</div></td>
                       </tr>
                     {% endfor %}
                     </tbody>

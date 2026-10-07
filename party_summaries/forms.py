@@ -135,7 +135,7 @@ class PartySummaryForm(forms.ModelForm):
             "kids_name", "gender", "age", "theme", "balloon_color", "special_note",
             "rsvp_information",
             "dietary_requirements", "voucher_menu_notes",
-            "deposit_amount", "package_name", "package_amount", "other_charges",
+            "deposit_amount", "package_name", "custom_package_name", "package_amount",
         )
         labels = {
             "party_time": "Party time", "owner_name": "Owner name", "owner_number": "Owner number",
@@ -143,8 +143,9 @@ class PartySummaryForm(forms.ModelForm):
             "deposit_method": "Deposit method", "kids_name": "Kids name", "balloon_color": "Balloon color",
             "special_note": "Special note", "rsvp_information": "RSVP information",
             "deposit_amount": "Deposit paid", "package_name": "Package",
+            "custom_package_name": "Package name",
             "dietary_requirements": "Dietary requirements", "voucher_menu_notes": "Food voucher menu notes",
-            "package_amount": "Package price", "other_charges": "Other charges / adjustments",
+            "package_amount": "Package price",
         }
         widgets = {
             "party_date": forms.DateInput(attrs={"type": "date"}),
@@ -159,13 +160,13 @@ class PartySummaryForm(forms.ModelForm):
             "voucher_menu_notes": forms.Textarea(attrs={"rows": 3}),
             "deposit_amount": forms.NumberInput(attrs={"min": 0, "step": "0.01"}),
             "package_amount": forms.NumberInput(attrs={"min": 0, "step": "0.01"}),
-            "other_charges": forms.NumberInput(attrs={"step": "0.01"}),
+            "custom_package_name": forms.TextInput(attrs={"placeholder": "e.g. Mini Party"}),
         }
 
     def __init__(self, *args, user, **kwargs):
         super().__init__(*args, **kwargs)
         self.user = user
-        for name in ("kids_count", "adults_count", "deposit_amount", "package_name", "package_amount", "other_charges"):
+        for name in ("kids_count", "adults_count", "deposit_amount", "package_name", "package_amount"):
             self.fields[name].required = False
         self.fields["location"].queryset = Location.objects.order_by("name")
         location = None
@@ -181,6 +182,7 @@ class PartySummaryForm(forms.ModelForm):
         if self.package_location_code == Location.Code.CANBERRA:
             self.fields["room_type"].choices = (
                 (PartySummary.RoomType.SINGLE, "Single room"),
+                (PartySummary.RoomType.SINGLE_VOUCHER, "Single (voucher)"),
                 (PartySummary.RoomType.DOUBLE_LITE, "Double room Lite"),
                 (PartySummary.RoomType.DOUBLE, "Double room"),
                 (PartySummary.RoomType.PRIVATE_2HOUR, "Private 2 hour"),
@@ -207,9 +209,10 @@ class PartySummaryForm(forms.ModelForm):
         cleaned["kids_count"] = cleaned.get("kids_count") or 0
         cleaned["adults_count"] = cleaned.get("adults_count") or 0
         cleaned["deposit_amount"] = cleaned.get("deposit_amount") or 0
-        cleaned["other_charges"] = cleaned.get("other_charges") or 0
         package = cleaned.get("package_name") or PartySummary.Package.CUSTOM
         cleaned["package_name"] = package
+        if package != PartySummary.Package.CUSTOM:
+            cleaned["custom_package_name"] = ""
         location = cleaned.get("location")
         if location is None and self.user.location_id:
             location = self.user.location
@@ -337,6 +340,7 @@ class CustomerMenuForm(forms.Form):
         if self.is_canberra:
             self.fields["room_type"].choices = (
                 (PartySummary.RoomType.SINGLE, "Single room"),
+                (PartySummary.RoomType.SINGLE_VOUCHER, "Single (voucher)"),
                 (PartySummary.RoomType.DOUBLE_LITE, "Double room Lite"),
                 (PartySummary.RoomType.DOUBLE, "Double room"),
                 (PartySummary.RoomType.PRIVATE_2HOUR, "Private 2 hour"),
@@ -459,11 +463,14 @@ class CustomerMenuForm(forms.Form):
                 "triple_pasta", "private_sandwich", "triple_toast", "triple_sushi",
             ),
         }
-        if self.is_canberra and room_type == PartySummary.RoomType.DOUBLE:
-            self._validate_required_choices(
-                cleaned, ("adult_fryer", "adult_starter", "adult_main", "adult_pasta"),
-            )
-            if cleaned.get("adult_main") == "__four_pizzas__":
+        if self.is_canberra and room_type in {
+            PartySummary.RoomType.SINGLE, PartySummary.RoomType.DOUBLE,
+        }:
+            required = ["adult_fryer", "adult_starter"]
+            if room_type == PartySummary.RoomType.DOUBLE:
+                required.extend(("adult_main", "adult_pasta"))
+            self._validate_required_choices(cleaned, required)
+            if room_type == PartySummary.RoomType.DOUBLE and cleaned.get("adult_main") == "__four_pizzas__":
                 pizza_total = sum(
                     cleaned.get(f"triple_pizza_{index}_qty") or 0
                     for index in range(len(TRIPLE_PIZZA_CHOICES))

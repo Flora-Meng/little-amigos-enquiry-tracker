@@ -28,8 +28,7 @@
       <p><strong>Kid’s Name:</strong> {{ summary.kids_name|default:"To be confirmed" }}<br>
       <strong>Turning Age:</strong> {{ summary.age|default:"To be confirmed" }}<br>
       <strong>Theme:</strong> {{ summary.theme|default:"To be confirmed" }}<br>
-      <strong>Balloon Colours:</strong> {{ summary.balloon_color|default:"Default" }}<br>
-      <strong>RSVP Information:</strong> {{ summary.rsvp_information|default:"To be confirmed" }}</p>
+      <strong>Balloon Colours:</strong> {{ summary.balloon_color|default:"Default" }}</p>
 
       <h2>2. Menu &amp; Guest Numbers</h2>
       <p><strong>Party Date:</strong> {{ summary.party_date|date:"j F Y" }}<br>
@@ -56,10 +55,9 @@
 
       <h2>4. Bill</h2>
       <p>Deposit Paid: <strong>${{ summary.deposit_amount|floatformat:2 }}</strong><br>
-      {{ summary.get_package_name_display }}: <strong>${{ summary.package_amount|floatformat:2 }}</strong><br>
+      {{ summary.package_display_name }}: <strong>${{ summary.package_amount|floatformat:2 }}</strong><br>
       {% if summary.uses_food_voucher %}Food Ordered: <strong>${{ summary.food_ordered_total|floatformat:2 }}</strong><br>
-      Food Voucher: <strong>-${{ summary.food_voucher_amount|floatformat:2 }}</strong>{% else %}Extra Food: <strong>${{ summary.extra_food_balance|floatformat:2 }}</strong>{% endif %}<br>
-      Other Charges: <strong>${{ summary.other_charges|floatformat:2 }}</strong>{% for item in bill_items %}<br>
+      Food Voucher: <strong>-${{ summary.food_voucher_amount|floatformat:2 }}</strong>{% else %}Extra Food: <strong>${{ summary.extra_food_balance|floatformat:2 }}</strong>{% endif %}{% for item in bill_items %}<br>
       {{ item.name }}: <strong>${{ item.amount|floatformat:2 }}</strong>{% endfor %}</p>
       <p><strong>Total Balance Remaining: ${{ summary.total_balance|floatformat:2 }}</strong></p>
 

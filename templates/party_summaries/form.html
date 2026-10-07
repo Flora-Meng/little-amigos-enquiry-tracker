@@ -6,13 +6,15 @@
   @media (max-width: 480px) {
     .menu-adult .menu-row.voucher-priced-row { grid-template-columns: 70px minmax(140px, 1fr); }
   }
+  .confirmation-toggle { min-height: 46px; padding: 0 18px; border: 1px solid #58aa78; border-radius: 14px; color: #267247; background: #eef9f2; font: inherit; font-weight: 850; cursor: pointer; }
+  .confirmation-toggle.is-confirmed { color: white; background: #2f9b5f; border-color: #2f9b5f; }
 </style>
 {% include "accounts/_header.html" %}
 <main class="page-shell party-form-page">
   <a class="back-link" href="{% url 'party_summary_list' %}">← Party summaries</a>
   <div class="page-heading form-heading">
     <div><p class="eyebrow">Party summary</p><h1>{% if summary %}{{ summary.owner_name }} · {{ summary.party_date|date:"j M Y" }}{% else %}Create a party summary{% endif %}</h1><p class="muted">Based on the Melbourne party summary worksheet.</p></div>
-    {% if summary %}<div class="detail-actions"><a class="button button-primary" href="{% url 'party_summary_confirmation_email' summary.id %}">Confirmation email</a><a class="button button-quiet" href="{% url 'party_summary_pdf' summary.id %}">Download PDF</a><a class="button button-danger" href="{% url 'party_summary_delete' summary.id %}">Delete summary</a></div>{% endif %}
+    {% if summary %}<div class="detail-actions"><form method="post" action="{% url 'party_summary_toggle_confirmed' summary.id %}">{% csrf_token %}<button class="confirmation-toggle{% if summary.confirmed %} is-confirmed{% endif %}" type="submit">{% if summary.confirmed %}✓ Confirmed{% else %}Mark confirmed{% endif %}</button></form><a class="button button-primary" href="{% url 'party_summary_confirmation_email' summary.id %}">Confirmation email</a><a class="button button-quiet" href="{% url 'party_summary_pdf' summary.id %}">Download PDF</a><a class="button button-danger" href="{% url 'party_summary_delete' summary.id %}">Delete summary</a></div>{% endif %}
   </div>
 
   {% if summary %}
@@ -131,8 +133,8 @@
         <div class="bill-fields">
           {% include "enquiries/_field.html" with field=form.deposit_amount %}
           {% include "enquiries/_field.html" with field=form.package_name %}
+          <div data-custom-package-name>{% include "enquiries/_field.html" with field=form.custom_package_name %}</div>
           {% include "enquiries/_field.html" with field=form.package_amount %}
-          {% include "enquiries/_field.html" with field=form.other_charges %}
           <div class="bill-custom-charges">
             <div class="bill-custom-heading">
               <div><strong>Additional bill items</strong><small>Add a charge or enter a negative amount for a discount / prepaid amount</small></div>
@@ -159,6 +161,7 @@
   {{ package_catalog|json_script:"package-catalog-data" }}
   {{ room_catalog|json_script:"room-catalog-data" }}
   {{ location_codes|json_script:"location-code-data" }}
+  {{ voucher_food_prices|json_script:"voucher-food-price-data" }}
   {{ default_package_location|json_script:"default-package-location-data" }}
 </main>
 <script>
@@ -183,16 +186,17 @@
   const packageCatalog = JSON.parse(document.getElementById('package-catalog-data').textContent);
   const roomCatalog = JSON.parse(document.getElementById('room-catalog-data').textContent);
   const locationCodes = JSON.parse(document.getElementById('location-code-data').textContent);
+  const voucherFoodPrices = JSON.parse(document.getElementById('voucher-food-price-data').textContent);
   const defaultPackageLocation = JSON.parse(document.getElementById('default-package-location-data').textContent);
   const locationSelect = document.getElementById('id_location');
   const packageSelect = document.getElementById('id_package_name');
+  const customPackageName = document.querySelector('[data-custom-package-name]');
   const packageAmount = document.getElementById('id_package_amount');
   const roomSelect = document.getElementById('id_room_type');
   const deposit = document.getElementById('id_deposit_amount');
-  const other = document.getElementById('id_other_charges');
   const money = value => '$' + value.toLocaleString('en-AU', {minimumFractionDigits: 2, maximumFractionDigits: 2});
   const number = input => Number.parseFloat(input?.value || '0') || 0;
-  const canberraFoodVouchers = {single: 100, double_lite: 180, private_2hour: 400, private_3hour: 400};
+  const canberraFoodVouchers = {single_voucher: 100, double_lite: 180, private_2hour: 400, private_3hour: 400};
   function calculate() {
     const extra = [...document.querySelectorAll('[data-menu="extra"] input[name$="-amount"]')].reduce((sum, input) => sum + number(input), 0);
     const adultFood = [...document.querySelectorAll('[data-menu="adult"] input[name$="-amount"]')].reduce((sum, input) => sum + number(input), 0);
@@ -209,7 +213,7 @@
     document.getElementById('food-ordered-label').textContent = voucher ? 'Food ordered' : 'Extra food';
     document.getElementById('food-ordered-total').textContent = money(foodOrdered);
     document.getElementById('custom-charges-total').textContent = money(customCharges);
-    document.getElementById('balance-total').textContent = money(number(packageAmount) - number(deposit) + Math.max(foodOrdered - voucher, 0) + number(other) + customCharges);
+    document.getElementById('balance-total').textContent = money(number(packageAmount) - number(deposit) + Math.max(foodOrdered - voucher, 0) + customCharges);
   }
   const activeLocationCode = () => locationSelect ? (locationCodes[locationSelect.value] || defaultPackageLocation) : defaultPackageLocation;
   const activePackages = () => packageCatalog[activeLocationCode()] || packageCatalog.southland || [];
@@ -222,10 +226,15 @@
     const previous = packageSelect.value;
     packageSelect.replaceChildren(new Option('---------', ''));
     activePackages().forEach(option => packageSelect.add(new Option(option.label, option.value)));
-    packageSelect.add(new Option('Custom / small gathering', 'custom'));
+    packageSelect.add(new Option('Custom', 'custom'));
     if ([...packageSelect.options].some(option => option.value === previous)) packageSelect.value = previous;
     applySelectedPackagePrice();
+    updateCustomPackageName();
     calculate();
+  }
+  function updateCustomPackageName() {
+    if (!customPackageName) return;
+    customPackageName.hidden = packageSelect?.value !== 'custom';
   }
   function refreshRoomChoices() {
     if (!roomSelect) return;
@@ -235,12 +244,25 @@
     choices.forEach(option => roomSelect.add(new Option(option.label, option.value)));
     if ([...roomSelect.options].some(option => option.value === previous)) roomSelect.value = previous;
   }
-  packageSelect?.addEventListener('change', () => { applySelectedPackagePrice(); calculate(); });
+  packageSelect?.addEventListener('change', () => { applySelectedPackagePrice(); updateCustomPackageName(); calculate(); });
   locationSelect?.addEventListener('change', () => { refreshPackageChoices(); refreshRoomChoices(); calculate(); });
   roomSelect?.addEventListener('change', calculate);
-  [packageAmount, deposit, other].forEach(input => input?.addEventListener('input', calculate));
+  [packageAmount, deposit].forEach(input => input?.addEventListener('input', calculate));
   document.querySelector('[data-menu="extra"]')?.addEventListener('input', calculate);
   document.querySelector('[data-menu="adult"]')?.addEventListener('input', calculate);
+  const normaliseFoodName = value => (value || '').toLocaleLowerCase('en-AU')
+    .replaceAll('vegetarian', 'vege').match(/[a-z0-9]+/g)?.join(' ') || '';
+  function applyVoucherFoodDefaults(event) {
+    if (!event.target.matches('input[name$="-item"]') || activeLocationCode() !== 'canberra' || !canberraFoodVouchers[roomSelect?.value]) return;
+    const row = event.target.closest('.menu-row');
+    const quantity = row?.querySelector('input[name$="-quantity"]');
+    const amount = row?.querySelector('input[name$="-amount"]');
+    const price = voucherFoodPrices[normaliseFoodName(event.target.value)];
+    if (quantity && event.target.value.trim() && !quantity.value) quantity.value = '1';
+    if (amount && price !== undefined) amount.value = Number(price).toFixed(2);
+    calculate();
+  }
+  document.querySelector('[data-menu="adult"]')?.addEventListener('input', applyVoucherFoodDefaults);
   document.getElementById('bill-custom-rows')?.addEventListener('input', calculate);
   function deleteBillRow(button) {
     const row = button.closest('[data-bill-row]');
@@ -342,6 +364,7 @@
     }
   });
   updateWaterNotes();
+  updateCustomPackageName();
   calculate();
 })();
 </script>
