@@ -129,7 +129,7 @@
           {% include "enquiries/_field.html" with field=form.other_charges %}
           <div class="bill-custom-charges">
             <div class="bill-custom-heading">
-              <div><strong>Additional bill items</strong><small>Add your own charge name and price</small></div>
+              <div><strong>Additional bill items</strong><small>Add a charge or enter a negative amount for a discount / prepaid amount</small></div>
               <button class="menu-add-button" id="add-bill-item" type="button" aria-label="Add another bill item"><span aria-hidden="true">+</span> Add charge</button>
             </div>
             {{ bill_formset.management_form }}

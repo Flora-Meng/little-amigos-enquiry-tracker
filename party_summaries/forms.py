@@ -548,8 +548,8 @@ class ExtraMenuItemForm(StandardMenuItemForm):
 class BillItemForm(forms.Form):
     name = forms.CharField(required=False, max_length=200,
         widget=forms.TextInput(attrs={"placeholder": "Charge name"}))
-    amount = forms.DecimalField(required=False, min_value=0, max_digits=10, decimal_places=2,
-        widget=forms.NumberInput(attrs={"placeholder": "$0.00", "min": 0, "step": "0.01"}))
+    amount = forms.DecimalField(required=False, max_digits=10, decimal_places=2,
+        widget=forms.NumberInput(attrs={"placeholder": "$0.00", "step": "0.01"}))
 
     def clean(self):
         cleaned = super().clean()

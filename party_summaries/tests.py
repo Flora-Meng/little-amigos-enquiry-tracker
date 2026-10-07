@@ -189,6 +189,22 @@ class PartySummaryTests(TestCase):
         self.assertEqual(summary.custom_charges_total, Decimal("155.50"))
         self.assertEqual(summary.total_balance, Decimal("1050.00"))
 
+    def test_negative_custom_bill_item_is_saved_as_discount(self):
+        self.client.force_login(self.flora)
+        data = self._post_data()
+        data.update(formset_data("bill", [
+            {"name": "Invoice prepaid", "amount": "-598.00"},
+        ]))
+
+        response = self.client.post(reverse("party_summary_create"), data)
+
+        self.assertRedirects(response, reverse("party_summary_list"))
+        summary = PartySummary.objects.get(owner_name="Rebecca Power")
+        discount = summary.bill_items.get()
+        self.assertEqual(discount.amount, Decimal("-598.00"))
+        self.assertEqual(summary.custom_charges_total, Decimal("-598.00"))
+        self.assertEqual(summary.total_balance, Decimal("296.50"))
+
     def test_deleted_custom_bill_item_is_not_recreated_on_save(self):
         summary = self._create_summary()
         PartyBillItem.objects.create(summary=summary, name="Balloon upgrade", amount="35.50")
