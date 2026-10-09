@@ -104,8 +104,9 @@ def package_showcase(request):
             "key": "single",
             "label": "Single room",
             "price": 799,
-            "price_label": "From $799",
+            "price_label": "Weekday $799 · Weekend $999",
             "menu": "single",
+            "voucher": 0,
             "photos": (
                 "package_showcase/canberra/single-1.jpg",
                 "package_showcase/canberra/single-2.jpg",
@@ -113,10 +114,11 @@ def package_showcase(request):
         },
         {
             "key": "double-1280",
-            "label": "Double · Weekday",
+            "label": "Double (food voucher) · Weekday",
             "price": 1280,
             "price_label": "$1,280",
-            "menu": "double",
+            "menu": "voucher",
+            "voucher": 180,
             "photos": (
                 "package_showcase/canberra/double-room-1-20261009.jpg",
                 "package_showcase/canberra/double-2.jpg",
@@ -124,10 +126,11 @@ def package_showcase(request):
         },
         {
             "key": "double-1580",
-            "label": "Double · Weekend",
+            "label": "Double (food voucher) · Weekend",
             "price": 1580,
             "price_label": "$1,580",
-            "menu": "double",
+            "menu": "voucher",
+            "voucher": 180,
             "photos": (
                 "package_showcase/canberra/double-room-1-20261009.jpg",
                 "package_showcase/canberra/double-2.jpg",
@@ -137,8 +140,9 @@ def package_showcase(request):
             "key": "private-2h",
             "label": "Private · 2 hours",
             "price": 1899,
-            "price_label": "From $1,899",
-            "menu": "private",
+            "price_label": "Weekday $1,899 · Weekend $2,199",
+            "menu": "voucher",
+            "voucher": 400,
             "photos": (
                 "package_showcase/canberra/private-1.jpg",
                 "package_showcase/canberra/private-2.jpg",
@@ -148,8 +152,9 @@ def package_showcase(request):
             "key": "private-3h",
             "label": "Private · 3 hours",
             "price": 2399,
-            "price_label": "From $2,399",
-            "menu": "private",
+            "price_label": "Weekday $2,399 · Weekend $2,699",
+            "menu": "voucher",
+            "voucher": 400,
             "photos": (
                 "package_showcase/canberra/private-1.jpg",
                 "package_showcase/canberra/private-2.jpg",
