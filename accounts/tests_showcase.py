@@ -29,7 +29,7 @@ class PackageShowcaseAccessTests(TestCase):
                 self.assertContains(response, "Two-tier cake")
                 self.assertContains(response, "Custom theme")
                 self.assertContains(response, 'data-addon-price="250"')
-                self.assertContains(response, "package_showcase/canberra/double-1.jpg", count=2)
+                self.assertContains(response, "package_showcase/canberra/double-room-1-20261009.jpg", count=2)
                 self.assertContains(response, "package_showcase/canberra/private-1.jpg", count=2)
                 self.assertNotContains(response, "Single (voucher)")
 

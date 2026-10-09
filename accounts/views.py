@@ -118,7 +118,7 @@ def package_showcase(request):
             "price_label": "$1,280",
             "menu": "double",
             "photos": (
-                "package_showcase/canberra/double-1.jpg",
+                "package_showcase/canberra/double-room-1-20261009.jpg",
                 "package_showcase/canberra/double-2.jpg",
             ),
         },
@@ -129,7 +129,7 @@ def package_showcase(request):
             "price_label": "$1,580",
             "menu": "double",
             "photos": (
-                "package_showcase/canberra/double-1.jpg",
+                "package_showcase/canberra/double-room-1-20261009.jpg",
                 "package_showcase/canberra/double-2.jpg",
             ),
         },
