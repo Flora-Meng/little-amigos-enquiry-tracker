@@ -94,7 +94,7 @@ class CompletePermissionMatrixTests(TestCase):
             detail = self.client.get(reverse("enquiry_detail", args=(enquiry.id,)))
             self.assertEqual(detail.status_code, 200)
 
-    def test_each_staff_list_only_contains_own_store_source_rows(self):
+    def test_each_staff_list_only_contains_own_location_rows(self):
         cases = (
             (self.southland, self.southland_store, self.canberra_store),
             (self.canberra, self.canberra_store, self.southland_store),
@@ -105,12 +105,14 @@ class CompletePermissionMatrixTests(TestCase):
                 response = self.client.get(reverse("enquiry_list"), {"archived": "all"})
                 self.assertContains(response, allowed.name)
                 self.assertNotContains(response, other_store.name)
-                self.assertNotContains(response, self.online.name)
+                if user == self.southland:
+                    self.assertContains(response, self.online.name)
+                else:
+                    self.assertNotContains(response, self.online.name)
 
     def test_staff_guessed_urls_return_404_without_revealing_record_existence(self):
         cases = (
             (self.southland, self.canberra_store),
-            (self.southland, self.online),
             (self.canberra, self.southland_store),
             (self.canberra, self.online),
         )
@@ -146,7 +148,7 @@ class CompletePermissionMatrixTests(TestCase):
         self.assertIsNone(enquiry.follow_up_due_date)
         self.assertFalse(enquiry.archived)
 
-    def test_staff_can_append_note_only_to_authorised_store_record(self):
+    def test_staff_can_append_note_only_to_own_location_records(self):
         self.client.force_login(self.southland)
         allowed = self.client.post(
             reverse("add_note", args=(self.southland_store.id,)),
@@ -154,17 +156,18 @@ class CompletePermissionMatrixTests(TestCase):
         )
         online = self.client.post(
             reverse("add_note", args=(self.online.id,)),
-            {"body": "Online leak"},
+            {"body": "Southland online note"},
         )
         other = self.client.post(
             reverse("add_note", args=(self.canberra_store.id,)),
             {"body": "Canberra leak"},
         )
         self.assertEqual(allowed.status_code, 302)
-        self.assertEqual(online.status_code, 404)
+        self.assertEqual(online.status_code, 302)
         self.assertEqual(other.status_code, 404)
         self.assertTrue(Note.objects.filter(body="Kiva authorised note").exists())
-        self.assertFalse(Note.objects.filter(body__contains="leak").exists())
+        self.assertTrue(Note.objects.filter(body="Southland online note").exists())
+        self.assertFalse(Note.objects.filter(body="Canberra leak").exists())
 
     def test_staff_creation_ignores_forged_location_source_status_and_amount(self):
         self.client.force_login(self.canberra)

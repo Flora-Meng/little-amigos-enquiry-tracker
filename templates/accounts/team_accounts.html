@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}Team accounts · Little Amigos Workspace{% endblock %}
+
+{% block body %}
+{% include "accounts/_header.html" %}
+<main class="page-shell team-accounts-page">
+  <section class="page-heading">
+    <div>
+      <p class="eyebrow">Access control</p>
+      <h1>Team accounts</h1>
+      <p class="muted">Each account is permanently limited to its own Little Amigos location.</p>
+    </div>
+  </section>
+
+  <section class="team-account-grid">
+    {% for account in accounts %}
+      <article class="panel team-account-card">
+        <div class="team-account-heading">
+          <div>
+            <p class="eyebrow">{{ account.user.location.name }}</p>
+            <h2>{{ account.user.display_name }}</h2>
+            <p class="muted">{{ account.user.email }}</p>
+          </div>
+          {% if account.password_ready %}
+            <span class="pill success-pill">Active</span>
+          {% else %}
+            <span class="pill warning-pill">Setup required</span>
+          {% endif %}
+        </div>
+
+        <div class="account-access-note">
+          <strong>Access:</strong> {{ account.user.location.name }} only
+        </div>
+
+        <label for="setup-link-{{ forloop.counter }}">{% if account.password_ready %}Reset password link{% else %}First-time password link{% endif %}</label>
+        <div class="copy-link-row">
+          <input id="setup-link-{{ forloop.counter }}" type="text" value="{{ account.setup_url }}" readonly>
+          <button class="button button-primary" type="button" data-copy-account-link="setup-link-{{ forloop.counter }}">Copy link</button>
+        </div>
+        <p class="muted small-copy">Send this private link only to the named team member. It stops working after their password is set.</p>
+      </article>
+    {% empty %}
+      <div class="panel empty-state">No location accounts are configured.</div>
+    {% endfor %}
+  </section>
+</main>
+<script>
+document.querySelectorAll('[data-copy-account-link]').forEach((button) => {
+  button.addEventListener('click', async () => {
+    const input = document.getElementById(button.dataset.copyAccountLink);
+    await navigator.clipboard.writeText(input.value);
+    button.textContent = 'Copied';
+    window.setTimeout(() => { button.textContent = 'Copy link'; }, 1600);
+  });
+});
+</script>
+{% endblock %}

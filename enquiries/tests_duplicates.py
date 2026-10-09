@@ -69,7 +69,7 @@ class DuplicateDetectionTests(TestCase):
         self.assertRedirects(confirmed, reverse("dashboard"))
         self.assertTrue(Enquiry.objects.filter(name="Repeat Party").exists())
 
-    def test_staff_duplicate_warning_does_not_expose_online_or_other_store(self):
+    def test_staff_duplicate_warning_includes_own_online_but_not_other_store(self):
         self.client.force_login(self.southland)
         online_response = self.client.post(
             reverse("new_store_enquiry"),
@@ -79,11 +79,11 @@ class DuplicateDetectionTests(TestCase):
             reverse("new_store_enquiry"),
             {"name": "Store Collision", "email": "other@example.com"},
         )
-        self.assertEqual(online_response.status_code, 302)
+        self.assertEqual(online_response.status_code, 200)
         self.assertEqual(other_response.status_code, 302)
-        self.assertNotIn(b"Private Online Match", online_response.content)
+        self.assertIn(b"Private Online Match", online_response.content)
         self.assertNotIn(b"Other Store Match", other_response.content)
-        self.assertTrue(Enquiry.objects.filter(name="Online Collision").exists())
+        self.assertFalse(Enquiry.objects.filter(name="Online Collision").exists())
         self.assertTrue(Enquiry.objects.filter(name="Store Collision").exists())
 
     def test_admin_duplicate_warning_can_link_all_authorised_matches(self):

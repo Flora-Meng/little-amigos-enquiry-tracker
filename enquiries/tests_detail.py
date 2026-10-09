@@ -69,10 +69,10 @@ class EnquiryDetailTests(TestCase):
         self.assertNotContains(response, reverse("update_enquiry", args=(self.store.id,)))
         self.assertNotContains(response, ">Archive<")
 
-    def test_staff_cannot_guess_online_or_other_location_detail_url(self):
+    def test_staff_can_open_own_online_but_not_other_location_detail_url(self):
         self.client.force_login(self.southland)
         online_response = self.client.get(reverse("enquiry_detail", args=(self.online.id,)))
-        self.assertEqual(online_response.status_code, 404)
+        self.assertEqual(online_response.status_code, 200)
         self.client.force_login(self.canberra)
         store_response = self.client.get(reverse("enquiry_detail", args=(self.store.id,)))
         self.assertEqual(store_response.status_code, 404)
@@ -167,11 +167,11 @@ class EnquiryDetailTests(TestCase):
         self.assertEqual([note.body for note in notes], ["Staff note", "Admin note"])
         self.assertEqual([note.author_display_name for note in notes], ["Kiva", "Flora"])
 
-    def test_staff_cannot_add_note_to_online_enquiry(self):
+    def test_staff_can_add_note_to_own_location_online_enquiry(self):
         self.client.force_login(self.southland)
         response = self.client.post(reverse("add_note", args=(self.online.id,)), {"body": "Leak"})
-        self.assertEqual(response.status_code, 404)
-        self.assertFalse(Note.objects.filter(body="Leak").exists())
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(Note.objects.filter(body="Leak").exists())
 
     def test_notes_cannot_be_edited_but_can_be_deleted(self):
         note = Note.objects.create(

@@ -1,6 +1,11 @@
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.tokens import default_token_generator
+from django.core.exceptions import PermissionDenied
 from django.db.models import OuterRef, Subquery
 from django.shortcuts import render
+from django.urls import reverse
+from django.utils.encoding import force_bytes
+from django.utils.http import urlsafe_base64_encode
 from enquiries.models import Enquiry, Note
 from enquiries.services import due_today, overdue
 
@@ -56,3 +61,26 @@ def dashboard(request):
         "accounts/staff_dashboard.html",
         {"cards": cards, "recent": recent, "status_choices": Enquiry.Status.choices},
     )
+
+
+@login_required
+def team_accounts(request):
+    """Let an administrator securely onboard the fixed location accounts."""
+    if request.user.role != User.Role.ADMIN:
+        raise PermissionDenied("Only administrators can manage team accounts.")
+
+    accounts = []
+    users = User.objects.filter(role=User.Role.STAFF).select_related("location").order_by("location__name")
+    for user in users:
+        uid = urlsafe_base64_encode(force_bytes(user.pk))
+        token = default_token_generator.make_token(user)
+        setup_path = reverse("staff_password_setup", kwargs={"uidb64": uid, "token": token})
+        accounts.append(
+            {
+                "user": user,
+                "setup_url": request.build_absolute_uri(setup_path),
+                "password_ready": user.has_usable_password(),
+            }
+        )
+
+    return render(request, "accounts/team_accounts.html", {"accounts": accounts})

@@ -31,10 +31,10 @@ class AuthorisationTests(TestCase):
         ):
             self.assertTrue(can_view_enquiry(self.admin, enquiry))
 
-    def test_staff_only_views_own_location_store_enquiries(self):
+    def test_staff_only_views_own_location_enquiries(self):
         self.assertTrue(can_view_enquiry(self.southland, self.southland_store))
         self.assertFalse(can_view_enquiry(self.southland, self.canberra_store))
-        self.assertFalse(can_view_enquiry(self.southland, self.southland_online))
+        self.assertTrue(can_view_enquiry(self.southland, self.southland_online))
         self.assertFalse(can_view_enquiry(self.canberra, self.southland_store))
 
     def test_staff_can_create_store_enquiries_and_add_authorised_notes(self):
@@ -42,7 +42,7 @@ class AuthorisationTests(TestCase):
         self.assertTrue(
             can_perform(self.southland, Action.ADD_NOTE, enquiry=self.southland_store)
         )
-        self.assertFalse(
+        self.assertTrue(
             can_perform(self.southland, Action.ADD_NOTE, enquiry=self.southland_online)
         )
 

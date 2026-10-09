@@ -139,7 +139,7 @@ class EnquiryListTests(TestCase):
         self.assertContains(response, "Archived Customer")
         self.assertNotContains(response, "Mia Southland")
 
-    def test_staff_cannot_leak_online_or_other_location_with_query_parameters(self):
+    def test_staff_query_parameters_cannot_leak_other_location(self):
         self.client.force_login(self.southland)
         response = self.client.get(
             reverse("enquiry_list"),
@@ -151,7 +151,7 @@ class EnquiryListTests(TestCase):
         )
         self.assertContains(response, "Mia Southland")
         self.assertContains(response, "Archived Customer")
-        self.assertNotContains(response, "Zoe Online")
+        self.assertContains(response, "Zoe Online")
         self.assertNotContains(response, "Leo Canberra")
 
     def test_nearest_party_date_sort_places_null_dates_last(self):

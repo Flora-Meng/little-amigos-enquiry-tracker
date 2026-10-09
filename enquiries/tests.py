@@ -146,12 +146,12 @@ class DashboardTests(TestCase):
         self.southland_store.refresh_from_db()
         self.assertEqual(self.southland_store.status, Enquiry.Status.NEW)
 
-    def test_staff_dashboard_never_receives_online_or_other_location_rows(self):
+    def test_staff_dashboard_receives_all_own_location_rows_only(self):
         self.client.force_login(self.southland)
         response = self.client.get(reverse("dashboard"))
         self.assertContains(response, "Southland Store Customer")
         self.assertNotContains(response, "Canberra Store Customer")
-        self.assertNotContains(response, "Private Online Customer")
+        self.assertContains(response, "Private Online Customer")
 
     def test_canberra_staff_only_receives_canberra_store_rows(self):
         self.client.force_login(self.canberra)

@@ -16,10 +16,10 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.contrib.auth import views as auth_views
-from django.urls import include, path
+from django.urls import include, path, reverse_lazy
 
-from accounts.forms import EmailAuthenticationForm
-from accounts.views import dashboard
+from accounts.forms import EmailAuthenticationForm, StaffPasswordSetupForm
+from accounts.views import dashboard, team_accounts
 from config.views import health_check, initial_admin_password
 from enquiries.views import add_note, archive_enquiry, delete_note, enquiry_detail, enquiry_list, extension_token_settings, new_store_enquiry, quick_update_status, reschedule_follow_up, update_enquiry, zumo_duplicate_check, zumo_ignore, zumo_import, zumo_imports, zumo_review_again, zumo_review_status
 
@@ -41,6 +41,23 @@ urlpatterns = [
         name="login",
     ),
     path("logout/", auth_views.LogoutView.as_view(), name="logout"),
+    path("team-accounts/", team_accounts, name="team_accounts"),
+    path(
+        "team-accounts/setup/<uidb64>/<token>/",
+        auth_views.PasswordResetConfirmView.as_view(
+            template_name="accounts/staff_password_setup.html",
+            form_class=StaffPasswordSetupForm,
+            success_url=reverse_lazy("staff_password_setup_complete"),
+        ),
+        name="staff_password_setup",
+    ),
+    path(
+        "team-accounts/setup/complete/",
+        auth_views.PasswordResetCompleteView.as_view(
+            template_name="accounts/staff_password_setup_complete.html"
+        ),
+        name="staff_password_setup_complete",
+    ),
     path("", dashboard, name="dashboard"),
     path("enquiries/new/", new_store_enquiry, name="new_store_enquiry"),
     path("enquiries/", enquiry_list, name="enquiry_list"),

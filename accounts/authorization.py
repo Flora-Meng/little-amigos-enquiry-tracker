@@ -44,7 +44,6 @@ def can_view_enquiry(user, enquiry) -> bool:
     return bool(
         user.role == User.Role.STAFF
         and user.location_id is not None
-        and enquiry.source == "store"
         and enquiry.location_id == user.location_id
     )
 
@@ -91,5 +90,5 @@ def enquiries_visible_to(user, queryset: QuerySet) -> QuerySet:
     if user.role == User.Role.ADMIN:
         return queryset.all()
     if user.role == User.Role.STAFF and user.location_id is not None:
-        return queryset.filter(source="store", location_id=user.location_id)
+        return queryset.filter(location_id=user.location_id)
     return queryset.none()
