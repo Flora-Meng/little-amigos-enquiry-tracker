@@ -4,7 +4,7 @@
 {% block title %}Canberra package showcase · Little Amigos Workspace{% endblock %}
 
 {% block body %}
-<link rel="stylesheet" href="{% static 'css/package_showcase.css' %}?v=20261009-1">
+<link rel="stylesheet" href="{% static 'css/package_showcase.css' %}?v=20261009-2">
 {% include "accounts/_header.html" %}
 <main class="showcase-shell" data-package-showcase>
   <header class="showcase-hero">
@@ -27,10 +27,12 @@
   <div class="showcase-layout">
     <div class="showcase-main">
       <section class="showcase-panel">
-        <header class="showcase-panel-heading"><div><p class="eyebrow">Package photos</p><h2 id="gallery-title">Single room</h2><p>Real package photos will appear here.</p></div><span class="showcase-readonly">Preview only</span></header>
+        <header class="showcase-panel-heading"><div><p class="eyebrow">Package photos</p><h2 id="gallery-title">Single room</h2><p>Examples of the room and package setup.</p></div><span class="showcase-readonly">Preview only</span></header>
         {% for package in packages %}
           <div class="showcase-gallery gallery-set" data-gallery="{{ package.key }}"{% if not forloop.first %} hidden{% endif %}>
-            {% for number in "123" %}<div class="showcase-photo-placeholder"><span>Package photo {{ number }}</span><small>{{ package.photo_prefix }}-{{ number }}.jpg</small></div>{% endfor %}
+            {% for photo in package.photos %}
+              <figure class="showcase-photo"><img src="{% static photo %}" alt="{{ package.label }} setup example {{ forloop.counter }}" loading="lazy"></figure>
+            {% endfor %}
           </div>
         {% endfor %}
       </section>
@@ -104,6 +106,14 @@
       <section class="showcase-panel">
         <header class="showcase-panel-heading"><div><p class="eyebrow">Optional services</p><h2>Add-on services</h2><p>Select any options to add them to the estimate.</p></div></header>
         <div class="addon-list">
+          <section class="addon-group decoration-addon"><h3>Decoration</h3><div class="addon-options">
+            <label class="addon-option"><input type="checkbox" value="Custom theme" data-addon-price="250" data-custom-theme-toggle><span><b>Custom theme</b><small>Open the examples below when selected.</small></span><strong>$250</strong></label>
+          </div>
+            <div class="custom-theme-gallery" data-custom-theme-gallery hidden>
+              <figure class="showcase-photo"><img src="{% static 'package_showcase/canberra/custom-1.jpg' %}" alt="Custom theme example 1" loading="lazy"></figure>
+              <figure class="showcase-photo"><img src="{% static 'package_showcase/canberra/custom-2.jpg' %}" alt="Custom theme example 2" loading="lazy"></figure>
+            </div>
+          </section>
           <section class="addon-group"><h3>Customized cake</h3><div class="addon-options">
             <label class="addon-option"><input type="radio" name="cake-addon" value="" data-addon-price="0" checked><span>No cake</span><strong>$0</strong></label>
             <label class="addon-option"><input type="radio" name="cake-addon" value="Tall 6-inch cake" data-addon-price="188"><span>Tall 6-inch cake</span><strong>$188</strong></label>
@@ -186,6 +196,11 @@
   }));
 
   root.querySelectorAll('[data-addon-price]').forEach(input => input.addEventListener('change', updateEstimate));
+  const customThemeToggle = root.querySelector('[data-custom-theme-toggle]');
+  const customThemeGallery = root.querySelector('[data-custom-theme-gallery]');
+  customThemeToggle.addEventListener('change', () => {
+    customThemeGallery.hidden = !customThemeToggle.checked;
+  });
   root.querySelectorAll('[data-voucher-item]').forEach(checkbox => checkbox.addEventListener('change', () => {
     const qty = checkbox.closest('.voucher-food-row').querySelector('[data-voucher-qty]'); qty.disabled = !checkbox.checked; updateEstimate();
   }));

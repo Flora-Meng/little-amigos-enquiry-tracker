@@ -106,7 +106,10 @@ def package_showcase(request):
             "price": 799,
             "price_label": "From $799",
             "menu": "single",
-            "photo_prefix": "single",
+            "photos": (
+                "package_showcase/canberra/single-1.jpg",
+                "package_showcase/canberra/single-2.jpg",
+            ),
         },
         {
             "key": "double-1280",
@@ -114,7 +117,10 @@ def package_showcase(request):
             "price": 1280,
             "price_label": "$1,280",
             "menu": "double",
-            "photo_prefix": "double-1280",
+            "photos": (
+                "package_showcase/canberra/double-1.jpg",
+                "package_showcase/canberra/double-2.jpg",
+            ),
         },
         {
             "key": "double-1580",
@@ -122,7 +128,10 @@ def package_showcase(request):
             "price": 1580,
             "price_label": "$1,580",
             "menu": "double",
-            "photo_prefix": "double-1580",
+            "photos": (
+                "package_showcase/canberra/double-1.jpg",
+                "package_showcase/canberra/double-2.jpg",
+            ),
         },
         {
             "key": "private-2h",
@@ -130,7 +139,10 @@ def package_showcase(request):
             "price": 1899,
             "price_label": "From $1,899",
             "menu": "private",
-            "photo_prefix": "private-2h",
+            "photos": (
+                "package_showcase/canberra/private-1.jpg",
+                "package_showcase/canberra/private-2.jpg",
+            ),
         },
         {
             "key": "private-3h",
@@ -138,7 +150,10 @@ def package_showcase(request):
             "price": 2399,
             "price_label": "From $2,399",
             "menu": "private",
-            "photo_prefix": "private-3h",
+            "photos": (
+                "package_showcase/canberra/private-1.jpg",
+                "package_showcase/canberra/private-2.jpg",
+            ),
         },
     )
     voucher_groups = (

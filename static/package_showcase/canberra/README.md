@@ -1,13 +1,12 @@
 # Canberra package photos
 
-Replace the on-screen placeholders with two or three landscape photos per package.
+The showcase uses two landscape photos for each room type. Weekday/weekend Double packages share the same photos, and Private 2-hour/3-hour packages share the same photos.
 
 Preferred filenames:
 
-- `single-1.jpg`, `single-2.jpg`, `single-3.jpg`
-- `double-1280-1.jpg`, `double-1280-2.jpg`, `double-1280-3.jpg`
-- `double-1580-1.jpg`, `double-1580-2.jpg`, `double-1580-3.jpg`
-- `private-2h-1.jpg`, `private-2h-2.jpg`, `private-2h-3.jpg`
-- `private-3h-1.jpg`, `private-3h-2.jpg`, `private-3h-3.jpg`
+- `single-1.jpg`, `single-2.jpg`
+- `double-1.jpg`, `double-2.jpg`
+- `private-1.jpg`, `private-2.jpg`
+- `custom-1.jpg`, `custom-2.jpg` (shown only when Custom theme +$250 is selected)
 
 Use JPG or WebP, 1200–1800 pixels wide, preferably under 2 MB per photo.

@@ -27,6 +27,10 @@ class PackageShowcaseAccessTests(TestCase):
                 self.assertContains(response, "Private · 3 hours")
                 self.assertContains(response, "Face painting")
                 self.assertContains(response, "Two-tier cake")
+                self.assertContains(response, "Custom theme")
+                self.assertContains(response, 'data-addon-price="250"')
+                self.assertContains(response, "package_showcase/canberra/double-1.jpg", count=2)
+                self.assertContains(response, "package_showcase/canberra/private-1.jpg", count=2)
                 self.assertNotContains(response, "Single (voucher)")
 
     def test_southland_account_cannot_open_canberra_showcase(self):
