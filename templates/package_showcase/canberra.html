@@ -4,7 +4,7 @@
 {% block title %}Canberra package showcase · Little Amigos Workspace{% endblock %}
 
 {% block body %}
-<link rel="stylesheet" href="{% static 'css/package_showcase.css' %}?v=20261009-3">
+<link rel="stylesheet" href="{% static 'css/package_showcase.css' %}?v=20261010-1">
 {% include "accounts/_header.html" %}
 <main class="showcase-shell" data-package-showcase>
   <header class="showcase-hero">
@@ -120,20 +120,37 @@
             <label class="addon-option"><input type="radio" name="cake-addon" value="Tall 8-inch cake" data-addon-price="238"><span>Tall 8-inch cake</span><strong>$238</strong></label>
             <label class="addon-option"><input type="radio" name="cake-addon" value="6+8 two-tier cake" data-addon-price="288"><span>6+8 two-tier cake</span><strong>$288</strong></label>
             <label class="addon-option"><input type="radio" name="cake-addon" value="Tall 6+8 two-tier cake" data-addon-price="368"><span>Tall 6+8 two-tier cake</span><strong>$368</strong></label>
-          </div></section>
+          </div>
+            <div class="addon-gallery addon-gallery--guides">
+              <figure class="addon-photo addon-photo--guide"><img src="{% static 'package_showcase/canberra/addons/cake-single-tier-guide.jpg' %}" alt="Single-tier customised cake examples" loading="lazy"></figure>
+              <figure class="addon-photo addon-photo--guide"><img src="{% static 'package_showcase/canberra/addons/cake-double-tier-guide.jpg' %}" alt="Double-tier customised cake examples" loading="lazy"></figure>
+            </div>
+          </section>
           <section class="addon-group"><h3>Face painting</h3><div class="addon-options">
             <label class="addon-option"><input type="radio" name="face-addon" value="" data-addon-price="0" checked><span>No face painting</span><strong>$0</strong></label>
             <label class="addon-option"><input type="radio" name="face-addon" value="Face painting — 1.5 hours" data-addon-price="230"><span>1.5 hours</span><strong>$230</strong></label>
             <label class="addon-option"><input type="radio" name="face-addon" value="Face painting — 2 hours" data-addon-price="280"><span>2 hours</span><strong>$280</strong></label>
-          </div></section>
+          </div>
+            <div class="addon-gallery addon-gallery--single"><figure class="addon-photo"><img src="{% static 'package_showcase/canberra/addons/face-painting.jpg' %}" alt="Face painting example" loading="lazy"></figure></div>
+          </section>
           <section class="addon-group"><h3>Mascot</h3><div class="addon-options">
             <label class="addon-option"><input type="checkbox" value="Mascot — 2 appearances" data-addon-price="200"><span>2 appearances · 20 minutes each</span><strong>$200</strong></label>
-          </div></section>
+          </div>
+            <div class="addon-gallery">
+              <figure class="addon-photo"><img src="{% static 'package_showcase/canberra/addons/mascot-1.jpg' %}" alt="Mascot appearance example 1" loading="lazy"></figure>
+              <figure class="addon-photo"><img src="{% static 'package_showcase/canberra/addons/mascot-2.jpg' %}" alt="Mascot appearance example 2" loading="lazy"></figure>
+            </div>
+          </section>
           <section class="addon-group"><h3>Entertainer</h3><div class="addon-options">
             <label class="addon-option"><input type="radio" name="entertainer-addon" value="" data-addon-price="0" checked><span>No entertainer</span><strong>$0</strong></label>
             <label class="addon-option"><input type="radio" name="entertainer-addon" value="Entertainer — 1 hour" data-addon-price="360"><span>1 hour</span><strong>$360</strong></label>
             <label class="addon-option"><input type="radio" name="entertainer-addon" value="Entertainer — 2 hours" data-addon-price="500"><span>2 hours</span><strong>$500</strong></label>
-          </div></section>
+          </div>
+            <div class="addon-gallery">
+              <figure class="addon-photo"><img src="{% static 'package_showcase/canberra/addons/entertainer-1.jpg' %}" alt="Party entertainer example 1" loading="lazy"></figure>
+              <figure class="addon-photo"><img src="{% static 'package_showcase/canberra/addons/entertainer-2.jpg' %}" alt="Party entertainer example 2" loading="lazy"></figure>
+            </div>
+          </section>
         </div>
       </section>
     </div>

@@ -51,6 +51,11 @@
 .addon-option span small { margin-top: 3px; color: #6c7b82; }
 .custom-theme-gallery { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 16px; }
 .custom-theme-gallery[hidden] { display: none; }
+.addon-gallery { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 16px; }
+.addon-gallery--single { grid-template-columns: minmax(0, 520px); }
+.addon-photo { overflow: hidden; margin: 0; border-radius: 14px; background: #f3efe7; }
+.addon-photo img { display: block; width: 100%; height: 240px; object-fit: cover; }
+.addon-photo--guide img { height: auto; object-fit: contain; }
 .showcase-summary { position: sticky; top: 116px; overflow: hidden; border-radius: 22px; color: white; background: #21333b; box-shadow: 0 18px 42px rgba(28,44,51,.18); }
 .showcase-summary > div { padding: 24px; }
 .showcase-summary h2 { margin: 4px 0 18px; }
@@ -62,4 +67,4 @@
 .price-total strong { font-size: 2rem; }
 .summary-note { margin: 14px 0 0; color: rgba(255,255,255,.66); font-size: .75rem; line-height: 1.5; }
 @media (max-width: 1000px) { .package-tabs { grid-template-columns: repeat(3,1fr); position: static; } .showcase-layout { grid-template-columns: 1fr; } .showcase-summary { position: static; } }
-@media (max-width: 700px) { .showcase-shell { width: min(100% - 20px,1380px); padding-top: 18px; } .showcase-hero { display: block; } .showcase-location { display: inline-block; margin-top: 12px; } .package-tabs { grid-template-columns: 1fr 1fr; } .showcase-gallery, .custom-theme-gallery, .menu-choice-grid, .voucher-food-list { grid-template-columns: 1fr; } .showcase-panel-heading { padding: 20px 18px; } .menu-preview { padding: 18px; } }
+@media (max-width: 700px) { .showcase-shell { width: min(100% - 20px,1380px); padding-top: 18px; } .showcase-hero { display: block; } .showcase-location { display: inline-block; margin-top: 12px; } .package-tabs { grid-template-columns: 1fr 1fr; } .showcase-gallery, .custom-theme-gallery, .addon-gallery, .addon-gallery--single, .menu-choice-grid, .voucher-food-list { grid-template-columns: 1fr; } .showcase-panel-heading { padding: 20px 18px; } .menu-preview { padding: 18px; } }
