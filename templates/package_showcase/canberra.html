@@ -4,7 +4,7 @@
 {% block title %}Canberra package showcase · Little Amigos Workspace{% endblock %}
 
 {% block body %}
-<link rel="stylesheet" href="{% static 'css/package_showcase.css' %}?v=20261009-2">
+<link rel="stylesheet" href="{% static 'css/package_showcase.css' %}?v=20261009-3">
 {% include "accounts/_header.html" %}
 <main class="showcase-shell" data-package-showcase>
   <header class="showcase-hero">
@@ -31,7 +31,7 @@
         {% for package in packages %}
           <div class="showcase-gallery gallery-set" data-gallery="{{ package.key }}"{% if not forloop.first %} hidden{% endif %}>
             {% for photo in package.photos %}
-              <figure class="showcase-photo"><img src="{% static photo %}?v=20261009-2" alt="{{ package.label }} setup example {{ forloop.counter }}" loading="lazy"></figure>
+              <figure class="showcase-photo"><img src="{% static photo %}?v=20261009-3" alt="{{ package.label }} setup example {{ forloop.counter }}" loading="lazy"></figure>
             {% endfor %}
           </div>
         {% endfor %}
@@ -110,8 +110,8 @@
             <label class="addon-option"><input type="checkbox" value="Custom theme" data-addon-price="250" data-custom-theme-toggle><span><b>Custom theme</b><small>Open the examples below when selected.</small></span><strong>$250</strong></label>
           </div>
             <div class="custom-theme-gallery" data-custom-theme-gallery hidden>
-              <figure class="showcase-photo"><img src="{% static 'package_showcase/canberra/custom-1.jpg' %}?v=20261009-2" alt="Custom theme example 1" loading="lazy"></figure>
-              <figure class="showcase-photo"><img src="{% static 'package_showcase/canberra/custom-2.jpg' %}?v=20261009-2" alt="Custom theme example 2" loading="lazy"></figure>
+              <figure class="showcase-photo"><img src="{% static 'package_showcase/canberra/custom-1.jpg' %}?v=20261009-3" alt="Custom theme example 1" loading="lazy"></figure>
+              <figure class="showcase-photo"><img src="{% static 'package_showcase/canberra/custom-2.jpg' %}?v=20261009-3" alt="Custom theme example 2" loading="lazy"></figure>
             </div>
           </section>
           <section class="addon-group"><h3>Customized cake</h3><div class="addon-options">
