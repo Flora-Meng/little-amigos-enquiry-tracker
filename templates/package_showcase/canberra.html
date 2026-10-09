@@ -41,6 +41,7 @@
         <header class="showcase-panel-heading"><div><p class="eyebrow">Food preview</p><h2>Try the customer menu</h2><p>Choices work normally for demonstration, but cannot be submitted.</p></div><span class="showcase-readonly">Not saved</span></header>
 
         <div class="menu-preview" data-menu-panel="single">
+          {% include "package_showcase/_kids_menu.html" with menu_prefix="single" %}
           <div class="menu-intro"><strong>Single room included adult menu</strong><br>Choose one fryer platter and one burger or sandwich platter. Seasonal fruit, one drink jar and one water jar are included.</div>
           <fieldset class="menu-choice-block"><legend>Pick one fryer platter</legend><div class="menu-choice-grid">
             <label><input type="radio" name="single-fryer"> <span>Mixed fryer platter</span></label>
@@ -56,10 +57,10 @@
             <label><input type="radio" name="single-starter"> <span>Finger sandwiches — Cheese &amp; tomato</span></label>
           </div></fieldset>
           <div class="included-item">1 drink jar and 1 refillable water jar</div>
-          {% include "package_showcase/_kids_menu.html" with menu_prefix="single" %}
         </div>
 
         <div class="menu-preview" data-menu-panel="double" hidden>
+          {% include "package_showcase/_kids_menu.html" with menu_prefix="double" %}
           <div class="menu-intro"><strong>Double room included adult menu</strong><br>Five adult food selections, two drink jars and one refillable water jar are included.</div>
           <fieldset class="menu-choice-block"><legend>1. Pick one fryer platter</legend><div class="menu-choice-grid">
             <label><input type="radio" name="double-fryer"> <span>Mixed fryer platter</span></label>
@@ -86,10 +87,10 @@
             <label><input type="radio" name="double-pasta"> <span>Greek salad</span></label>
           </div></fieldset>
           <div class="included-item">2 drink jars and 1 refillable water jar</div>
-          {% include "package_showcase/_kids_menu.html" with menu_prefix="double" %}
         </div>
 
         <div class="menu-preview" data-menu-panel="voucher" hidden>
+          {% include "package_showcase/_kids_menu.html" with menu_prefix="voucher" %}
           <div class="menu-intro"><strong id="voucher-intro">Adult food voucher</strong><br>Select example dishes below. The page shows the food total and any amount above the voucher.</div>
           <div class="voucher-toolbar"><div><strong id="voucher-total">$0.00 food selected</strong><span id="voucher-balance">Voucher remaining</span></div><b id="voucher-badge">Food voucher</b></div>
           {% for title, rows in voucher_groups %}
@@ -99,7 +100,6 @@
               {% endfor %}
             </div></section>
           {% endfor %}
-          {% include "package_showcase/_kids_menu.html" with menu_prefix="voucher" %}
         </div>
       </section>
 
