@@ -1,6 +1,7 @@
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.tokens import default_token_generator
 from django.core.exceptions import PermissionDenied
+from django.http import Http404
 from django.db.models import OuterRef, Subquery
 from django.shortcuts import render
 from django.urls import reverse
@@ -84,3 +85,71 @@ def team_accounts(request):
         )
 
     return render(request, "accounts/team_accounts.html", {"accounts": accounts})
+
+
+@login_required
+def package_showcase(request):
+    """Read-only, location-scoped package presentation for pre-booking conversations."""
+    from party_summaries.forms import EXTRA_MENU_OPTIONS
+
+    if request.user.role == User.Role.STAFF and (
+        not request.user.location or request.user.location.code != "canberra"
+    ):
+        raise Http404
+    if request.user.role not in {User.Role.ADMIN, User.Role.STAFF}:
+        raise Http404
+
+    packages = (
+        {
+            "key": "single",
+            "label": "Single room",
+            "price": 799,
+            "price_label": "From $799",
+            "menu": "single",
+            "photo_prefix": "single",
+        },
+        {
+            "key": "double-1280",
+            "label": "Double · Weekday",
+            "price": 1280,
+            "price_label": "$1,280",
+            "menu": "double",
+            "photo_prefix": "double-1280",
+        },
+        {
+            "key": "double-1580",
+            "label": "Double · Weekend",
+            "price": 1580,
+            "price_label": "$1,580",
+            "menu": "double",
+            "photo_prefix": "double-1580",
+        },
+        {
+            "key": "private-2h",
+            "label": "Private · 2 hours",
+            "price": 1899,
+            "price_label": "From $1,899",
+            "menu": "private",
+            "photo_prefix": "private-2h",
+        },
+        {
+            "key": "private-3h",
+            "label": "Private · 3 hours",
+            "price": 2399,
+            "price_label": "From $2,399",
+            "menu": "private",
+            "photo_prefix": "private-3h",
+        },
+    )
+    voucher_groups = (
+        ("Platters to share", EXTRA_MENU_OPTIONS[0:23]),
+        ("Salad and pasta bowls", EXTRA_MENU_OPTIONS[23:30]),
+        ("Pizzas", EXTRA_MENU_OPTIONS[30:34]),
+        ("Fryer trays", EXTRA_MENU_OPTIONS[34:40]),
+        ("Toasts and wraps", EXTRA_MENU_OPTIONS[40:45]),
+    )
+    return render(
+        request,
+        "package_showcase/canberra.html",
+        {"packages": packages, "voucher_groups": voucher_groups},
+    )

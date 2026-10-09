@@ -19,7 +19,7 @@ from django.contrib.auth import views as auth_views
 from django.urls import include, path, reverse_lazy
 
 from accounts.forms import EmailAuthenticationForm, StaffPasswordSetupForm
-from accounts.views import dashboard, team_accounts
+from accounts.views import dashboard, package_showcase, team_accounts
 from config.views import health_check, initial_admin_password
 from enquiries.views import add_note, archive_enquiry, delete_note, enquiry_detail, enquiry_list, extension_token_settings, new_store_enquiry, quick_update_status, reschedule_follow_up, update_enquiry, zumo_duplicate_check, zumo_ignore, zumo_import, zumo_imports, zumo_review_again, zumo_review_status
 
@@ -42,6 +42,7 @@ urlpatterns = [
     ),
     path("logout/", auth_views.LogoutView.as_view(), name="logout"),
     path("team-accounts/", team_accounts, name="team_accounts"),
+    path("package-showcase/", package_showcase, name="package_showcase"),
     path(
         "team-accounts/setup/<uidb64>/<token>/",
         auth_views.PasswordResetConfirmView.as_view(

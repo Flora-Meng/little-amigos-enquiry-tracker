@@ -10,6 +10,7 @@
   <section class="workspace-modules" aria-label="Workspace modules">
     <a class="module-card" href="{% url 'enquiry_list' %}"><span class="module-icon">E</span><span><strong>Enquiry tracking</strong><small>Manage your location's enquiries</small></span><b>→</b></a>
     <a class="module-card module-party" href="{% url 'party_summary_list' %}"><span class="module-icon">P</span><span><strong>Party summaries</strong><small>Create and update party plans</small></span><b>→</b></a>
+    {% if request.user.location.code == 'canberra' %}<a class="module-card module-showcase" href="{% url 'package_showcase' %}"><span class="module-icon">S</span><span><strong>Package showcase</strong><small>Show Canberra packages and add-ons before booking</small></span><b>→</b></a>{% endif %}
   </section>
   <h2 class="dashboard-section-title">Enquiry overview</h2>
   <section class="card-grid card-grid-small" aria-label="Enquiry summary">

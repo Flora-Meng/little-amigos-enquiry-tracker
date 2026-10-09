@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Canberra package showcase · Little Amigos Workspace{% endblock %}
+
+{% block body %}
+<link rel="stylesheet" href="{% static 'css/package_showcase.css' %}?v=20261009-1">
+{% include "accounts/_header.html" %}
+<main class="showcase-shell" data-package-showcase>
+  <header class="showcase-hero">
+    <div>
+      <p class="eyebrow">Before booking</p>
+      <h1>Canberra package showcase</h1>
+      <p class="muted">Use this screen with a customer to compare packages, explore the menu and estimate optional services. Nothing here is submitted or saved.</p>
+    </div>
+    <span class="showcase-location">Little Amigos Canberra</span>
+  </header>
+
+  <nav class="package-tabs" aria-label="Choose a Canberra package">
+    {% for package in packages %}
+      <button class="package-tab{% if forloop.first %} is-active{% endif %}" type="button" data-package-tab="{{ package.key }}" data-menu="{{ package.menu }}" data-price="{{ package.price }}" data-price-label="{{ package.price_label }}" aria-pressed="{% if forloop.first %}true{% else %}false{% endif %}">
+        <strong>{{ package.label }}</strong><span>{{ package.price_label }}</span>
+      </button>
+    {% endfor %}
+  </nav>
+
+  <div class="showcase-layout">
+    <div class="showcase-main">
+      <section class="showcase-panel">
+        <header class="showcase-panel-heading"><div><p class="eyebrow">Package photos</p><h2 id="gallery-title">Single room</h2><p>Real package photos will appear here.</p></div><span class="showcase-readonly">Preview only</span></header>
+        {% for package in packages %}
+          <div class="showcase-gallery gallery-set" data-gallery="{{ package.key }}"{% if not forloop.first %} hidden{% endif %}>
+            {% for number in "123" %}<div class="showcase-photo-placeholder"><span>Package photo {{ number }}</span><small>{{ package.photo_prefix }}-{{ number }}.jpg</small></div>{% endfor %}
+          </div>
+        {% endfor %}
+      </section>
+
+      <section class="showcase-panel">
+        <header class="showcase-panel-heading"><div><p class="eyebrow">Food preview</p><h2>Try the customer menu</h2><p>Choices work normally for demonstration, but cannot be submitted.</p></div><span class="showcase-readonly">Not saved</span></header>
+
+        <div class="menu-preview" data-menu-panel="single">
+          <div class="menu-intro"><strong>Single room included adult menu</strong><br>Choose one fryer platter and one burger or sandwich platter. Seasonal fruit, one drink jar and one water jar are included.</div>
+          <fieldset class="menu-choice-block"><legend>Pick one fryer platter</legend><div class="menu-choice-grid">
+            <label><input type="radio" name="single-fryer"> <span>Mixed fryer platter</span></label>
+            <label><input type="radio" name="single-fryer"> <span>Vegetarian fryer platter</span></label>
+          </div></fieldset>
+          <div class="included-item">Seasonal fruit platter</div>
+          <fieldset class="menu-choice-block"><legend>Pick one burger or sandwich platter</legend><div class="menu-choice-grid">
+            <label><input type="radio" name="single-starter"> <span>Mini burger sliders — Pork</span></label>
+            <label><input type="radio" name="single-starter"> <span>Mini burger sliders — Prawn</span></label>
+            <label><input type="radio" name="single-starter"> <span>Mini burger sliders — Vegetarian</span></label>
+            <label><input type="radio" name="single-starter"> <span>Finger sandwiches — Tuna</span></label>
+            <label><input type="radio" name="single-starter"> <span>Finger sandwiches — Eggs</span></label>
+            <label><input type="radio" name="single-starter"> <span>Finger sandwiches — Cheese &amp; tomato</span></label>
+          </div></fieldset>
+          <div class="included-item">1 drink jar and 1 refillable water jar</div>
+          {% include "package_showcase/_kids_menu.html" with menu_prefix="single" %}
+        </div>
+
+        <div class="menu-preview" data-menu-panel="double" hidden>
+          <div class="menu-intro"><strong>Double room included adult menu</strong><br>The weekday and weekend Double packages have the same food choices.</div>
+          <fieldset class="menu-choice-block"><legend>1. Pick one fryer platter</legend><div class="menu-choice-grid">
+            <label><input type="radio" name="double-fryer"> <span>Mixed fryer platter</span></label>
+            <label><input type="radio" name="double-fryer"> <span>Vegetarian fryer platter</span></label>
+          </div></fieldset>
+          <div class="included-item">2. Seasonal fruit platter</div>
+          <fieldset class="menu-choice-block"><legend>3. Pick one burger or sandwich platter</legend><div class="menu-choice-grid">
+            <label><input type="radio" name="double-starter"> <span>Mini burger sliders — Pork</span></label>
+            <label><input type="radio" name="double-starter"> <span>Mini burger sliders — Prawn</span></label>
+            <label><input type="radio" name="double-starter"> <span>Mini burger sliders — Vegetarian</span></label>
+            <label><input type="radio" name="double-starter"> <span>Finger sandwiches — Tuna</span></label>
+            <label><input type="radio" name="double-starter"> <span>Finger sandwiches — Eggs</span></label>
+            <label><input type="radio" name="double-starter"> <span>Finger sandwiches — Cheese &amp; tomato</span></label>
+          </div></fieldset>
+          <fieldset class="menu-choice-block"><legend>4. Pick one taco platter or four pizzas</legend><div class="menu-choice-grid">
+            <label><input type="radio" name="double-main"> <span>Taco platter — Karaage chicken</span></label>
+            <label><input type="radio" name="double-main"> <span>Taco platter — Fish</span></label>
+            <label><input type="radio" name="double-main"> <span>Taco platter — Black beans</span></label>
+            <label><input type="radio" name="double-main"> <span>Four pizzas — choose flavours</span></label>
+          </div></fieldset>
+          <fieldset class="menu-choice-block"><legend>5. Pick one pasta or salad</legend><div class="menu-choice-grid">
+            <label><input type="radio" name="double-pasta"> <span>Chicken pesto pasta bowl</span></label>
+            <label><input type="radio" name="double-pasta"> <span>Pesto pasta bowl — no chicken</span></label>
+            <label><input type="radio" name="double-pasta"> <span>Greek salad</span></label>
+          </div></fieldset>
+          <div class="included-item">2 drink jars and 1 refillable water jar</div>
+          {% include "package_showcase/_kids_menu.html" with menu_prefix="double" %}
+        </div>
+
+        <div class="menu-preview" data-menu-panel="private" hidden>
+          <div class="menu-intro"><strong>$400 adult food voucher</strong><br>Select example dishes below. The page shows the food total and any amount above the voucher.</div>
+          <div class="voucher-toolbar"><div><strong id="voucher-total">$0.00 food selected</strong><span id="voucher-balance">$400.00 voucher remaining</span></div><b>$400 voucher</b></div>
+          {% for title, rows in voucher_groups %}
+            <section class="voucher-group"><h3>{{ title }}</h3><div class="voucher-food-list">
+              {% for name, price in rows %}
+                <label class="voucher-food-row"><input type="checkbox" data-voucher-item data-price="{{ price }}"><span>{{ name }}</span><input type="number" min="1" max="20" value="1" aria-label="Quantity of {{ name }}" data-voucher-qty disabled><b>${{ price }}</b></label>
+              {% endfor %}
+            </div></section>
+          {% endfor %}
+          {% include "package_showcase/_kids_menu.html" with menu_prefix="private" %}
+        </div>
+      </section>
+
+      <section class="showcase-panel">
+        <header class="showcase-panel-heading"><div><p class="eyebrow">Optional services</p><h2>Add-on services</h2><p>Select any options to add them to the estimate.</p></div></header>
+        <div class="addon-list">
+          <section class="addon-group"><h3>Customized cake</h3><div class="addon-options">
+            <label class="addon-option"><input type="radio" name="cake-addon" value="" data-addon-price="0" checked><span>No cake</span><strong>$0</strong></label>
+            <label class="addon-option"><input type="radio" name="cake-addon" value="Tall 6-inch cake" data-addon-price="188"><span>Tall 6-inch cake</span><strong>$188</strong></label>
+            <label class="addon-option"><input type="radio" name="cake-addon" value="Tall 8-inch cake" data-addon-price="238"><span>Tall 8-inch cake</span><strong>$238</strong></label>
+            <label class="addon-option"><input type="radio" name="cake-addon" value="High single-tier cake" data-addon-price="288"><span>High single-tier cake</span><strong>$288</strong></label>
+            <label class="addon-option"><input type="radio" name="cake-addon" value="Two-tier cake" data-addon-price="368"><span>Two-tier cake</span><strong>$368</strong></label>
+          </div></section>
+          <section class="addon-group"><h3>Face painting</h3><div class="addon-options">
+            <label class="addon-option"><input type="radio" name="face-addon" value="" data-addon-price="0" checked><span>No face painting</span><strong>$0</strong></label>
+            <label class="addon-option"><input type="radio" name="face-addon" value="Face painting — 1.5 hours" data-addon-price="230"><span>1.5 hours</span><strong>$230</strong></label>
+            <label class="addon-option"><input type="radio" name="face-addon" value="Face painting — 2 hours" data-addon-price="280"><span>2 hours</span><strong>$280</strong></label>
+          </div></section>
+          <section class="addon-group"><h3>Mascot</h3><div class="addon-options">
+            <label class="addon-option"><input type="checkbox" value="Mascot — 2 appearances" data-addon-price="200"><span>2 appearances · 20 minutes each</span><strong>$200</strong></label>
+          </div></section>
+          <section class="addon-group"><h3>Entertainer</h3><div class="addon-options">
+            <label class="addon-option"><input type="radio" name="entertainer-addon" value="" data-addon-price="0" checked><span>No entertainer</span><strong>$0</strong></label>
+            <label class="addon-option"><input type="radio" name="entertainer-addon" value="Entertainer — 1 hour" data-addon-price="360"><span>1 hour</span><strong>$360</strong></label>
+            <label class="addon-option"><input type="radio" name="entertainer-addon" value="Entertainer — 2 hours" data-addon-price="500"><span>2 hours</span><strong>$500</strong></label>
+          </div></section>
+        </div>
+      </section>
+    </div>
+
+    <aside class="showcase-summary" aria-live="polite">
+      <div><p class="eyebrow">Live estimate</p><h2 id="summary-package">Single room</h2>
+        <div class="price-line"><span>Package</span><strong id="summary-package-price">$799</strong></div>
+        <div class="price-line"><span>Add-on services</span><strong id="summary-addon-price">$0</strong></div>
+        <div class="price-line" id="food-excess-row" hidden><span>Food above voucher</span><strong id="summary-food-excess">$0</strong></div>
+        <div id="summary-addon-list"></div>
+        <p class="summary-note">Preview estimate only. Availability, weekend pricing and final inclusions must be confirmed before invoicing.</p>
+      </div>
+      <div class="price-total"><span>Estimated total</span><strong id="summary-total">$799</strong></div>
+    </aside>
+  </div>
+</main>
+
+<script>
+(() => {
+  const root = document.querySelector('[data-package-showcase]');
+  const tabs = [...root.querySelectorAll('[data-package-tab]')];
+  const menuPanels = [...root.querySelectorAll('[data-menu-panel]')];
+  const galleries = [...root.querySelectorAll('[data-gallery]')];
+  const money = value => new Intl.NumberFormat('en-AU', {style: 'currency', currency: 'AUD', maximumFractionDigits: 0}).format(value);
+  let activeTab = tabs[0];
+
+  function voucherTotal() {
+    return [...root.querySelectorAll('[data-voucher-item]:checked')].reduce((total, checkbox) => {
+      const row = checkbox.closest('.voucher-food-row');
+      const qty = Number(row.querySelector('[data-voucher-qty]').value || 1);
+      return total + Number(checkbox.dataset.price) * qty;
+    }, 0);
+  }
+
+  function updateEstimate() {
+    const addOns = [...root.querySelectorAll('[data-addon-price]:checked')].filter(input => Number(input.dataset.addonPrice) > 0);
+    const addonTotal = addOns.reduce((total, input) => total + Number(input.dataset.addonPrice), 0);
+    const foodTotal = activeTab.dataset.menu === 'private' ? voucherTotal() : 0;
+    const foodExcess = Math.max(0, foodTotal - 400);
+    const packagePrice = Number(activeTab.dataset.price);
+    document.getElementById('summary-package').textContent = activeTab.querySelector('strong').textContent;
+    document.getElementById('summary-package-price').textContent = money(packagePrice);
+    document.getElementById('summary-addon-price').textContent = money(addonTotal);
+    document.getElementById('summary-food-excess').textContent = money(foodExcess);
+    document.getElementById('food-excess-row').hidden = foodExcess === 0;
+    document.getElementById('summary-total').textContent = money(packagePrice + addonTotal + foodExcess);
+    document.getElementById('summary-addon-list').innerHTML = addOns.map(input => `<div class="price-line"><span>${input.value}</span><strong>${money(Number(input.dataset.addonPrice))}</strong></div>`).join('');
+    document.getElementById('voucher-total').textContent = money(foodTotal) + ' food selected';
+    const voucherBalance = 400 - foodTotal;
+    document.getElementById('voucher-balance').textContent = voucherBalance >= 0 ? money(voucherBalance) + ' voucher remaining' : money(Math.abs(voucherBalance)) + ' above voucher';
+  }
+
+  tabs.forEach(tab => tab.addEventListener('click', () => {
+    activeTab = tab;
+    tabs.forEach(item => { const active = item === tab; item.classList.toggle('is-active', active); item.setAttribute('aria-pressed', String(active)); });
+    galleries.forEach(gallery => { gallery.hidden = gallery.dataset.gallery !== tab.dataset.packageTab; });
+    menuPanels.forEach(panel => { panel.hidden = panel.dataset.menuPanel !== tab.dataset.menu; });
+    document.getElementById('gallery-title').textContent = tab.querySelector('strong').textContent;
+    updateEstimate();
+  }));
+
+  root.querySelectorAll('[data-addon-price]').forEach(input => input.addEventListener('change', updateEstimate));
+  root.querySelectorAll('[data-voucher-item]').forEach(checkbox => checkbox.addEventListener('change', () => {
+    const qty = checkbox.closest('.voucher-food-row').querySelector('[data-voucher-qty]'); qty.disabled = !checkbox.checked; updateEstimate();
+  }));
+  root.querySelectorAll('[data-voucher-qty]').forEach(input => input.addEventListener('input', updateEstimate));
+  updateEstimate();
+})();
+</script>
+{% endblock %}
