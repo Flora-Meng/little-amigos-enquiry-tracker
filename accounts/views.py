@@ -113,10 +113,10 @@ def package_showcase(request):
             ),
         },
         {
-            "key": "double-1280",
-            "label": "Double (food voucher) · Weekday",
-            "price": 1280,
-            "price_label": "$1,280",
+            "key": "double-voucher",
+            "label": "Double (food voucher)",
+            "price": 1099,
+            "price_label": "Weekday $1,099 · Weekend $1,299",
             "menu": "voucher",
             "voucher": 180,
             "photos": (
@@ -125,12 +125,12 @@ def package_showcase(request):
             ),
         },
         {
-            "key": "double-1580",
-            "label": "Double (food voucher) · Weekend",
-            "price": 1580,
-            "price_label": "$1,580",
-            "menu": "voucher",
-            "voucher": 180,
+            "key": "double",
+            "label": "Double room",
+            "price": 1280,
+            "price_label": "Weekday $1,280 · Weekend $1,580",
+            "menu": "double",
+            "voucher": 0,
             "photos": (
                 "package_showcase/canberra/double-room-1-20261009.jpg",
                 "package_showcase/canberra/double-2.jpg",

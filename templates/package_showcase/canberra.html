@@ -59,6 +59,36 @@
           {% include "package_showcase/_kids_menu.html" with menu_prefix="single" %}
         </div>
 
+        <div class="menu-preview" data-menu-panel="double" hidden>
+          <div class="menu-intro"><strong>Double room included adult menu</strong><br>Five adult food selections, two drink jars and one refillable water jar are included.</div>
+          <fieldset class="menu-choice-block"><legend>1. Pick one fryer platter</legend><div class="menu-choice-grid">
+            <label><input type="radio" name="double-fryer"> <span>Mixed fryer platter</span></label>
+            <label><input type="radio" name="double-fryer"> <span>Vegetarian fryer platter</span></label>
+          </div></fieldset>
+          <div class="included-item">2. Seasonal fruit platter</div>
+          <fieldset class="menu-choice-block"><legend>3. Pick one burger or sandwich platter</legend><div class="menu-choice-grid">
+            <label><input type="radio" name="double-starter"> <span>Mini burger sliders — Pork</span></label>
+            <label><input type="radio" name="double-starter"> <span>Mini burger sliders — Prawn</span></label>
+            <label><input type="radio" name="double-starter"> <span>Mini burger sliders — Vegetarian</span></label>
+            <label><input type="radio" name="double-starter"> <span>Finger sandwiches — Tuna</span></label>
+            <label><input type="radio" name="double-starter"> <span>Finger sandwiches — Eggs</span></label>
+            <label><input type="radio" name="double-starter"> <span>Finger sandwiches — Cheese &amp; tomato</span></label>
+          </div></fieldset>
+          <fieldset class="menu-choice-block"><legend>4. Pick one taco platter or four pizzas</legend><div class="menu-choice-grid">
+            <label><input type="radio" name="double-main"> <span>Taco platter — Karaage chicken</span></label>
+            <label><input type="radio" name="double-main"> <span>Taco platter — Fish</span></label>
+            <label><input type="radio" name="double-main"> <span>Taco platter — Black beans</span></label>
+            <label><input type="radio" name="double-main"> <span>Four pizzas — choose flavours</span></label>
+          </div></fieldset>
+          <fieldset class="menu-choice-block"><legend>5. Pick one pasta or salad</legend><div class="menu-choice-grid">
+            <label><input type="radio" name="double-pasta"> <span>Chicken pesto pasta bowl</span></label>
+            <label><input type="radio" name="double-pasta"> <span>Pesto pasta bowl — no chicken</span></label>
+            <label><input type="radio" name="double-pasta"> <span>Greek salad</span></label>
+          </div></fieldset>
+          <div class="included-item">2 drink jars and 1 refillable water jar</div>
+          {% include "package_showcase/_kids_menu.html" with menu_prefix="double" %}
+        </div>
+
         <div class="menu-preview" data-menu-panel="voucher" hidden>
           <div class="menu-intro"><strong id="voucher-intro">Adult food voucher</strong><br>Select example dishes below. The page shows the food total and any amount above the voucher.</div>
           <div class="voucher-toolbar"><div><strong id="voucher-total">$0.00 food selected</strong><span id="voucher-balance">Voucher remaining</span></div><b id="voucher-badge">Food voucher</b></div>
