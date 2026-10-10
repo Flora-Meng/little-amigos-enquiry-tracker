@@ -167,6 +167,10 @@ class PartySummary(models.Model):
     decoration_example = models.BinaryField(null=True, blank=True, editable=False)
     decoration_example_name = models.CharField(max_length=255, blank=True)
     decoration_example_content_type = models.CharField(max_length=100, blank=True)
+    invoice_file = models.BinaryField(null=True, blank=True, editable=False)
+    invoice_file_name = models.CharField(max_length=255, blank=True)
+    invoice_file_content_type = models.CharField(max_length=100, blank=True)
+    actual_balance = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     deposit_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     package_name = models.CharField(max_length=30, choices=Package.choices)
     custom_package_name = models.CharField(max_length=200, blank=True)
@@ -261,6 +265,11 @@ class PartySummary(models.Model):
             self.package_amount - self.deposit_amount + self.extra_food_balance
             + self.custom_charges_total
         )
+
+    @property
+    def total_invoiced(self):
+        """Amount invoiced overall: money already deposited plus the actual balance due."""
+        return self.deposit_amount + self.actual_balance
 
 
 class PartyMenuItem(models.Model):

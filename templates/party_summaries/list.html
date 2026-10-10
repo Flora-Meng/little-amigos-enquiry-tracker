@@ -43,7 +43,10 @@
               <article class="panel party-results party-location-group">
                 <header class="party-location-heading">
                   <div><h3>{{ location_group.location.name }}</h3><span>{{ location_group.summaries|length }} part{{ location_group.summaries|length|pluralize:"y,ies" }}</span></div>
-                  <a class="button button-download" href="{% url 'party_summary_weekly_pdf' location_group.location.code week.start|date:'Y-m-d' %}">Download this week's PDFs</a>
+                  <div class="party-week-downloads">
+                    <a class="button button-download" href="{% url 'party_summary_weekly_pdf' location_group.location.code week.start|date:'Y-m-d' %}">Party summaries</a>
+                    <a class="button button-primary" href="{% url 'party_summary_weekly_invoice_pdf' location_group.location.code week.start|date:'Y-m-d' %}">Invoice summaries</a>
+                  </div>
                 </header>
                 <div class="table-scroll">
                   <table class="party-table">
@@ -56,7 +59,7 @@
                         <td data-label="Room"><span class="pill">{{ summary.get_room_type_display }}</span></td>
                         <td data-label="Guests">{{ summary.kids_count }} kids · {{ summary.adults_count }} adults</td>
                         <td data-label="Balance"><strong>${{ summary.total_balance|floatformat:2 }}</strong></td>
-                        <td data-label="Actions"><div class="table-actions"><a class="button button-quiet button-small" href="{% url 'party_summary_edit' summary.id %}">Open / edit</a><a class="button button-primary button-small" href="{% url 'party_summary_confirmation_email' summary.id %}">Email</a><a class="button button-quiet button-small" href="{% url 'party_summary_pdf' summary.id %}">PDF</a>{% if summary.confirmed %}<span class="confirmed-status">✓ Confirmed</span>{% endif %}</div></td>
+                        <td data-label="Actions"><div class="table-actions"><a class="button button-quiet button-small" href="{% url 'party_summary_edit' summary.id %}">Open / edit</a><a class="button button-primary button-small" href="{% url 'party_summary_confirmation_email' summary.id %}">Email</a><a class="button button-quiet button-small" href="{% url 'party_summary_pdf' summary.id %}">PDF</a><a class="button button-download button-small" href="{% url 'party_summary_invoice_pdf' summary.id %}">Invoice PDF</a>{% if summary.confirmed %}<span class="confirmed-status">✓ Confirmed</span>{% endif %}</div></td>
                       </tr>
                     {% endfor %}
                     </tbody>

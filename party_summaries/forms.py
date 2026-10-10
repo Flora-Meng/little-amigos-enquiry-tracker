@@ -127,6 +127,16 @@ class PartySummaryForm(forms.ModelForm):
         label="Remove current decoration example",
         required=False,
     )
+    invoice_file_upload = forms.FileField(
+        label="Invoice",
+        required=False,
+        widget=forms.FileInput(attrs={"accept": "application/pdf,image/jpeg,image/png,image/webp"}),
+        help_text="PDF, JPG, PNG or WebP, up to 10 MB.",
+    )
+    remove_invoice_file = forms.BooleanField(
+        label="Remove current invoice",
+        required=False,
+    )
     class Meta:
         model = PartySummary
         fields = (
@@ -136,6 +146,7 @@ class PartySummaryForm(forms.ModelForm):
             "rsvp_information",
             "dietary_requirements", "voucher_menu_notes",
             "deposit_amount", "package_name", "custom_package_name", "package_amount",
+            "actual_balance",
         )
         labels = {
             "party_time": "Party time", "owner_name": "Owner name", "owner_number": "Owner number",
@@ -146,6 +157,7 @@ class PartySummaryForm(forms.ModelForm):
             "custom_package_name": "Package name",
             "dietary_requirements": "Dietary requirements", "voucher_menu_notes": "Food voucher menu notes",
             "package_amount": "Package price",
+            "actual_balance": "Actual balance",
         }
         widgets = {
             "party_date": forms.DateInput(attrs={"type": "date"}),
@@ -160,13 +172,14 @@ class PartySummaryForm(forms.ModelForm):
             "voucher_menu_notes": forms.Textarea(attrs={"rows": 3}),
             "deposit_amount": forms.NumberInput(attrs={"min": 0, "step": "0.01"}),
             "package_amount": forms.NumberInput(attrs={"min": 0, "step": "0.01"}),
+            "actual_balance": forms.NumberInput(attrs={"step": "0.01", "placeholder": "0.00"}),
             "custom_package_name": forms.TextInput(attrs={"placeholder": "e.g. Mini Party"}),
         }
 
     def __init__(self, *args, user, **kwargs):
         super().__init__(*args, **kwargs)
         self.user = user
-        for name in ("kids_count", "adults_count", "deposit_amount", "package_name", "package_amount"):
+        for name in ("kids_count", "adults_count", "deposit_amount", "package_name", "package_amount", "actual_balance"):
             self.fields[name].required = False
         self.fields["location"].queryset = Location.objects.order_by("name")
         location = None
@@ -223,6 +236,7 @@ class PartySummaryForm(forms.ModelForm):
             cleaned["package_amount"] = prices[package]
         else:
             cleaned["package_amount"] = cleaned.get("package_amount") or 0
+        cleaned["actual_balance"] = cleaned.get("actual_balance") or 0
         return cleaned
 
     def clean_decoration_example_upload(self):
@@ -233,6 +247,16 @@ class PartySummaryForm(forms.ModelForm):
             raise forms.ValidationError("Choose an image smaller than 5 MB.")
         if upload.content_type not in {"image/jpeg", "image/png", "image/webp"}:
             raise forms.ValidationError("Choose a JPG, PNG or WebP image.")
+        return upload
+
+    def clean_invoice_file_upload(self):
+        upload = self.cleaned_data.get("invoice_file_upload")
+        if not upload:
+            return upload
+        if upload.size > 10 * 1024 * 1024:
+            raise forms.ValidationError("Choose an invoice smaller than 10 MB.")
+        if upload.content_type not in {"application/pdf", "image/jpeg", "image/png", "image/webp"}:
+            raise forms.ValidationError("Choose a PDF, JPG, PNG or WebP invoice.")
         return upload
 
 

@@ -264,6 +264,19 @@ th { color: var(--muted); font-size: .75rem; letter-spacing: .06em; text-transfo
 .decoration-preview { width: min(100%, 360px); max-height: 230px; object-fit: cover; border: 1px solid var(--border); border-radius: 14px; background: #f4f1ea; }
 .remove-image-check { display: flex; align-items: center; gap: 8px; width: max-content; color: #8f3a30; font-size: .8rem !important; cursor: pointer; }
 .remove-image-check input { width: 18px; min-height: 18px; padding: 0; accent-color: var(--peach-dark); }
+.invoice-record-panel { margin-top: 22px; }
+.invoice-record-panel .panel-heading span { color: var(--muted); font-size: .78rem; }
+.invoice-record-grid { display: grid; grid-template-columns: minmax(190px, .38fr) minmax(190px, .38fr) minmax(320px, 1fr); }
+.invoice-record-grid > .field { padding: 18px 22px; }
+.invoice-record-grid > .field:not(:last-child) { border-right: 1px solid #f0ede6; }
+.invoice-total-field { align-content: start; }
+.invoice-total-field strong { color: #286b62; font-size: 1.6rem; }
+.invoice-total-field small { color: var(--muted); font-size: .76rem; }
+.invoice-upload { gap: 9px; }
+.invoice-upload input[type="file"] { min-height: 48px; padding: 10px; }
+.invoice-upload small { color: var(--muted); font-size: .76rem; }
+.invoice-file-link { width: fit-content; color: #286b62; font-weight: 800; text-decoration: underline; }
+.party-week-downloads { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
 .delete-page { max-width: 760px; }
 .delete-card { padding: 34px; }
 .delete-card .eyebrow { margin-top: 0; }
@@ -528,6 +541,8 @@ th { color: var(--muted); font-size: .75rem; letter-spacing: .06em; text-transfo
   .party-location-heading .button { width: 100%; }
   .party-form-grid > .field:nth-child(odd) { border-right: 0; }
   .party-form-grid .field-wide { grid-column: 1; }
+  .invoice-record-grid { grid-template-columns: 1fr; }
+  .invoice-record-grid > .field:not(:last-child) { border-right: 0; border-bottom: 1px solid #f0ede6; }
   .menu-row, .menu-extra .menu-row { grid-template-columns: 70px minmax(140px, 1fr); }
   .menu-row > :nth-child(n+3) { grid-column: 2; }
   .menu-header > :nth-child(n+3) { display: none; }

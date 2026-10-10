@@ -2,7 +2,7 @@ from datetime import timedelta
 from decimal import Decimal
 from io import BytesIO
 
-from pypdf import PdfReader
+from pypdf import PdfReader, PdfWriter
 
 from django.contrib.auth import get_user_model
 from django.db import connection
@@ -279,6 +279,77 @@ class PartySummaryTests(TestCase):
         self.assertEqual(response["Content-Type"], "application/pdf")
         pdf = b"".join(response.streaming_content)
         self.assertEqual(len(PdfReader(BytesIO(pdf)).pages), 2)
+        self.client.force_login(self.emma)
+        self.assertEqual(self.client.get(url).status_code, 404)
+
+    def test_invoice_upload_and_actual_balance_are_saved(self):
+        self.client.force_login(self.flora)
+        data = self._post_data()
+        data["actual_balance"] = "321.45"
+        data["invoice_file_upload"] = SimpleUploadedFile(
+            "invoice.pdf", b"%PDF-1.4\n%%EOF", content_type="application/pdf",
+        )
+
+        response = self.client.post(reverse("party_summary_create"), data)
+
+        self.assertRedirects(response, reverse("party_summary_list"))
+        summary = PartySummary.objects.get()
+        self.assertEqual(summary.actual_balance, Decimal("321.45"))
+        self.assertEqual(summary.invoice_file_name, "invoice.pdf")
+        self.assertEqual(summary.invoice_file_content_type, "application/pdf")
+        self.assertTrue(summary.invoice_file)
+
+    def test_invoice_summary_adds_finance_page_and_uploaded_pdf_without_changing_standard_pdf(self):
+        summary = self._create_summary()
+        uploaded = BytesIO()
+        uploaded_writer = PdfWriter()
+        uploaded_writer.add_blank_page(width=300, height=400)
+        uploaded_writer.write(uploaded)
+        summary.invoice_file = uploaded.getvalue()
+        summary.invoice_file_name = "customer-invoice.pdf"
+        summary.invoice_file_content_type = "application/pdf"
+        summary.actual_balance = Decimal("799.50")
+        summary.save()
+        self.client.force_login(self.flora)
+
+        standard_response = self.client.get(reverse("party_summary_pdf", args=(summary.id,)))
+        invoice_response = self.client.get(reverse("party_summary_invoice_pdf", args=(summary.id,)))
+
+        standard_pdf = b"".join(standard_response.streaming_content)
+        invoice_pdf = b"".join(invoice_response.streaming_content)
+        self.assertEqual(len(PdfReader(BytesIO(standard_pdf)).pages), 1)
+        self.assertEqual(len(PdfReader(BytesIO(invoice_pdf)).pages), 3)
+        invoice_text = "\n".join(page.extract_text() or "" for page in PdfReader(BytesIO(invoice_pdf)).pages)
+        self.assertIn("ACTUAL BALANCE", invoice_text)
+        self.assertIn("$799.50", invoice_text)
+        self.assertIn("TOTAL INVOICED", invoice_text)
+        self.assertIn("$1,299.50", invoice_text)
+
+    def test_weekly_invoice_summary_combines_each_party_and_respects_access(self):
+        monday = timezone.localdate() + timedelta(days=(7 - timezone.localdate().weekday()))
+        for offset in (1, 5):
+            summary = self._create_summary()
+            summary.party_date = monday + timedelta(days=offset)
+            summary.actual_balance = Decimal("100.00")
+            summary.save(update_fields=("party_date", "actual_balance"))
+        url = reverse(
+            "party_summary_weekly_invoice_pdf",
+            args=(Location.Code.SOUTHLAND, monday.isoformat()),
+        )
+        self.client.force_login(self.flora)
+
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, 200)
+        pdf = b"".join(response.streaming_content)
+        reader = PdfReader(BytesIO(pdf))
+        self.assertEqual(len(reader.pages), 5)
+        totals_text = reader.pages[-1].extract_text() or ""
+        self.assertIn("Weekly Invoice Summary", totals_text)
+        self.assertIn("ACTUAL BALANCE", totals_text)
+        self.assertIn("TOTAL INVOICED", totals_text)
+        self.assertIn("WEEKLY TOTAL INVOICED", totals_text)
+        self.assertIn("$1,200.00", totals_text)
         self.client.force_login(self.emma)
         self.assertEqual(self.client.get(url).status_code, 404)
 

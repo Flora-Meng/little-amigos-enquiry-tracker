@@ -14,7 +14,7 @@
   <a class="back-link" href="{% url 'party_summary_list' %}">← Party summaries</a>
   <div class="page-heading form-heading">
     <div><p class="eyebrow">Party summary</p><h1>{% if summary %}{{ summary.owner_name }} · {{ summary.party_date|date:"j M Y" }}{% else %}Create a party summary{% endif %}</h1><p class="muted">Based on the Melbourne party summary worksheet.</p></div>
-    {% if summary %}<div class="detail-actions"><form method="post" action="{% url 'party_summary_toggle_confirmed' summary.id %}">{% csrf_token %}<button class="confirmation-toggle{% if summary.confirmed %} is-confirmed{% endif %}" type="submit">{% if summary.confirmed %}✓ Confirmed{% else %}Mark confirmed{% endif %}</button></form><a class="button button-primary" href="{% url 'party_summary_confirmation_email' summary.id %}">Confirmation email</a><a class="button button-quiet" href="{% url 'party_summary_pdf' summary.id %}">Download PDF</a><a class="button button-danger" href="{% url 'party_summary_delete' summary.id %}">Delete summary</a></div>{% endif %}
+    {% if summary %}<div class="detail-actions"><form method="post" action="{% url 'party_summary_toggle_confirmed' summary.id %}">{% csrf_token %}<button class="confirmation-toggle{% if summary.confirmed %} is-confirmed{% endif %}" type="submit">{% if summary.confirmed %}✓ Confirmed{% else %}Mark confirmed{% endif %}</button></form><a class="button button-primary" href="{% url 'party_summary_confirmation_email' summary.id %}">Confirmation email</a><a class="button button-quiet" href="{% url 'party_summary_pdf' summary.id %}">Download PDF</a><a class="button button-download" href="{% url 'party_summary_invoice_pdf' summary.id %}">Invoice summary PDF</a><a class="button button-danger" href="{% url 'party_summary_delete' summary.id %}">Delete summary</a></div>{% endif %}
   </div>
 
   {% if summary %}
@@ -153,7 +153,29 @@
         </div>
       </section>
     </div>
-    <div class="sticky-form-actions"><a class="button button-quiet" href="{% url 'party_summary_list' %}">Cancel</a><button class="button button-quiet" name="action" value="download" type="submit">Save &amp; download PDF</button><button class="button button-primary" type="submit">{% if summary %}Save changes{% else %}Save party summary{% endif %}</button></div>
+    <section class="panel invoice-record-panel">
+      <div class="panel-heading">
+        <div><h2>Invoice records</h2><span>Internal only — this section never appears in the standard Party Summary PDF.</span></div>
+        {% if summary %}<a class="button button-download" href="{% url 'party_summary_invoice_pdf' summary.id %}">Download invoice summary</a>{% endif %}
+      </div>
+      <div class="invoice-record-grid">
+        {% include "enquiries/_field.html" with field=form.actual_balance %}
+        <div class="field invoice-total-field">
+          <label>Total invoiced</label>
+          <strong id="total-invoiced">${{ summary.total_invoiced|default:0|floatformat:2 }}</strong>
+          <small>Deposit paid + actual balance</small>
+        </div>
+        <div class="field invoice-upload{% if form.invoice_file_upload.errors %} field-invalid{% endif %}">
+          <label for="{{ form.invoice_file_upload.id_for_label }}">Invoice</label>
+          {% if summary.invoice_file %}<a class="invoice-file-link" href="{% url 'party_summary_invoice' summary.id %}" target="_blank" rel="noopener">{{ summary.invoice_file_name }}</a>{% endif %}
+          {{ form.invoice_file_upload }}
+          <small>Upload a PDF, JPG, PNG or WebP file up to 10 MB.</small>
+          {% for error in form.invoice_file_upload.errors %}<p class="field-error" role="alert">{{ error }}</p>{% endfor %}
+          {% if summary.invoice_file %}<label class="remove-image-check">{{ form.remove_invoice_file }} Remove current invoice</label>{% endif %}
+        </div>
+      </div>
+    </section>
+    <div class="sticky-form-actions"><a class="button button-quiet" href="{% url 'party_summary_list' %}">Cancel</a><button class="button button-quiet" name="action" value="download" type="submit">Save &amp; download PDF</button><button class="button button-download" name="action" value="download_invoice" type="submit">Save &amp; download invoice summary</button><button class="button button-primary" type="submit">{% if summary %}Save changes{% else %}Save party summary{% endif %}</button></div>
   </form>
 
   <datalist id="adult-menu-options">{% for item in adult_menu_options %}<option value="{{ item }}"></option>{% endfor %}</datalist>
@@ -194,6 +216,7 @@
   const packageAmount = document.getElementById('id_package_amount');
   const roomSelect = document.getElementById('id_room_type');
   const deposit = document.getElementById('id_deposit_amount');
+  const actualBalance = document.getElementById('id_actual_balance');
   const money = value => '$' + value.toLocaleString('en-AU', {minimumFractionDigits: 2, maximumFractionDigits: 2});
   const number = input => Number.parseFloat(input?.value || '0') || 0;
   const canberraFoodVouchers = {single_voucher: 100, double_lite: 180, private_2hour: 400, private_3hour: 400};
@@ -214,6 +237,7 @@
     document.getElementById('food-ordered-total').textContent = money(foodOrdered);
     document.getElementById('custom-charges-total').textContent = money(customCharges);
     document.getElementById('balance-total').textContent = money(number(packageAmount) - number(deposit) + Math.max(foodOrdered - voucher, 0) + customCharges);
+    document.getElementById('total-invoiced').textContent = money(number(deposit) + number(actualBalance));
   }
   const activeLocationCode = () => locationSelect ? (locationCodes[locationSelect.value] || defaultPackageLocation) : defaultPackageLocation;
   const activePackages = () => packageCatalog[activeLocationCode()] || packageCatalog.southland || [];
@@ -247,7 +271,7 @@
   packageSelect?.addEventListener('change', () => { applySelectedPackagePrice(); updateCustomPackageName(); calculate(); });
   locationSelect?.addEventListener('change', () => { refreshPackageChoices(); refreshRoomChoices(); calculate(); });
   roomSelect?.addEventListener('change', calculate);
-  [packageAmount, deposit].forEach(input => input?.addEventListener('input', calculate));
+  [packageAmount, deposit, actualBalance].forEach(input => input?.addEventListener('input', calculate));
   document.querySelector('[data-menu="extra"]')?.addEventListener('input', calculate);
   document.querySelector('[data-menu="adult"]')?.addEventListener('input', calculate);
   const normaliseFoodName = value => (value || '').toLocaleLowerCase('en-AU')

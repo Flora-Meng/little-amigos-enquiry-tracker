@@ -44,7 +44,10 @@ from .models import (
     PartyBillItem, PartyIntakeLink, PartyMenuItem, PartySummary,
     VOUCHER_FOOD_PRICE_LOOKUP, menu_quantity_number, voucher_food_unit_price,
 )
-from .pdf import build_party_summaries_pdf, build_party_summary_pdf
+from .pdf import (
+    build_invoice_summary_pdf, build_invoice_summaries_pdf,
+    build_party_summaries_pdf, build_party_summary_pdf,
+)
 
 
 ADULT_MENU_OPTIONS = [
@@ -161,6 +164,21 @@ def _save_decoration_example(summary, form):
         summary.decoration_example_content_type = upload.content_type
     summary.save(update_fields=(
         "decoration_example", "decoration_example_name", "decoration_example_content_type", "updated_at",
+    ))
+
+
+def _save_invoice_file(summary, form):
+    if form.cleaned_data.get("remove_invoice_file"):
+        summary.invoice_file = None
+        summary.invoice_file_name = ""
+        summary.invoice_file_content_type = ""
+    upload = form.cleaned_data.get("invoice_file_upload")
+    if upload:
+        summary.invoice_file = upload.read()
+        summary.invoice_file_name = upload.name[:255]
+        summary.invoice_file_content_type = upload.content_type
+    summary.save(update_fields=(
+        "invoice_file", "invoice_file_name", "invoice_file_content_type", "updated_at",
     ))
 
 
@@ -348,9 +366,12 @@ def party_summary_create(request):
             summary.save()
             _save_menu_items(summary, formsets)
             _save_decoration_example(summary, form)
+            _save_invoice_file(summary, form)
             messages.success(request, f"Party summary for {summary.owner_name} was saved.")
             if request.POST.get("action") == "download":
                 return redirect("party_summary_pdf", summary_id=summary.id)
+            if request.POST.get("action") == "download_invoice":
+                return redirect("party_summary_invoice_pdf", summary_id=summary.id)
             return redirect("party_summary_list")
     else:
         form = PartySummaryForm(user=request.user)
@@ -372,9 +393,12 @@ def party_summary_edit(request, summary_id):
             updated.save()
             _save_menu_items(updated, formsets)
             _save_decoration_example(updated, form)
+            _save_invoice_file(updated, form)
             messages.success(request, "Party summary updated.")
             if request.POST.get("action") == "download":
                 return redirect("party_summary_pdf", summary_id=updated.id)
+            if request.POST.get("action") == "download_invoice":
+                return redirect("party_summary_invoice_pdf", summary_id=updated.id)
             return redirect("party_summary_list")
     else:
         form = PartySummaryForm(instance=summary, user=request.user)
@@ -736,6 +760,20 @@ def party_summary_decoration(request, summary_id):
 
 
 @login_required
+def party_summary_invoice(request, summary_id):
+    summary = _visible_or_404(request.user, summary_id)
+    if not summary.invoice_file:
+        raise Http404
+    response = FileResponse(
+        BytesIO(bytes(summary.invoice_file)),
+        content_type=summary.invoice_file_content_type or "application/octet-stream",
+        filename=summary.invoice_file_name or "invoice",
+    )
+    response["X-Content-Type-Options"] = "nosniff"
+    return response
+
+
+@login_required
 def party_summary_pdf(request, summary_id):
     summary = _visible_or_404(request.user, summary_id)
     summary = PartySummary.objects.prefetch_related("menu_items").get(id=summary.id)
@@ -744,6 +782,16 @@ def party_summary_pdf(request, summary_id):
     filename = "".join(character if character.isalnum() or character in "-_" else "-" for character in filename)
     response = FileResponse(pdf_buffer, content_type="application/pdf", as_attachment=True, filename=f"{filename}.pdf")
     return response
+
+
+@login_required
+def party_summary_invoice_pdf(request, summary_id):
+    summary = _visible_or_404(request.user, summary_id)
+    summary = PartySummary.objects.prefetch_related("menu_items", "bill_items").get(id=summary.id)
+    pdf_buffer = build_invoice_summary_pdf(summary)
+    filename = f"invoice-summary-{summary.party_date.isoformat()}-{summary.owner_name}".lower()
+    filename = "".join(character if character.isalnum() or character in "-_" else "-" for character in filename)
+    return FileResponse(pdf_buffer, content_type="application/pdf", as_attachment=True, filename=f"{filename}.pdf")
 
 
 @login_required
@@ -794,4 +842,30 @@ def party_summary_weekly_pdf(request, location_code, week_start):
         raise Http404
     pdf_buffer = build_party_summaries_pdf(summaries)
     filename = f"party-summaries-{location.code}-week-{week_start_date.isoformat()}.pdf"
+    return FileResponse(pdf_buffer, content_type="application/pdf", as_attachment=True, filename=filename)
+
+
+@login_required
+def party_summary_weekly_invoice_pdf(request, location_code, week_start):
+    try:
+        week_start_date = datetime.strptime(week_start, "%Y-%m-%d").date()
+    except ValueError as error:
+        raise Http404 from error
+    if week_start_date.weekday() != 0:
+        raise Http404
+    location = get_object_or_404(Location, code=location_code)
+    summaries = list(
+        summaries_visible_to(request.user)
+        .filter(
+            location=location,
+            party_date__gte=week_start_date,
+            party_date__lte=week_start_date + timedelta(days=6),
+        )
+        .prefetch_related("menu_items", "bill_items")
+        .order_by("party_date", "party_time", "owner_name")
+    )
+    if not summaries:
+        raise Http404
+    pdf_buffer = build_invoice_summaries_pdf(summaries)
+    filename = f"invoice-summaries-{location.code}-week-{week_start_date.isoformat()}.pdf"
     return FileResponse(pdf_buffer, content_type="application/pdf", as_attachment=True, filename=filename)
