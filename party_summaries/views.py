@@ -861,6 +861,7 @@ def party_summary_weekly_invoice_pdf(request, location_code, week_start):
             party_date__gte=week_start_date,
             party_date__lte=week_start_date + timedelta(days=6),
         )
+        .defer("invoice_file")
         .prefetch_related("menu_items", "bill_items")
         .order_by("party_date", "party_time", "owner_name")
     )

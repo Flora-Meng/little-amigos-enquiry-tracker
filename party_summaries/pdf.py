@@ -1,8 +1,10 @@
 from io import BytesIO
 from pathlib import Path
 from datetime import timedelta
+from tempfile import SpooledTemporaryFile
 import re
 
+from PIL import Image, ImageOps
 from pypdf import PdfReader, PdfWriter
 
 try:
@@ -167,6 +169,32 @@ def _jpeg_dimensions(data):
             return int.from_bytes(data[index + 5:index + 7], "big"), int.from_bytes(data[index + 3:index + 5], "big")
         index += max(length, 2)
     return None
+
+
+def _optimized_invoice_image(data):
+    """Return a small JPEG suitable for embedding without exhausting web-worker memory."""
+    source = BytesIO(data)
+    with Image.open(source) as image:
+        width, height = image.size
+        # Very large PNG/WebP files must be fully decompressed before Pillow can resize them.
+        # Skipping pathological images is safer than taking the whole website offline.
+        if image.format not in {"JPEG", "MPO"} and width * height > 20_000_000:
+            raise ValueError("Invoice image is too large to render safely")
+        if image.format in {"JPEG", "MPO"}:
+            image.draft("RGB", (1800, 2400))
+        image = ImageOps.exif_transpose(image)
+        image.thumbnail((1800, 2400), Image.Resampling.LANCZOS, reducing_gap=3.0)
+        if image.mode in {"RGBA", "LA"} or (image.mode == "P" and "transparency" in image.info):
+            rgba = image.convert("RGBA")
+            flattened = Image.new("RGB", image.size, "white")
+            flattened.paste(rgba, mask=rgba.getchannel("A"))
+            image = flattened
+        elif image.mode != "RGB":
+            image = image.convert("RGB")
+        output = BytesIO()
+        image.save(output, "JPEG", quality=78, optimize=False)
+    output.seek(0)
+    return output
 
 
 def _build_fallback_pdf(summary):
@@ -676,7 +704,7 @@ def _build_invoice_record_page(summary, invoice_is_pdf=False):
         pdf.drawCentredString(width / 2, invoice_top - 145, "The uploaded invoice is attached on the following page(s).")
     else:
         try:
-            image = ImageReader(BytesIO(image_data))
+            image = ImageReader(_optimized_invoice_image(image_data))
             image_width, image_height = image.getSize()
             max_width = width - margin * 2 - 24
             max_height = invoice_top - 122
@@ -826,7 +854,7 @@ def build_invoice_summary_pdf(summary):
             # Keep the readable invoice summary even if a damaged uploaded PDF cannot be appended.
             pass
 
-    output = BytesIO()
+    output = SpooledTemporaryFile(max_size=2 * 1024 * 1024, mode="w+b")
     writer.write(output)
     output.seek(0)
     return output
@@ -837,12 +865,25 @@ def build_invoice_summaries_pdf(summaries):
     writer = PdfWriter()
     count = 0
     for summary in summaries:
-        writer.append(PdfReader(build_invoice_summary_pdf(summary)))
+        writer.append(PdfReader(build_party_summary_pdf(summary)))
+        invoice_data = bytes(summary.invoice_file or b"")
+        invoice_is_pdf = bool(invoice_data) and (
+            summary.invoice_file_content_type == "application/pdf"
+            or summary.invoice_file_name.lower().endswith(".pdf")
+        )
+        writer.append(PdfReader(_build_invoice_record_page(summary, invoice_is_pdf=invoice_is_pdf)))
+        if invoice_is_pdf:
+            try:
+                writer.append(PdfReader(BytesIO(invoice_data)))
+            except Exception:
+                pass
+        # Do not retain every uploaded invoice blob while the remaining parties are processed.
+        summary.invoice_file = None
         count += 1
     if not count:
         raise ValueError("At least one party summary is required")
     writer.append(PdfReader(_build_weekly_invoice_totals_page(summaries)))
-    output = BytesIO()
+    output = SpooledTemporaryFile(max_size=2 * 1024 * 1024, mode="w+b")
     writer.write(output)
     output.seek(0)
     return output
