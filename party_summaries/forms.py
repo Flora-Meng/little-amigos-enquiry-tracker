@@ -146,7 +146,7 @@ class PartySummaryForm(forms.ModelForm):
             "rsvp_information",
             "dietary_requirements", "voucher_menu_notes",
             "deposit_amount", "package_name", "custom_package_name", "package_amount",
-            "actual_balance",
+            "actual_balance", "invoice_notes",
         )
         labels = {
             "party_time": "Party time", "owner_name": "Owner name", "owner_number": "Owner number",
@@ -158,6 +158,7 @@ class PartySummaryForm(forms.ModelForm):
             "dietary_requirements": "Dietary requirements", "voucher_menu_notes": "Food voucher menu notes",
             "package_amount": "Package price",
             "actual_balance": "Actual balance",
+            "invoice_notes": "Invoice notes",
         }
         widgets = {
             "party_date": forms.DateInput(attrs={"type": "date"}),
@@ -173,6 +174,7 @@ class PartySummaryForm(forms.ModelForm):
             "deposit_amount": forms.NumberInput(attrs={"min": 0, "step": "0.01"}),
             "package_amount": forms.NumberInput(attrs={"min": 0, "step": "0.01"}),
             "actual_balance": forms.NumberInput(attrs={"step": "0.01", "placeholder": "0.00"}),
+            "invoice_notes": forms.Textarea(attrs={"rows": 3, "placeholder": "Add an internal note about this invoice"}),
             "custom_package_name": forms.TextInput(attrs={"placeholder": "e.g. Mini Party"}),
         }
 

@@ -170,6 +170,7 @@ class PartySummary(models.Model):
     invoice_file = models.BinaryField(null=True, blank=True, editable=False)
     invoice_file_name = models.CharField(max_length=255, blank=True)
     invoice_file_content_type = models.CharField(max_length=100, blank=True)
+    invoice_notes = models.TextField(blank=True)
     actual_balance = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     deposit_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     package_name = models.CharField(max_length=30, choices=Package.choices)

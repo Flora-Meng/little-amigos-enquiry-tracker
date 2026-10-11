@@ -111,7 +111,14 @@ def _menu_initial(summary=None):
     result = {"adult": [], "kids": [], "extra": [], "bill": []}
     for item in summary.menu_items.all():
         row = {"quantity": item.quantity, "item": item.item, "notes": item.notes, "amount": item.amount}
-        if summary.uses_food_voucher and item.category == PartyMenuItem.Category.ADULT:
+        if item.category == PartyMenuItem.Category.EXTRA:
+            quantity = menu_quantity_number(item.quantity)
+            known_unit_price = voucher_food_unit_price(item.item)
+            if known_unit_price and item.amount in (known_unit_price, known_unit_price * quantity):
+                row["amount"] = known_unit_price
+            elif quantity:
+                row["amount"] = item.amount / quantity
+        elif summary.uses_food_voucher and item.category == PartyMenuItem.Category.ADULT:
             unit_price = voucher_food_unit_price(item.item)
             quantity = menu_quantity_number(item.quantity)
             if unit_price and (not item.amount or (quantity > 1 and item.amount == unit_price * quantity)):
@@ -132,10 +139,14 @@ def _save_menu_items(summary, formsets):
             item = (form.cleaned_data.get("item") or "").strip()
             if not item:
                 continue
+            quantity = (form.cleaned_data.get("quantity") or "").strip()
+            amount = form.cleaned_data.get("amount") or Decimal("0.00")
+            if category == PartyMenuItem.Category.EXTRA:
+                amount *= menu_quantity_number(quantity)
             rows.append(PartyMenuItem(summary=summary, category=category,
-                quantity=(form.cleaned_data.get("quantity") or "").strip(), item=item,
+                quantity=quantity, item=item,
                 notes=(form.cleaned_data.get("notes") or "").strip(),
-                amount=form.cleaned_data.get("amount") or Decimal("0.00"), position=position))
+                amount=amount, position=position))
     PartyMenuItem.objects.bulk_create(rows)
     summary.bill_items.all().delete()
     bill_rows = []
@@ -342,7 +353,13 @@ def _form_context(form, formsets, summary=None, request=None):
         "room_catalog": room_catalog,
         "location_codes": {str(location.id): location.code for location in Location.objects.all()},
         "voucher_food_prices": {name: str(price) for name, price in VOUCHER_FOOD_PRICE_LOOKUP.items()},
-        "default_package_location": getattr(form, "package_location_code", Location.Code.SOUTHLAND)}
+        "default_package_location": getattr(form, "package_location_code", Location.Code.SOUTHLAND),
+        "can_toggle_confirmation": bool(request and request.user.role == User.Role.ADMIN),
+        "invoice_is_image": bool(
+            summary and summary.invoice_file
+            and summary.invoice_file_content_type.startswith("image/")
+        ),
+    }
     if summary is not None and request is not None:
         context["customer_menu_url"] = request.build_absolute_uri(
             reverse("customer_menu", args=(summary.customer_menu_token,))
@@ -738,6 +755,8 @@ def party_summary_delete(request, summary_id):
 @login_required
 @require_POST
 def party_summary_toggle_confirmed(request, summary_id):
+    if request.user.role != User.Role.ADMIN:
+        raise Http404
     summary = _visible_or_404(request.user, summary_id)
     summary.confirmed = not summary.confirmed
     summary.save(update_fields=("confirmed", "updated_at"))

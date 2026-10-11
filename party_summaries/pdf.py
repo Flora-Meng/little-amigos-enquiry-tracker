@@ -693,21 +693,33 @@ def _build_invoice_record_page(summary, invoice_is_pdf=False):
     pdf.setFillColor(INK)
     _draw_text(pdf, margin + 12, invoice_top - 56, invoice_name, size=11)
 
+    content_top = invoice_top - 78
+    notes = (summary.invoice_notes or "").strip()
+    if notes:
+        pdf.setFillColor(MUTED)
+        pdf.setFont("Helvetica-Bold", 8)
+        pdf.drawString(margin + 12, content_top, "NOTES")
+        note_lines = _wrap_lines(notes, width - margin * 2 - 24, size=9.5)[:4]
+        for index, line in enumerate(note_lines):
+            pdf.setFillColor(INK)
+            _draw_text(pdf, margin + 12, content_top - 15 - index * 13, line, size=9.5)
+        content_top -= 24 + len(note_lines) * 13
+
     image_data = bytes(summary.invoice_file or b"")
     if not image_data:
         pdf.setFillColor(MUTED)
         pdf.setFont("Helvetica", 12)
-        pdf.drawCentredString(width / 2, invoice_top - 145, "No invoice has been uploaded for this party.")
+        pdf.drawCentredString(width / 2, content_top - 38, "No invoice has been uploaded for this party.")
     elif invoice_is_pdf:
         pdf.setFillColor(MUTED)
         pdf.setFont("Helvetica", 12)
-        pdf.drawCentredString(width / 2, invoice_top - 145, "The uploaded invoice is attached on the following page(s).")
+        pdf.drawCentredString(width / 2, content_top - 38, "The uploaded invoice is attached on the following page(s).")
     else:
         try:
             image = ImageReader(_optimized_invoice_image(image_data))
             image_width, image_height = image.getSize()
             max_width = width - margin * 2 - 24
-            max_height = invoice_top - 122
+            max_height = max(content_top - 48, 80)
             ratio = min(max_width / image_width, max_height / image_height)
             draw_width = image_width * ratio
             draw_height = image_height * ratio

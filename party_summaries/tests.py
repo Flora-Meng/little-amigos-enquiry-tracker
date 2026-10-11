@@ -173,6 +173,28 @@ class PartySummaryTests(TestCase):
         self.assertEqual(summary.extra_food_total, Decimal("75.50"))
         self.assertEqual(summary.total_balance, Decimal("874.50"))
 
+    def test_extra_food_uses_quantity_times_unit_price(self):
+        self.client.force_login(self.flora)
+        data = self._post_data()
+        data.update(formset_data("extra", [
+            {"quantity": "3", "item": "Pizza (Pepperoni)", "amount": "19.00"},
+        ]))
+
+        response = self.client.post(reverse("party_summary_create"), data)
+
+        self.assertRedirects(response, reverse("party_summary_list"))
+        summary = PartySummary.objects.get(owner_name="Rebecca Power")
+        item = summary.menu_items.get(category=PartyMenuItem.Category.EXTRA)
+        self.assertEqual(item.amount, Decimal("57.00"))
+        self.assertEqual(summary.extra_food_total, Decimal("57.00"))
+        self.assertEqual(summary.total_balance, Decimal("856.00"))
+
+        response = self.client.get(reverse("party_summary_edit", args=(summary.id,)))
+        self.assertEqual(
+            response.context["extra_formset"].forms[0].initial["amount"],
+            Decimal("19.00"),
+        )
+
     def test_custom_bill_items_are_saved_and_included_in_balance(self):
         self.client.force_login(self.flora)
         data = self._post_data()
@@ -282,10 +304,11 @@ class PartySummaryTests(TestCase):
         self.client.force_login(self.emma)
         self.assertEqual(self.client.get(url).status_code, 404)
 
-    def test_invoice_upload_and_actual_balance_are_saved(self):
+    def test_invoice_upload_actual_balance_and_notes_are_saved(self):
         self.client.force_login(self.flora)
         data = self._post_data()
         data["actual_balance"] = "321.45"
+        data["invoice_notes"] = "Paid after the final guest count was confirmed."
         data["invoice_file_upload"] = SimpleUploadedFile(
             "invoice.pdf", b"%PDF-1.4\n%%EOF", content_type="application/pdf",
         )
@@ -295,6 +318,7 @@ class PartySummaryTests(TestCase):
         self.assertRedirects(response, reverse("party_summary_list"))
         summary = PartySummary.objects.get()
         self.assertEqual(summary.actual_balance, Decimal("321.45"))
+        self.assertEqual(summary.invoice_notes, "Paid after the final guest count was confirmed.")
         self.assertEqual(summary.invoice_file_name, "invoice.pdf")
         self.assertEqual(summary.invoice_file_content_type, "application/pdf")
         self.assertTrue(summary.invoice_file)
@@ -309,6 +333,7 @@ class PartySummaryTests(TestCase):
         summary.invoice_file_name = "customer-invoice.pdf"
         summary.invoice_file_content_type = "application/pdf"
         summary.actual_balance = Decimal("799.50")
+        summary.invoice_notes = "Final invoice approved by Flora."
         summary.save()
         self.client.force_login(self.flora)
 
@@ -324,6 +349,7 @@ class PartySummaryTests(TestCase):
         self.assertIn("$799.50", invoice_text)
         self.assertIn("TOTAL INVOICED", invoice_text)
         self.assertIn("$1,299.50", invoice_text)
+        self.assertIn("Final invoice approved by Flora.", invoice_text)
 
     def test_weekly_invoice_summary_combines_each_party_and_respects_access(self):
         monday = timezone.localdate() + timedelta(days=(7 - timezone.localdate().weekday()))
@@ -526,7 +552,7 @@ class PartySummaryTests(TestCase):
         self.assertRedirects(response, reverse("party_summary_list"))
         self.assertFalse(PartySummary.objects.filter(id=summary.id).exists())
 
-    def test_staff_can_toggle_confirmation_and_list_replaces_delete_with_status(self):
+    def test_admin_can_toggle_confirmation_and_list_shows_status(self):
         summary = self._create_summary()
         self.client.force_login(self.flora)
         list_response = self.client.get(reverse("party_summary_list"))
@@ -539,6 +565,29 @@ class PartySummaryTests(TestCase):
         self.assertTrue(summary.confirmed)
         list_response = self.client.get(reverse("party_summary_list"))
         self.assertContains(list_response, "✓ Confirmed")
+
+    def test_staff_can_see_confirmation_but_cannot_change_it(self):
+        summary = self._create_summary()
+        summary.confirmed = True
+        summary.save(update_fields=("confirmed",))
+        self.client.force_login(self.kiva)
+
+        edit_response = self.client.get(reverse("party_summary_edit", args=(summary.id,)))
+        self.assertContains(edit_response, "✓ Confirmed")
+        self.assertNotContains(edit_response, "Mark confirmed")
+        self.assertNotContains(edit_response, "party-summaries/%s/toggle-confirmed" % summary.id)
+
+        toggle_response = self.client.post(reverse("party_summary_toggle_confirmed", args=(summary.id,)))
+        self.assertEqual(toggle_response.status_code, 404)
+        summary.refresh_from_db()
+        self.assertTrue(summary.confirmed)
+
+        summary.confirmed = False
+        summary.save(update_fields=("confirmed",))
+        edit_response = self.client.get(reverse("party_summary_edit", args=(summary.id,)))
+        self.assertContains(edit_response, "Not confirmed")
+        list_response = self.client.get(reverse("party_summary_list"))
+        self.assertContains(list_response, "Not confirmed")
 
     def test_staff_cannot_open_other_location_summary(self):
         summary = self._create_summary(location=self.canberra, user=self.emma)

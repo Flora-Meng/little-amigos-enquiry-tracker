@@ -8,13 +8,18 @@
   }
   .confirmation-toggle { min-height: 46px; padding: 0 18px; border: 1px solid #58aa78; border-radius: 14px; color: #267247; background: #eef9f2; font: inherit; font-weight: 850; cursor: pointer; }
   .confirmation-toggle.is-confirmed { color: white; background: #2f9b5f; border-color: #2f9b5f; }
+  .confirmation-readonly { display: inline-flex; align-items: center; min-height: 46px; padding: 0 18px; border-radius: 14px; color: #66747b; background: #f2f0eb; font-weight: 850; white-space: nowrap; }
+  .confirmation-readonly.is-confirmed { color: #267247; background: #e7f7ed; }
+  .invoice-preview-frame { display: flex; align-items: center; justify-content: center; width: min(100%, 390px); height: 230px; margin: 10px 0 14px; overflow: hidden; border: 1px solid #ded9cf; border-radius: 14px; background: #fcfaf5; }
+  .invoice-preview-frame img { width: 100%; height: 100%; object-fit: contain; }
+  .invoice-notes-field { margin-top: 16px; }
 </style>
 {% include "accounts/_header.html" %}
 <main class="page-shell party-form-page">
   <a class="back-link" href="{% url 'party_summary_list' %}">← Party summaries</a>
   <div class="page-heading form-heading">
     <div><p class="eyebrow">Party summary</p><h1>{% if summary %}{{ summary.owner_name }} · {{ summary.party_date|date:"j M Y" }}{% else %}Create a party summary{% endif %}</h1><p class="muted">Based on the Melbourne party summary worksheet.</p></div>
-    {% if summary %}<div class="detail-actions"><form method="post" action="{% url 'party_summary_toggle_confirmed' summary.id %}">{% csrf_token %}<button class="confirmation-toggle{% if summary.confirmed %} is-confirmed{% endif %}" type="submit">{% if summary.confirmed %}✓ Confirmed{% else %}Mark confirmed{% endif %}</button></form><a class="button button-primary" href="{% url 'party_summary_confirmation_email' summary.id %}">Confirmation email</a><a class="button button-quiet" href="{% url 'party_summary_pdf' summary.id %}">Download PDF</a><a class="button button-download" href="{% url 'party_summary_invoice_pdf' summary.id %}">Invoice summary PDF</a><a class="button button-danger" href="{% url 'party_summary_delete' summary.id %}">Delete summary</a></div>{% endif %}
+    {% if summary %}<div class="detail-actions">{% if can_toggle_confirmation %}<form method="post" action="{% url 'party_summary_toggle_confirmed' summary.id %}">{% csrf_token %}<button class="confirmation-toggle{% if summary.confirmed %} is-confirmed{% endif %}" type="submit">{% if summary.confirmed %}✓ Confirmed{% else %}Mark confirmed{% endif %}</button></form>{% else %}<span class="confirmation-readonly{% if summary.confirmed %} is-confirmed{% endif %}">{% if summary.confirmed %}✓ Confirmed{% else %}Not confirmed{% endif %}</span>{% endif %}<a class="button button-primary" href="{% url 'party_summary_confirmation_email' summary.id %}">Confirmation email</a><a class="button button-quiet" href="{% url 'party_summary_pdf' summary.id %}">Download PDF</a><a class="button button-download" href="{% url 'party_summary_invoice_pdf' summary.id %}">Invoice summary PDF</a><a class="button button-danger" href="{% url 'party_summary_delete' summary.id %}">Delete summary</a></div>{% endif %}
   </div>
 
   {% if summary %}
@@ -100,7 +105,7 @@
       <div class="panel-heading"><div><h2>Extra food</h2><span>Extra food amounts are added to the balance</span></div><button class="menu-add-button" type="button" data-add-menu="extra" aria-label="Add extra food row"><span aria-hidden="true">+</span> Add row</button></div>
       {{ extra_formset.management_form }}
       <div class="menu-rows menu-extra" data-menu="extra">
-        <div class="menu-row menu-header"><span>Qty</span><span>Item</span><span>Notes</span><span>Amount</span><span></span></div>
+        <div class="menu-row menu-header"><span>Qty</span><span>Item</span><span>Notes</span><span>Unit price</span><span></span></div>
         {% for row in extra_formset %}<div class="menu-row"><div>{{ row.quantity }}{{ row.quantity.errors }}</div><div>{{ row.item }}{{ row.item.errors }}</div><div>{{ row.notes }}{{ row.notes.errors }}</div><div>{{ row.amount }}{{ row.amount.errors }}</div>{{ row.DELETE.as_hidden }}<button class="menu-delete-button" type="button" aria-label="Delete this extra food row" title="Delete row"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 9v8m4-8v8m4-8v8M5 6h14m-9-3h4l1 3H9l1-3Zm-3 3 1 15h8l1-15"/></svg></button></div>{% endfor %}
       </div>
       <template data-empty-menu="extra"><div class="menu-row"><div>{{ extra_formset.empty_form.quantity }}</div><div>{{ extra_formset.empty_form.item }}</div><div>{{ extra_formset.empty_form.notes }}</div><div>{{ extra_formset.empty_form.amount }}</div>{{ extra_formset.empty_form.DELETE.as_hidden }}<button class="menu-delete-button" type="button" aria-label="Delete this extra food row" title="Delete row"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 9v8m4-8v8m4-8v8M5 6h14m-9-3h4l1 3H9l1-3Zm-3 3 1 15h8l1-15"/></svg></button></div></template>
@@ -168,10 +173,16 @@
         <div class="field invoice-upload{% if form.invoice_file_upload.errors %} field-invalid{% endif %}">
           <label for="{{ form.invoice_file_upload.id_for_label }}">Invoice</label>
           {% if summary.invoice_file %}<a class="invoice-file-link" href="{% url 'party_summary_invoice' summary.id %}" target="_blank" rel="noopener">{{ summary.invoice_file_name }}</a>{% endif %}
+          {% if invoice_is_image %}<a class="invoice-preview-frame" href="{% url 'party_summary_invoice' summary.id %}" target="_blank" rel="noopener"><img src="{% url 'party_summary_invoice' summary.id %}" alt="Uploaded invoice preview"></a>{% endif %}
           {{ form.invoice_file_upload }}
           <small>Upload a PDF, JPG, PNG or WebP file up to 10 MB.</small>
           {% for error in form.invoice_file_upload.errors %}<p class="field-error" role="alert">{{ error }}</p>{% endfor %}
           {% if summary.invoice_file %}<label class="remove-image-check">{{ form.remove_invoice_file }} Remove current invoice</label>{% endif %}
+          <div class="invoice-notes-field{% if form.invoice_notes.errors %} field-invalid{% endif %}">
+            <label for="{{ form.invoice_notes.id_for_label }}">{{ form.invoice_notes.label }}</label>
+            {{ form.invoice_notes }}
+            {% for error in form.invoice_notes.errors %}<p class="field-error" role="alert">{{ error }}</p>{% endfor %}
+          </div>
         </div>
       </div>
     </section>
@@ -220,9 +231,13 @@
   const money = value => '$' + value.toLocaleString('en-AU', {minimumFractionDigits: 2, maximumFractionDigits: 2});
   const number = input => Number.parseFloat(input?.value || '0') || 0;
   const canberraFoodVouchers = {single_voucher: 100, double_lite: 180, private_2hour: 400, private_3hour: 400};
+  const menuLineTotal = row => {
+    if (!row || row.classList.contains('menu-row-deleted') || row.classList.contains('menu-header')) return 0;
+    return number(row.querySelector('input[name$="-quantity"]')) * number(row.querySelector('input[name$="-amount"]'));
+  };
   function calculate() {
-    const extra = [...document.querySelectorAll('[data-menu="extra"] input[name$="-amount"]')].reduce((sum, input) => sum + number(input), 0);
-    const adultFood = [...document.querySelectorAll('[data-menu="adult"] input[name$="-amount"]')].reduce((sum, input) => sum + number(input), 0);
+    const extra = [...document.querySelectorAll('[data-menu="extra"] .menu-row')].reduce((sum, row) => sum + menuLineTotal(row), 0);
+    const adultFood = [...document.querySelectorAll('[data-menu="adult"] .menu-row')].reduce((sum, row) => sum + menuLineTotal(row), 0);
     const customCharges = [...document.querySelectorAll('[data-bill-row]:not(.menu-row-deleted) input[name$="-amount"]')].reduce((sum, input) => sum + number(input), 0);
     const voucher = activeLocationCode() === 'canberra' ? (canberraFoodVouchers[roomSelect?.value] || 0) : 0;
     const voucherLine = document.getElementById('food-voucher-line');
