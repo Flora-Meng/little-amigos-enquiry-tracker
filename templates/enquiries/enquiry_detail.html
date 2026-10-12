@@ -1,6 +1,17 @@
 {% extends "base.html" %}
 {% block title %}{{ enquiry.name }} · Little Amigos Workspace{% endblock %}
 {% block body %}
+<style>
+  .enquiry-customer-link { margin-top: 22px; }
+  .enquiry-customer-link-body { padding: 24px 28px; }
+  .enquiry-customer-link-copy { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 10px; margin-top: 16px; }
+  .enquiry-customer-link-copy input { min-width: 0; }
+  .enquiry-customer-link-status { display: inline-flex; margin-top: 12px; }
+  @media (max-width: 720px) {
+    .enquiry-customer-link-copy { grid-template-columns: 1fr 1fr; }
+    .enquiry-customer-link-copy input { grid-column: 1 / -1; }
+  }
+</style>
 {% include "accounts/_header.html" %}
 <main class="page-shell detail-page">
   <a class="back-link" href="{% url 'enquiry_list' %}">← Back to enquiries</a>
@@ -44,6 +55,27 @@
           <div><dt>Created</dt><dd>{{ enquiry.created_at|date:"j M Y, g:i a" }}</dd></div>
           <div><dt>Last updated</dt><dd>{{ enquiry.updated_at|date:"j M Y, g:i a" }}</dd></div>
         </dl>
+      </section>
+
+      <section class="panel enquiry-customer-link">
+        <div class="panel-heading"><div><h2>Customer form link</h2><span>Create the Party Summary directly from this enquiry.</span></div></div>
+        <div class="enquiry-customer-link-body">
+          {% if party_intake %}
+            <p class="muted">This private form uses {{ enquiry.name }}’s location and contact information. Send it to the customer to complete the party date, time, theme and birthday child details.</p>
+            {% if party_intake.submitted_at %}<span class="customer-submitted-status enquiry-customer-link-status">Submitted {{ party_intake.submitted_at|date:"j M Y, g:i a" }}</span>{% else %}<span class="customer-awaiting-status enquiry-customer-link-status">Waiting for customer</span>{% endif %}
+            <div class="enquiry-customer-link-copy">
+              <input id="enquiry-customer-form-url" type="text" value="{{ customer_form_url }}" readonly aria-label="Private customer form link for {{ enquiry.name }}">
+              <button class="button button-primary" id="copy-enquiry-customer-link" type="button">Copy link</button>
+              <a class="button button-quiet" href="{{ customer_form_url }}" target="_blank" rel="noopener noreferrer">Preview</a>
+            </div>
+            {% if party_intake.summary_id %}<div class="inline-actions"><a class="button button-download" href="{% url 'party_summary_edit' party_intake.summary_id %}">Open Party Summary</a></div>{% endif %}
+          {% else %}
+            <p class="muted">Generate a private form using the customer name, phone, email, location and estimated party date already recorded above.</p>
+            <form method="post" action="{% url 'party_intake_from_enquiry' enquiry.id %}">
+              {% csrf_token %}<button class="button button-primary" type="submit">Generate customer link</button>
+            </form>
+          {% endif %}
+        </div>
       </section>
 
       {% if update_form %}
@@ -103,4 +135,13 @@
     </aside>
   </div>
 </main>
+<script>
+document.getElementById('copy-enquiry-customer-link')?.addEventListener('click', async event => {
+  const input = document.getElementById('enquiry-customer-form-url');
+  try { await navigator.clipboard.writeText(input.value); }
+  catch (_error) { input.select(); document.execCommand('copy'); }
+  event.currentTarget.textContent = 'Copied';
+  window.setTimeout(() => { event.currentTarget.textContent = 'Copy link'; }, 1800);
+});
+</script>
 {% endblock %}

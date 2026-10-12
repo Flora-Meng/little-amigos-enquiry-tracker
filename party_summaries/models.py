@@ -314,6 +314,10 @@ class PartyIntakeLink(models.Model):
     owner_name = models.CharField(max_length=200)
     owner_number = models.CharField(max_length=50, blank=True)
     owner_email = models.EmailField(blank=True)
+    enquiry = models.OneToOneField(
+        "enquiries.Enquiry", on_delete=models.SET_NULL, related_name="party_intake_link",
+        null=True, blank=True,
+    )
     summary = models.OneToOneField(
         PartySummary, on_delete=models.SET_NULL, related_name="intake_link", null=True, blank=True,
     )

@@ -6,6 +6,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from accounts.models import User
+from party_summaries.models import PartyIntakeLink
 
 from .models import Enquiry, Note
 
@@ -76,6 +77,42 @@ class EnquiryDetailTests(TestCase):
         self.client.force_login(self.canberra)
         store_response = self.client.get(reverse("enquiry_detail", args=(self.store.id,)))
         self.assertEqual(store_response.status_code, 404)
+
+    def test_staff_can_generate_customer_form_from_enquiry_information(self):
+        self.store.party_date = timezone.localdate() + timedelta(days=45)
+        self.store.save(update_fields=("party_date", "updated_at"))
+        self.client.force_login(self.southland)
+
+        response = self.client.post(
+            reverse("party_intake_from_enquiry", args=(self.store.id,)),
+        )
+
+        self.assertRedirects(response, reverse("enquiry_detail", args=(self.store.id,)))
+        intake = PartyIntakeLink.objects.get(enquiry=self.store)
+        self.assertEqual(intake.location, self.store.location)
+        self.assertEqual(intake.owner_name, self.store.name)
+        self.assertEqual(intake.owner_number, self.store.phone)
+        self.assertEqual(intake.owner_email, self.store.email)
+        self.assertEqual(intake.created_by, self.southland)
+
+        detail = self.client.get(reverse("enquiry_detail", args=(self.store.id,)))
+        self.assertContains(detail, reverse("customer_party_intake", args=(intake.token,)))
+        self.assertContains(detail, "Waiting for customer")
+        self.assertContains(detail, "Copy link")
+
+        customer_form = self.client.get(reverse("customer_party_intake", args=(intake.token,)))
+        self.assertContains(customer_form, self.store.party_date.isoformat())
+
+        self.client.post(reverse("party_intake_from_enquiry", args=(self.store.id,)))
+        self.assertEqual(PartyIntakeLink.objects.filter(enquiry=self.store).count(), 1)
+
+    def test_staff_cannot_generate_customer_form_for_other_location_enquiry(self):
+        self.client.force_login(self.canberra)
+        response = self.client.post(
+            reverse("party_intake_from_enquiry", args=(self.store.id,)),
+        )
+        self.assertEqual(response.status_code, 404)
+        self.assertFalse(PartyIntakeLink.objects.filter(enquiry=self.store).exists())
 
     def test_staff_direct_update_and_archive_posts_are_rejected(self):
         self.client.force_login(self.southland)

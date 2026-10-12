@@ -28,6 +28,7 @@ from .forms import (
 from .models import Enquiry, ExtensionToken, Note, ZumoImportDecision
 from .routing import normalise_postcode, route_postcode
 from .services import apply_status_rules, due_today, find_duplicates, overdue, schedule_next_follow_up
+from party_summaries.models import PartyIntakeLink
 
 
 @login_required
@@ -166,17 +167,33 @@ def _visible_enquiry_or_404(user, enquiry_id):
     )
 
 
+def _enquiry_detail_context(request, enquiry, *, update_form=None):
+    intake = PartyIntakeLink.objects.select_related("summary").filter(enquiry=enquiry).first()
+    customer_form_url = ""
+    if intake:
+        customer_form_url = request.build_absolute_uri(
+            reverse("customer_party_intake", args=(intake.token,))
+        )
+    return {
+        "enquiry": enquiry,
+        "notes": enquiry.notes.select_related("author").all(),
+        "note_form": NoteForm(),
+        "update_form": update_form,
+        "party_intake": intake,
+        "customer_form_url": customer_form_url,
+    }
+
+
 @login_required
 def enquiry_detail(request, enquiry_id):
     enquiry = _visible_enquiry_or_404(request.user, enquiry_id)
     require_permission(request.user, Action.VIEW_ENQUIRY, enquiry=enquiry)
     update_form = EnquiryAdminUpdateForm(instance=enquiry) if request.user.role == User.Role.ADMIN else None
-    return render(request, "enquiries/enquiry_detail.html", {
-        "enquiry": enquiry,
-        "notes": enquiry.notes.select_related("author").all(),
-        "note_form": NoteForm(),
-        "update_form": update_form,
-    })
+    return render(
+        request,
+        "enquiries/enquiry_detail.html",
+        _enquiry_detail_context(request, enquiry, update_form=update_form),
+    )
 
 
 @login_required
@@ -197,12 +214,12 @@ def update_enquiry(request, enquiry_id):
         messages.success(request, "Enquiry updated.")
         return redirect("enquiry_detail", enquiry_id=updated.id)
 
-    return render(request, "enquiries/enquiry_detail.html", {
-        "enquiry": enquiry,
-        "notes": enquiry.notes.select_related("author").all(),
-        "note_form": NoteForm(),
-        "update_form": form,
-    }, status=400)
+    return render(
+        request,
+        "enquiries/enquiry_detail.html",
+        _enquiry_detail_context(request, enquiry, update_form=form),
+        status=400,
+    )
 
 
 @login_required

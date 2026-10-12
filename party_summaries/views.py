@@ -247,8 +247,49 @@ def party_intake_links(request):
     return render(request, "party_summaries/intake_links.html", {"form": form, "intake_links": links})
 
 
+@login_required
+@require_POST
+@transaction.atomic
+def party_intake_from_enquiry(request, enquiry_id):
+    from accounts.authorization import enquiries_visible_to
+    from enquiries.models import Enquiry
+
+    enquiry = get_object_or_404(
+        enquiries_visible_to(
+            request.user,
+            Enquiry.objects.select_related("location"),
+        ),
+        id=enquiry_id,
+    )
+    intake, created = PartyIntakeLink.objects.get_or_create(
+        enquiry=enquiry,
+        defaults={
+            "location": enquiry.location,
+            "owner_name": enquiry.name,
+            "owner_number": enquiry.phone,
+            "owner_email": enquiry.email,
+            "created_by": request.user,
+        },
+    )
+    if not created and intake.summary_id is None:
+        intake.location = enquiry.location
+        intake.owner_name = enquiry.name
+        intake.owner_number = enquiry.phone
+        intake.owner_email = enquiry.email
+        intake.save(update_fields=(
+            "location", "owner_name", "owner_number", "owner_email", "updated_at",
+        ))
+    messages.success(
+        request,
+        f"Customer form link {'created' if created else 'is ready'} for {enquiry.name}.",
+    )
+    return redirect("enquiry_detail", enquiry_id=enquiry.id)
+
+
 def _party_intake_initial(intake):
     if not intake.summary_id:
+        if intake.enquiry_id and intake.enquiry.party_date:
+            return {"party_date": intake.enquiry.party_date}
         return {}
     summary = intake.summary
     return {
@@ -267,7 +308,7 @@ def _party_intake_initial(intake):
 def customer_party_intake(request, token):
     # Do not join the nullable summary relation when locking the intake row.
     # PostgreSQL rejects FOR UPDATE on the nullable side of an outer join.
-    queryset = PartyIntakeLink.objects.select_related("location", "created_by")
+    queryset = PartyIntakeLink.objects.select_related("location", "created_by", "enquiry")
     if request.method == "POST":
         queryset = queryset.select_for_update()
     else:
