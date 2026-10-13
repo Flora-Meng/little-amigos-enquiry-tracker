@@ -16,6 +16,38 @@
     <div class="detail-actions"><a class="button button-quiet" href="{% url 'party_intake_links' %}">Customer form links</a><a class="button button-primary" href="{% url 'party_summary_create' %}">New party summary</a></div>
   </div>
 
+  {% if e_invitation_tasks %}
+    <section class="panel e-invitation-task-panel" aria-labelledby="e-invitation-task-title">
+      <header class="e-invitation-task-heading">
+        <div>
+          <p class="eyebrow">Action required</p>
+          <h2 id="e-invitation-task-title">E-invitations to create</h2>
+          <p>{{ e_invitation_tasks|length }} customer submission{{ e_invitation_tasks|length|pluralize }} waiting for an invitation.</p>
+        </div>
+        <span class="e-invitation-count">{{ e_invitation_tasks|length }}</span>
+      </header>
+      <div class="e-invitation-task-list">
+        {% for intake in e_invitation_tasks %}
+          <article class="e-invitation-task-row">
+            <div>
+              <strong>{{ intake.owner_name }}</strong>
+              <span>{{ intake.location.name }}{% if intake.summary_id %} · {{ intake.summary.party_date|date:"D, j M Y" }} · {{ intake.summary.party_time }}{% endif %}</span>
+              <small>Customer submitted {{ intake.submitted_at|date:"j M Y, g:i a" }}</small>
+            </div>
+            <span class="e-invitation-required-status">E-invitation required</span>
+            <div class="e-invitation-task-actions">
+              {% if intake.summary_id %}<a class="button button-quiet button-small" href="{% url 'party_summary_edit' intake.summary_id %}">Open summary</a>{% endif %}
+              <form method="post" action="{% url 'party_intake_complete_e_invitation' intake.id %}">
+                {% csrf_token %}<input type="hidden" name="next" value="party_summaries">
+                <button class="button button-download button-small" type="submit">Mark e-invitation complete</button>
+              </form>
+            </div>
+          </article>
+        {% endfor %}
+      </div>
+    </section>
+  {% endif %}
+
   <form class="filter-panel party-filter" method="get">
     <div class="field filter-search">
       <label for="summary-search">Search</label>

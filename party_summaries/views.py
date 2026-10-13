@@ -97,7 +97,9 @@ def _visible_or_404(user, summary_id):
 
 
 def intake_links_visible_to(user):
-    queryset = PartyIntakeLink.objects.select_related("location", "summary", "created_by")
+    queryset = PartyIntakeLink.objects.select_related(
+        "location", "summary", "created_by", "e_invitation_completed_by",
+    )
     if user.role == User.Role.ADMIN:
         return queryset
     if user.role == User.Role.STAFF and user.location_id:
@@ -218,8 +220,14 @@ def party_summary_list(request):
     location_order = {Location.Code.SOUTHLAND: 0, Location.Code.CANBERRA: 1}
     for week in weeks:
         week["locations"].sort(key=lambda group: location_order.get(group["location"].code, 99))
+    e_invitation_tasks = list(
+        intake_links_visible_to(request.user)
+        .filter(submitted_at__isnull=False, e_invitation_completed_at__isnull=True)
+        .order_by("submitted_at")
+    )
     return render(request, "party_summaries/list.html", {"summaries": summaries, "week_groups": weeks,
-        "result_count": len(summaries), "search": search, "party_date": party_date})
+        "result_count": len(summaries), "search": search, "party_date": party_date,
+        "e_invitation_tasks": e_invitation_tasks})
 
 
 @login_required
@@ -286,6 +294,33 @@ def party_intake_from_enquiry(request, enquiry_id):
     return redirect("enquiry_detail", enquiry_id=enquiry.id)
 
 
+@login_required
+@require_POST
+@transaction.atomic
+def party_intake_complete_e_invitation(request, intake_id):
+    # Keep the locking query free of nullable joins. PostgreSQL does not allow
+    # FOR UPDATE on the nullable side of an outer join.
+    queryset = PartyIntakeLink.objects.select_related("location")
+    if request.user.role == User.Role.STAFF and request.user.location_id:
+        queryset = queryset.filter(location_id=request.user.location_id)
+    elif request.user.role != User.Role.ADMIN:
+        queryset = queryset.none()
+    intake = get_object_or_404(
+        queryset.select_for_update(),
+        id=intake_id,
+        submitted_at__isnull=False,
+    )
+    intake.e_invitation_completed_at = timezone.now()
+    intake.e_invitation_completed_by = request.user
+    intake.save(update_fields=(
+        "e_invitation_completed_at", "e_invitation_completed_by", "updated_at",
+    ))
+    messages.success(request, f"E-invitation marked complete for {intake.owner_name}.")
+    if request.POST.get("next") == "party_summaries":
+        return redirect("party_summary_list")
+    return redirect("party_intake_links")
+
+
 def _party_intake_initial(intake):
     if not intake.summary_id:
         if intake.enquiry_id and intake.enquiry.party_date:
@@ -343,7 +378,14 @@ def customer_party_intake(request, token):
             summary.save()
             intake.summary = summary
             intake.submitted_at = timezone.now()
-            intake.save(update_fields=("summary", "submitted_at", "updated_at"))
+            # A new or updated customer submission always needs the invitation
+            # to be checked and prepared again.
+            intake.e_invitation_completed_at = None
+            intake.e_invitation_completed_by = None
+            intake.save(update_fields=(
+                "summary", "submitted_at", "e_invitation_completed_at",
+                "e_invitation_completed_by", "updated_at",
+            ))
             return redirect("customer_party_intake_thanks", token=intake.token)
     else:
         form = CustomerPartyIntakeForm(initial=_party_intake_initial(intake))

@@ -528,6 +528,64 @@ class PartySummaryTests(TestCase):
         self.assertIsNotNone(intake.summary_id)
         self.assertEqual(intake.summary.location, self.canberra)
 
+    def test_customer_submission_creates_e_invitation_task_until_marked_complete(self):
+        intake = PartyIntakeLink.objects.create(
+            location=self.southland,
+            owner_name="Invitation Customer",
+            owner_number="0400 111 222",
+            created_by=self.flora,
+        )
+        customer_url = reverse("customer_party_intake", args=(intake.token,))
+        customer_data = {
+            "party_date": "2026-12-12",
+            "party_time": "1:00pm–3:00pm",
+            "theme": "Bluey",
+            "kids_name": "Alex",
+            "age": "5",
+            "rsvp_information": "RSVP by 20 November",
+        }
+        self.client.post(customer_url, customer_data)
+        intake.refresh_from_db()
+        self.assertTrue(intake.e_invitation_required)
+
+        self.client.force_login(self.flora)
+        list_response = self.client.get(reverse("party_summary_list"))
+        self.assertContains(list_response, "E-invitations to create")
+        self.assertContains(list_response, "Invitation Customer")
+        self.assertContains(list_response, "Mark e-invitation complete")
+
+        complete_response = self.client.post(
+            reverse("party_intake_complete_e_invitation", args=(intake.id,)),
+            {"next": "party_summaries"},
+        )
+        self.assertRedirects(complete_response, reverse("party_summary_list"))
+        intake.refresh_from_db()
+        self.assertFalse(intake.e_invitation_required)
+        self.assertEqual(intake.e_invitation_completed_by, self.flora)
+        self.assertIsNotNone(intake.e_invitation_completed_at)
+
+        # If the customer changes the form later, the invitation needs review again.
+        customer_data["theme"] = "Frozen"
+        self.client.post(customer_url, customer_data)
+        intake.refresh_from_db()
+        self.assertTrue(intake.e_invitation_required)
+        self.assertIsNone(intake.e_invitation_completed_by)
+
+    def test_staff_cannot_complete_e_invitation_for_another_location(self):
+        intake = PartyIntakeLink.objects.create(
+            location=self.canberra,
+            owner_name="Canberra Customer",
+            submitted_at=timezone.now(),
+            created_by=self.flora,
+        )
+        self.client.force_login(self.kiva)
+        response = self.client.post(
+            reverse("party_intake_complete_e_invitation", args=(intake.id,)),
+        )
+        self.assertEqual(response.status_code, 404)
+        intake.refresh_from_db()
+        self.assertTrue(intake.e_invitation_required)
+
     def test_staff_only_sees_intake_links_for_own_location(self):
         southland_link = PartyIntakeLink.objects.create(
             location=self.southland, owner_name="Southland Customer", created_by=self.flora,

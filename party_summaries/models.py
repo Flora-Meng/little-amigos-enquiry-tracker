@@ -322,6 +322,15 @@ class PartyIntakeLink(models.Model):
         PartySummary, on_delete=models.SET_NULL, related_name="intake_link", null=True, blank=True,
     )
     submitted_at = models.DateTimeField(null=True, blank=True, editable=False)
+    e_invitation_completed_at = models.DateTimeField(null=True, blank=True, editable=False)
+    e_invitation_completed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        related_name="completed_e_invitations",
+        null=True,
+        blank=True,
+        editable=False,
+    )
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="created_party_intake_links",
     )
@@ -334,3 +343,7 @@ class PartyIntakeLink(models.Model):
 
     def __str__(self):
         return f"{self.owner_name} — {self.location.name}"
+
+    @property
+    def e_invitation_required(self):
+        return bool(self.submitted_at and not self.e_invitation_completed_at)

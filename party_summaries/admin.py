@@ -18,6 +18,8 @@ class PartySummaryAdmin(admin.ModelAdmin):
 
 @admin.register(PartyIntakeLink)
 class PartyIntakeLinkAdmin(admin.ModelAdmin):
-    list_display = ("owner_name", "location", "submitted_at", "created_at")
+    list_display = (
+        "owner_name", "location", "submitted_at", "e_invitation_completed_at", "created_at",
+    )
     search_fields = ("owner_name", "owner_number", "owner_email")
-    list_filter = ("location", "submitted_at")
+    list_filter = ("location", "submitted_at", "e_invitation_completed_at")

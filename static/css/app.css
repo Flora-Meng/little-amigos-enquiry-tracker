@@ -200,9 +200,27 @@ th { color: var(--muted); font-size: .75rem; letter-spacing: .06em; text-transfo
 .intake-link-row { display: grid; grid-template-columns: minmax(210px, .7fr) minmax(460px, 1.3fr); align-items: center; gap: 22px; padding: 20px 22px; border-bottom: 1px solid var(--border); }
 .intake-link-row:last-child { border-bottom: 0; }
 .intake-link-person { display: grid; justify-items: start; gap: 5px; }
-.intake-link-person > span { color: var(--muted); font-size: .82rem; overflow-wrap: anywhere; }
-.intake-link-actions { display: grid; grid-template-columns: minmax(0, 1fr) auto auto auto; gap: 8px; }
+.intake-link-person > span, .intake-link-person > small { color: var(--muted); font-size: .82rem; overflow-wrap: anywhere; }
+.intake-link-actions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 8px; }
+.intake-link-actions input { flex: 1 1 340px; }
+.intake-link-actions form { margin: 0; }
 .intake-link-actions input { min-width: 0; height: 44px; padding: 0 12px; border: 1px solid #d7d3ca; border-radius: 11px; color: var(--muted); background: #fcfaf5; }
+.e-invitation-required-status, .e-invitation-complete-status { display: inline-flex; width: fit-content; padding: 6px 10px; border-radius: 999px; font-size: .76rem; font-weight: 820; }
+.e-invitation-required-status { color: #87432f; background: #ffded2; }
+.e-invitation-complete-status { color: #286b62; background: #d8f3ed; }
+.e-invitation-task-panel { margin-bottom: 22px; overflow: hidden; border-color: #efb29e; }
+.e-invitation-task-heading { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 20px 22px; background: #fff6f2; border-bottom: 1px solid #f1d3c9; }
+.e-invitation-task-heading .eyebrow { margin: 0 0 4px; }
+.e-invitation-task-heading p:last-child { margin: 5px 0 0; color: var(--muted); font-size: .85rem; }
+.e-invitation-count { width: 42px; height: 42px; display: grid; place-items: center; flex: 0 0 42px; border-radius: 50%; color: white; background: var(--peach); font-weight: 900; }
+.e-invitation-task-list { display: grid; }
+.e-invitation-task-row { display: grid; grid-template-columns: minmax(220px, 1fr) auto auto; align-items: center; gap: 18px; padding: 16px 22px; border-bottom: 1px solid var(--border); }
+.e-invitation-task-row:last-child { border-bottom: 0; }
+.e-invitation-task-row > div:first-child { display: grid; gap: 3px; }
+.e-invitation-task-row span, .e-invitation-task-row small { color: var(--muted); font-size: .8rem; }
+.e-invitation-task-row .e-invitation-required-status { color: #87432f; }
+.e-invitation-task-actions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 8px; }
+.e-invitation-task-actions form { margin: 0; }
 .customer-intake-shell { max-width: 760px; }
 .customer-intake-card { padding-bottom: 32px; }
 .customer-submit-row { display: flex; justify-content: flex-end; }
@@ -573,6 +591,9 @@ th { color: var(--muted); font-size: .75rem; letter-spacing: .06em; text-transfo
   .customer-link-copy input { grid-column: 1 / -1; }
   .intake-create-form, .intake-link-actions { grid-template-columns: 1fr; }
   .intake-link-actions input { grid-column: 1; }
+  .e-invitation-task-row { grid-template-columns: 1fr; }
+  .e-invitation-task-actions { justify-content: stretch; }
+  .e-invitation-task-actions .button { width: 100%; }
   .confirmation-email-content { padding: 24px 20px 34px; }
 }
 

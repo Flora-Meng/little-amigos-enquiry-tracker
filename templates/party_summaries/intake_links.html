@@ -29,13 +29,26 @@
           <div class="intake-link-person">
             <strong>{{ intake.owner_name }}</strong>
             <span>{{ intake.location.name }}{% if intake.owner_email %} · {{ intake.owner_email }}{% endif %}</span>
-            {% if intake.submitted_at %}<b class="customer-submitted-status">Submitted {{ intake.submitted_at|date:"j M Y, g:i a" }}</b>{% else %}<b class="customer-awaiting-status">Waiting for customer</b>{% endif %}
+            {% if not intake.submitted_at %}
+              <b class="customer-awaiting-status">Waiting for customer</b>
+            {% elif intake.e_invitation_required %}
+              <b class="e-invitation-required-status">E-invitation required</b>
+              <small>Submitted {{ intake.submitted_at|date:"j M Y, g:i a" }}</small>
+            {% else %}
+              <b class="e-invitation-complete-status">✓ E-invitation complete</b>
+              <small>Completed {{ intake.e_invitation_completed_at|date:"j M Y, g:i a" }}{% if intake.e_invitation_completed_by %} by {{ intake.e_invitation_completed_by.get_full_name|default:intake.e_invitation_completed_by.email }}{% endif %}</small>
+            {% endif %}
           </div>
           <div class="intake-link-actions">
             <input id="intake-url-{{ intake.id }}" type="text" value="{{ intake.customer_url }}" readonly aria-label="Private customer link for {{ intake.owner_name }}">
             <button class="button button-quiet" type="button" data-copy-intake data-target="intake-url-{{ intake.id }}">Copy link</button>
             <a class="button button-quiet" href="{{ intake.customer_url }}" target="_blank" rel="noopener noreferrer">Preview</a>
             {% if intake.summary_id %}<a class="button button-primary" href="{% url 'party_summary_edit' intake.summary_id %}">Open summary</a>{% endif %}
+            {% if intake.e_invitation_required %}
+              <form method="post" action="{% url 'party_intake_complete_e_invitation' intake.id %}">
+                {% csrf_token %}<button class="button button-download" type="submit">Mark invitation complete</button>
+              </form>
+            {% endif %}
           </div>
         </article>
       {% endfor %}

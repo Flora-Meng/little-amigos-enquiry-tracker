@@ -12,6 +12,8 @@ urlpatterns = [
     path("intake-links/", views.party_intake_links, name="party_intake_links"),
     path("intake-links/from-enquiry/<uuid:enquiry_id>/", views.party_intake_from_enquiry,
         name="party_intake_from_enquiry"),
+    path("intake-links/<uuid:intake_id>/complete-e-invitation/",
+        views.party_intake_complete_e_invitation, name="party_intake_complete_e_invitation"),
     path("new/", views.party_summary_create, name="party_summary_create"),
     path("weekly/<slug:location_code>/<slug:week_start>/pdf/", views.party_summary_weekly_pdf,
         name="party_summary_weekly_pdf"),
