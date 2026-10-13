@@ -519,6 +519,7 @@ class PartySummaryTests(TestCase):
             if 'FROM "party_intake_links"' in query["sql"]
         )
         self.assertNotIn('JOIN "party_summaries"', intake_select)
+        self.assertNotIn('JOIN "enquiries"', intake_select)
 
         self.assertRedirects(
             response, reverse("customer_party_intake_thanks", args=(intake.token,)),

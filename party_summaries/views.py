@@ -306,13 +306,14 @@ def _party_intake_initial(intake):
 @require_http_methods(["GET", "POST"])
 @transaction.atomic
 def customer_party_intake(request, token):
-    # Do not join the nullable summary relation when locking the intake row.
     # PostgreSQL rejects FOR UPDATE on the nullable side of an outer join.
-    queryset = PartyIntakeLink.objects.select_related("location", "created_by", "enquiry")
+    # Only join required, non-null relations while locking the intake row;
+    # both ``summary`` and ``enquiry`` are nullable relations.
+    queryset = PartyIntakeLink.objects.select_related("location", "created_by")
     if request.method == "POST":
         queryset = queryset.select_for_update()
     else:
-        queryset = queryset.select_related("summary")
+        queryset = queryset.select_related("summary", "enquiry")
     intake = get_object_or_404(queryset, token=token)
     if request.method == "POST":
         form = CustomerPartyIntakeForm(request.POST)
