@@ -428,12 +428,13 @@ class PartySummaryTests(TestCase):
             "location": str(self.southland.id),
             "owner_name": "Beleni",
             "owner_number": "0430 990 265",
-            "owner_email": "beleni@example.com",
+            "room_type": PartySummary.RoomType.TRIPLE,
         })
         self.assertRedirects(response, reverse("party_intake_links"))
         intake = PartyIntakeLink.objects.get()
         self.assertEqual(intake.location, self.southland)
         self.assertEqual(intake.owner_name, "Beleni")
+        self.assertEqual(intake.room_type, PartySummary.RoomType.TRIPLE)
         self.assertEqual(intake.created_by, self.flora)
         page = self.client.get(reverse("party_intake_links"))
         self.assertContains(page, reverse("customer_party_intake", args=(intake.token,)))
@@ -444,10 +445,12 @@ class PartySummaryTests(TestCase):
         response = self.client.post(reverse("party_intake_links"), {
             "owner_name": "Southland Customer",
             "owner_number": "0400 000 000",
-            "owner_email": "customer@example.com",
+            "room_type": PartySummary.RoomType.DOUBLE,
         })
         self.assertRedirects(response, reverse("party_intake_links"))
-        self.assertEqual(PartyIntakeLink.objects.get().location, self.southland)
+        intake = PartyIntakeLink.objects.get()
+        self.assertEqual(intake.location, self.southland)
+        self.assertEqual(intake.room_type, PartySummary.RoomType.DOUBLE)
 
     def test_customer_intake_creates_then_updates_one_party_summary(self):
         intake = PartyIntakeLink.objects.create(
@@ -455,6 +458,7 @@ class PartySummaryTests(TestCase):
             owner_name="Beleni",
             owner_number="0430 990 265",
             owner_email="beleni@example.com",
+            room_type=PartySummary.RoomType.TRIPLE,
             created_by=self.flora,
         )
         url = reverse("customer_party_intake", args=(intake.token,))
@@ -475,6 +479,7 @@ class PartySummaryTests(TestCase):
         self.assertEqual(summary.theme, "Princess")
         self.assertEqual(summary.kids_name, "Indiana")
         self.assertEqual(summary.rsvp_information, "RSVP to Beleni by 20 October")
+        self.assertEqual(summary.room_type, PartySummary.RoomType.TRIPLE)
         self.assertEqual(summary.package_name, PartySummary.Package.CUSTOM)
 
         second_response = self.client.post(url, {

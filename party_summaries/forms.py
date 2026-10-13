@@ -116,6 +116,25 @@ EXTRA_MENU_OPTIONS = (
 )
 
 
+def room_choices_for_location(location_code):
+    if location_code == Location.Code.CANBERRA:
+        return (
+            (PartySummary.RoomType.SINGLE, "Single room"),
+            (PartySummary.RoomType.SINGLE_VOUCHER, "Single (voucher)"),
+            (PartySummary.RoomType.DOUBLE_LITE, "Double room Lite"),
+            (PartySummary.RoomType.DOUBLE, "Double room"),
+            (PartySummary.RoomType.PRIVATE_2HOUR, "Private 2 hour"),
+            (PartySummary.RoomType.PRIVATE_3HOUR, "Private 3 hour"),
+        )
+    return (
+        (PartySummary.RoomType.SINGLE, PartySummary.RoomType.SINGLE.label),
+        (PartySummary.RoomType.DOUBLE, PartySummary.RoomType.DOUBLE.label),
+        (PartySummary.RoomType.TRIPLE, PartySummary.RoomType.TRIPLE.label),
+        (PartySummary.RoomType.PRIVATE, PartySummary.RoomType.PRIVATE.label),
+        (PartySummary.RoomType.SMALL_GATHERING, PartySummary.RoomType.SMALL_GATHERING.label),
+    )
+
+
 class PartySummaryForm(forms.ModelForm):
     decoration_example_upload = forms.FileField(
         label="Decoration example",
@@ -194,23 +213,7 @@ class PartySummaryForm(forms.ModelForm):
         if location is None:
             location = Location.objects.filter(code=Location.Code.SOUTHLAND).first()
         self.package_location_code = location.code if location else Location.Code.SOUTHLAND
-        if self.package_location_code == Location.Code.CANBERRA:
-            self.fields["room_type"].choices = (
-                (PartySummary.RoomType.SINGLE, "Single room"),
-                (PartySummary.RoomType.SINGLE_VOUCHER, "Single (voucher)"),
-                (PartySummary.RoomType.DOUBLE_LITE, "Double room Lite"),
-                (PartySummary.RoomType.DOUBLE, "Double room"),
-                (PartySummary.RoomType.PRIVATE_2HOUR, "Private 2 hour"),
-                (PartySummary.RoomType.PRIVATE_3HOUR, "Private 3 hour"),
-            )
-        else:
-            self.fields["room_type"].choices = (
-                (PartySummary.RoomType.SINGLE, PartySummary.RoomType.SINGLE.label),
-                (PartySummary.RoomType.DOUBLE, PartySummary.RoomType.DOUBLE.label),
-                (PartySummary.RoomType.TRIPLE, PartySummary.RoomType.TRIPLE.label),
-                (PartySummary.RoomType.PRIVATE, PartySummary.RoomType.PRIVATE.label),
-                (PartySummary.RoomType.SMALL_GATHERING, PartySummary.RoomType.SMALL_GATHERING.label),
-            )
+        self.fields["room_type"].choices = room_choices_for_location(self.package_location_code)
         self.fields["package_name"].choices = [
             ("", "---------"),
             *PartySummary.package_choices_for_location(self.package_location_code),
@@ -263,23 +266,29 @@ class PartySummaryForm(forms.ModelForm):
 
 
 class PartyIntakeLinkForm(forms.ModelForm):
+    room_type = forms.ChoiceField(label="Room type", choices=())
+
     class Meta:
         model = PartyIntakeLink
-        fields = ("location", "owner_name", "owner_number", "owner_email")
+        fields = ("location", "owner_name", "owner_number", "room_type")
         labels = {
             "owner_name": "Customer name",
             "owner_number": "Customer phone",
-            "owner_email": "Customer email (optional)",
+            "room_type": "Room type",
         }
-        widgets = {
-            "owner_number": forms.TextInput(attrs={"inputmode": "tel"}),
-            "owner_email": forms.EmailInput(attrs={"placeholder": "Used only as a reference for now"}),
-        }
+        widgets = {"owner_number": forms.TextInput(attrs={"inputmode": "tel"})}
 
     def __init__(self, *args, user, **kwargs):
         super().__init__(*args, **kwargs)
         self.user = user
         self.fields["location"].queryset = Location.objects.order_by("name")
+        location = None
+        if self.is_bound and self.data.get("location"):
+            location = Location.objects.filter(pk=self.data.get("location")).first()
+        elif user.location_id:
+            location = user.location
+        location_code = location.code if location else Location.Code.SOUTHLAND
+        self.fields["room_type"].choices = room_choices_for_location(location_code)
         if user.role == User.Role.STAFF:
             self.fields.pop("location")
 

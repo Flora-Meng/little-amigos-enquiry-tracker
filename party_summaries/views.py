@@ -39,6 +39,7 @@ from .forms import (
     PartyIntakeLinkForm,
     PartySummaryForm,
     menu_formsets,
+    room_choices_for_location,
 )
 from .models import (
     PartyBillItem, PartyIntakeLink, PartyMenuItem, PartySummary,
@@ -252,7 +253,16 @@ def party_intake_links(request):
         intake.customer_url = request.build_absolute_uri(
             reverse("customer_party_intake", args=(intake.token,))
         )
-    return render(request, "party_summaries/intake_links.html", {"form": form, "intake_links": links})
+    room_catalog = {
+        str(location.id): [
+            {"value": str(value), "label": label}
+            for value, label in room_choices_for_location(location.code)
+        ]
+        for location in Location.objects.order_by("name")
+    }
+    return render(request, "party_summaries/intake_links.html", {
+        "form": form, "intake_links": links, "room_catalog": room_catalog,
+    })
 
 
 @login_required
@@ -362,7 +372,7 @@ def customer_party_intake(request, token):
                     location=intake.location,
                     owner_name=intake.owner_name,
                     owner_number=intake.owner_number,
-                    room_type=PartySummary.RoomType.SINGLE,
+                    room_type=intake.room_type or PartySummary.RoomType.SINGLE,
                     kids_count=0,
                     adults_count=0,
                     package_name=PartySummary.Package.CUSTOM,

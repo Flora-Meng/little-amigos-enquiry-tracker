@@ -15,7 +15,7 @@
       {% if form.location %}{% include "enquiries/_field.html" with field=form.location %}{% endif %}
       {% include "enquiries/_field.html" with field=form.owner_name %}
       {% include "enquiries/_field.html" with field=form.owner_number %}
-      {% include "enquiries/_field.html" with field=form.owner_email %}
+      {% include "enquiries/_field.html" with field=form.room_type %}
       <button class="button button-primary" type="submit">Create link</button>
     </form>
   </section>
@@ -28,7 +28,7 @@
         <article class="intake-link-row">
           <div class="intake-link-person">
             <strong>{{ intake.owner_name }}</strong>
-            <span>{{ intake.location.name }}{% if intake.owner_email %} · {{ intake.owner_email }}{% endif %}</span>
+            <span>{{ intake.location.name }} · {% if intake.room_type %}{{ intake.get_room_type_display }}{% elif intake.summary_id %}{{ intake.summary.get_room_type_display }}{% else %}Room type not set{% endif %}</span>
             {% if not intake.submitted_at %}
               <b class="customer-awaiting-status">Waiting for customer</b>
             {% elif intake.e_invitation_required %}
@@ -56,7 +56,23 @@
     {% else %}<div class="empty-state"><p>No customer links yet</p><span>Create the first private link above.</span></div>{% endif %}
   </section>
 </main>
+{{ room_catalog|json_script:"intake-room-catalog" }}
 <script>
+const intakeLocation = document.getElementById('id_location');
+const intakeRoomType = document.getElementById('id_room_type');
+const intakeRoomCatalog = JSON.parse(document.getElementById('intake-room-catalog').textContent);
+function updateIntakeRoomTypes() {
+  if (!intakeLocation || !intakeRoomType) return;
+  const current = intakeRoomType.value;
+  const choices = intakeRoomCatalog[intakeLocation.value] || [];
+  intakeRoomType.replaceChildren(new Option('---------', ''));
+  choices.forEach(choice => intakeRoomType.add(new Option(choice.label, choice.value)));
+  if (choices.some(choice => choice.value === current)) intakeRoomType.value = current;
+}
+if (intakeLocation) {
+  intakeLocation.addEventListener('change', updateIntakeRoomTypes);
+  updateIntakeRoomTypes();
+}
 document.querySelectorAll('[data-copy-intake]').forEach(button => {
   button.addEventListener('click', async () => {
     const input = document.getElementById(button.dataset.target);
