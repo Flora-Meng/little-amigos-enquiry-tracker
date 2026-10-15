@@ -58,7 +58,7 @@
     <section class="customer-menu-card">
       <div class="customer-section-heading kids-heading"><span>2</span><div><h2>Kids' food</h2><p>Every child receives one hot food{% if is_canberra %}, one dessert{% endif %} and a kids' size drink. Split each food category between no more than two choices.</p></div></div>
       <div class="customer-rule-callout"><strong>One hot food{% if is_canberra %}, one dessert{% endif %} per child, plus one kids' size drink.</strong> You have <b data-kids-total>{{ form.kids_count.value|default:0 }}</b> children, so select exactly <b data-kids-total>{{ form.kids_count.value|default:0 }}</b> {% if is_canberra %}portions in each category{% else %}hot food portions{% endif %}. You may split each category between a maximum of two choices.</div>
-      <h3>Hot food</h3>
+      <h3>Hot food{% if is_canberra %} · Choose up to 2 types{% endif %}</h3>
       <div class="customer-checkbox-choices" data-kids-group="hot food">
         {% for row in form.kids_hot_rows %}
         <div class="customer-checkbox-row" data-choice-row>
@@ -69,7 +69,7 @@
         <div class="customer-allocation-status" data-allocation-status>Choose up to two options.</div>
       </div>
       {% if is_canberra %}
-      <h3>Dessert</h3>
+      <h3>Dessert · Choose up to 2 types</h3>
       <div class="customer-checkbox-choices" data-kids-group="dessert">
         {% for row in form.kids_dessert_rows %}
         <div class="customer-checkbox-row" data-choice-row>

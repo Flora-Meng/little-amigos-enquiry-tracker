@@ -990,6 +990,43 @@ class PartySummaryTests(TestCase):
                 self.assertEqual(drinks.notes, "Coke Zero and orange juice")
                 self.assertEqual(water.quantity, "1 jug")
 
+    def test_all_canberra_packages_allow_two_kids_food_and_two_dessert_types(self):
+        room_types = (
+            PartySummary.RoomType.SINGLE,
+            PartySummary.RoomType.SINGLE_VOUCHER,
+            PartySummary.RoomType.DOUBLE_LITE,
+            PartySummary.RoomType.DOUBLE,
+            PartySummary.RoomType.PRIVATE_2HOUR,
+            PartySummary.RoomType.PRIVATE_3HOUR,
+        )
+        for room_type in room_types:
+            with self.subTest(room_type=room_type):
+                summary = self._create_summary(location=self.canberra, user=self.emma)
+                data = self._customer_menu_data()
+                data["room_type"] = room_type
+                if room_type == PartySummary.RoomType.SINGLE:
+                    data.update({
+                        "adult_fryer": "Mixed Fryer platter",
+                        "adult_starter": "Mini Burger sliders - 10pcs (Pork)",
+                    })
+                elif room_type == PartySummary.RoomType.DOUBLE:
+                    data.update({
+                        "adult_fryer": "Mixed Fryer platter",
+                        "adult_starter": "Mini Burger sliders - 10pcs (Pork)",
+                        "adult_main": "__four_pizzas__",
+                        "adult_pasta": "Chicken Pesto Pasta Bowl",
+                    })
+
+                response = self.client.post(
+                    reverse("customer_menu", args=(summary.customer_menu_token,)), data,
+                )
+
+                self.assertRedirects(
+                    response,
+                    reverse("customer_menu_thanks", args=(summary.customer_menu_token,)),
+                )
+                self.assertEqual(summary.menu_items.filter(category="kids").count(), 5)
+
     def test_voucher_food_uses_editable_unit_price_and_quantity(self):
         summary = self._create_summary(location=self.canberra, user=self.emma)
         summary.room_type = PartySummary.RoomType.SINGLE_VOUCHER
