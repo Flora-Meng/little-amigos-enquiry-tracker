@@ -505,12 +505,12 @@ def party_summary_edit(request, summary_id):
             _save_menu_items(updated, formsets)
             _save_decoration_example(updated, form)
             _save_invoice_file(updated, form)
-            messages.success(request, "Party summary updated.")
+            messages.success(request, "Party summary saved successfully.")
             if request.POST.get("action") == "download":
                 return redirect("party_summary_pdf", summary_id=updated.id)
             if request.POST.get("action") == "download_invoice":
                 return redirect("party_summary_invoice_pdf", summary_id=updated.id)
-            return redirect("party_summary_list")
+            return redirect("party_summary_edit", summary_id=updated.id)
     else:
         form = PartySummaryForm(instance=summary, user=request.user)
         formsets = menu_formsets(initial=_menu_initial(summary), editing=True)

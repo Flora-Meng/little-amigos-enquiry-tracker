@@ -236,7 +236,7 @@ class PartySummaryTests(TestCase):
             {"name": "", "amount": "", "DELETE": "on"},
         ]))
         response = self.client.post(reverse("party_summary_edit", args=(summary.id,)), data)
-        self.assertRedirects(response, reverse("party_summary_list"))
+        self.assertRedirects(response, reverse("party_summary_edit", args=(summary.id,)))
         self.assertFalse(summary.bill_items.exists())
 
     def test_staff_summary_is_forced_to_their_location(self):
@@ -608,8 +608,9 @@ class PartySummaryTests(TestCase):
         self.client.force_login(self.flora)
         data = self._post_data()
         data["owner_name"] = "Rebecca Updated"
-        response = self.client.post(reverse("party_summary_edit", args=(summary.id,)), data)
-        self.assertRedirects(response, reverse("party_summary_list"))
+        response = self.client.post(reverse("party_summary_edit", args=(summary.id,)), data, follow=True)
+        self.assertRedirects(response, reverse("party_summary_edit", args=(summary.id,)))
+        self.assertContains(response, "Party summary saved successfully.")
         summary.refresh_from_db()
         self.assertEqual(summary.owner_name, "Rebecca Updated")
         response = self.client.post(reverse("party_summary_delete", args=(summary.id,)))
@@ -769,7 +770,7 @@ class PartySummaryTests(TestCase):
         self.client.force_login(self.flora)
         data = self._post_data()
         response = self.client.post(reverse("party_summary_edit", args=(summary.id,)), data)
-        self.assertRedirects(response, reverse("party_summary_list"))
+        self.assertRedirects(response, reverse("party_summary_edit", args=(summary.id,)))
         summary.refresh_from_db()
         self.assertEqual(summary.custom_package_name, "")
 
