@@ -11,15 +11,15 @@
     <p class="eyebrow">Food selection</p>
     <h1>Choose food for your party</h1>
     {% if menu_locked %}
-    <p>Hi {{ summary.owner_name }}, you can view your menu selections below. Online changes closed 72 hours before your party.</p>
+    <p>Hi {{ summary.owner_name }}, you can view your menu selections below. Online changes closed 24 hours before your party.</p>
     {% else %}
-    <p>Hi {{ summary.owner_name }}, please complete the selections below. You can return to this private link and update your choices until 72 hours (3 days) before your party.</p>
+    <p>Hi {{ summary.owner_name }}, please complete the selections below. You can return to this private link and update your choices until 24 hours before your party.</p>
     {% endif %}
   </div>
 
   <form method="post" class="customer-menu-form" novalidate>
     {% csrf_token %}
-    {% if menu_locked %}<div class="customer-menu-locked" role="alert"><strong>{% if locked_submit_attempt %}Your changes were not submitted.{% else %}Online menu changes are now closed.{% endif %}</strong><span>This party is within 72 hours. You can still view the menu below, but please contact your Party Manager if you need to make a change.</span></div>{% endif %}
+    {% if menu_locked %}<div class="customer-menu-locked" role="alert"><strong>{% if locked_submit_attempt %}Your changes were not submitted.{% else %}Online menu changes are now closed.{% endif %}</strong><span>This party is within 24 hours. You can still view the menu below, but please contact your Party Manager if you need to make a change.</span></div>{% endif %}
     {% if form.non_field_errors %}<div class="customer-form-errors" role="alert">{{ form.non_field_errors }}</div>{% endif %}
     <fieldset class="customer-menu-lockable"{% if menu_locked %} disabled{% endif %}>
 

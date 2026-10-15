@@ -661,7 +661,7 @@ def _customer_menu_deadline(summary):
         datetime.combine(summary.party_date, datetime.min.time()).replace(hour=hour, minute=minute),
         timezone.get_current_timezone(),
     )
-    return party_start - timedelta(hours=72)
+    return party_start - timedelta(hours=24)
 
 
 def _save_customer_menu(summary, cleaned):

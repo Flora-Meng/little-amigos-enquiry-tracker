@@ -1068,10 +1068,11 @@ class PartySummaryTests(TestCase):
         summary.refresh_from_db()
         self.assertIsNone(summary.customer_menu_submitted_at)
 
-    def test_customer_menu_is_read_only_within_72_hours_of_party(self):
+    def test_customer_menu_is_read_only_within_24_hours_of_party(self):
         summary = self._create_summary()
-        summary.party_date = timezone.localdate() + timedelta(days=1)
-        summary.save(update_fields=("party_date",))
+        summary.party_date = timezone.localdate()
+        summary.party_time = "11:59pm"
+        summary.save(update_fields=("party_date", "party_time"))
         public_url = reverse("customer_menu", args=(summary.customer_menu_token,))
 
         response = self.client.get(public_url)
@@ -1090,6 +1091,20 @@ class PartySummaryTests(TestCase):
         self.assertEqual(summary.owner_name, "Rebecca Power")
         self.assertIsNone(summary.customer_menu_submitted_at)
         self.assertFalse(summary.menu_items.exists())
+
+    def test_customer_menu_remains_editable_more_than_24_hours_before_party(self):
+        summary = self._create_summary()
+        party_start = timezone.localtime(timezone.now()) + timedelta(hours=25)
+        summary.party_date = party_start.date()
+        summary.party_time = party_start.strftime("%I:%M%p")
+        summary.save(update_fields=("party_date", "party_time"))
+
+        response = self.client.get(reverse("customer_menu", args=(summary.customer_menu_token,)))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "until 24 hours before your party")
+        self.assertContains(response, "Submit food selection")
+        self.assertNotContains(response, "Online menu changes are now closed")
 
     def test_customer_submission_updates_party_menu_and_balance(self):
         summary = self._create_summary()
