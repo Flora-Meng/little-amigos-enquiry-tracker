@@ -344,6 +344,9 @@ class CustomerMenuForm(forms.Form):
         label="Notes", required=False, max_length=1000,
         widget=forms.Textarea(attrs={"rows": 3, "placeholder": "Add any notes for your adult food order."}),
     )
+    voucher_drinks_note = forms.CharField(
+        label="Soft drinks / juice notes", required=False, max_length=500,
+    )
     adult_starter = forms.ChoiceField(label="Burger or sandwiches - pick one", choices=ADULT_STARTER_CHOICES, required=False, widget=forms.RadioSelect)
     adult_main = forms.ChoiceField(label="Taco platter or four pizzas - pick one", choices=ADULT_MAIN_CHOICES, required=False, widget=forms.RadioSelect)
     adult_pasta = forms.ChoiceField(label="Pasta or salad - pick one", choices=ADULT_PASTA_CHOICES, required=False, widget=forms.RadioSelect)

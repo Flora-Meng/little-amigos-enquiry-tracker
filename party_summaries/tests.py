@@ -927,6 +927,8 @@ class PartySummaryTests(TestCase):
         self.assertContains(response, "Yogurt berries smoothie")
         self.assertContains(response, 'name="kids_dessert_0_selected"', html=False)
         self.assertContains(response, 'name="voucher_menu_notes"', html=False)
+        self.assertContains(response, 'name="voucher_drinks_note"', html=False)
+        self.assertContains(response, "1 water jug")
         self.assertNotContains(response, 'name="triple_fryer"', html=False)
 
     def test_canberra_customer_food_balance_deducts_voucher(self):
@@ -934,6 +936,7 @@ class PartySummaryTests(TestCase):
         data = self._customer_menu_data()
         data["room_type"] = PartySummary.RoomType.SINGLE_VOUCHER
         data["voucher_menu_notes"] = "Please label the vegetarian platters."
+        data["voucher_drinks_note"] = "Orange juice, please."
         response = self.client.post(
             reverse("customer_menu", args=(summary.customer_menu_token,)),
             data,
@@ -949,11 +952,43 @@ class PartySummaryTests(TestCase):
         self.assertEqual(summary.extra_food_balance, Decimal("170.00"))
         self.assertEqual(summary.total_balance, Decimal("969.00"))
         self.assertEqual(summary.voucher_menu_notes, "Please label the vegetarian platters.")
+        self.assertEqual(summary.menu_items.get(item="Soft drinks / juice").quantity, "1 jug")
+        self.assertEqual(summary.menu_items.get(item="Soft drinks / juice").notes, "Orange juice, please.")
+        self.assertEqual(summary.menu_items.get(item="Refillable water").quantity, "1 jug")
         self.client.force_login(self.emma)
         staff_response = self.client.get(reverse("party_summary_edit", args=(summary.id,)))
         self.assertContains(staff_response, "Food ordered")
         self.assertContains(staff_response, "Price")
         self.assertContains(staff_response, 'name="adult-0-amount"', html=False)
+
+    def test_canberra_voucher_packages_save_their_included_drink_quantities(self):
+        expected_drinks = {
+            PartySummary.RoomType.SINGLE_VOUCHER: "1 jug",
+            PartySummary.RoomType.DOUBLE_LITE: "2 jugs",
+            PartySummary.RoomType.PRIVATE_2HOUR: "6 jugs",
+            PartySummary.RoomType.PRIVATE_3HOUR: "6 jugs",
+        }
+        for room_type, expected_quantity in expected_drinks.items():
+            with self.subTest(room_type=room_type):
+                summary = self._create_summary(location=self.canberra, user=self.emma)
+                data = self._customer_menu_data()
+                data["room_type"] = room_type
+                data["voucher_drinks_note"] = "Coke Zero and orange juice"
+
+                response = self.client.post(
+                    reverse("customer_menu", args=(summary.customer_menu_token,)), data,
+                )
+
+                self.assertRedirects(
+                    response,
+                    reverse("customer_menu_thanks", args=(summary.customer_menu_token,)),
+                )
+                summary.refresh_from_db()
+                drinks = summary.menu_items.get(category="adult", item="Soft drinks / juice")
+                water = summary.menu_items.get(category="adult", item="Refillable water")
+                self.assertEqual(drinks.quantity, expected_quantity)
+                self.assertEqual(drinks.notes, "Coke Zero and orange juice")
+                self.assertEqual(water.quantity, "1 jug")
 
     def test_voucher_food_uses_editable_unit_price_and_quantity(self):
         summary = self._create_summary(location=self.canberra, user=self.emma)

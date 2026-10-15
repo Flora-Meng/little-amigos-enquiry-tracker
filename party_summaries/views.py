@@ -605,6 +605,7 @@ def _customer_menu_initial(summary):
         initial["triple_fruit_note"] = fruit.notes
     if drinks:
         initial["triple_drinks_note"] = drinks.notes
+        initial["voucher_drinks_note"] = drinks.notes
 
     kids_by_name = {item.item: item for item in kids_items}
     for prefix, choices in (
@@ -777,6 +778,26 @@ def _save_customer_menu(summary, cleaned):
     for position, (quantity, item) in enumerate(kids_items):
         rows.append(PartyMenuItem(summary=summary, category=PartyMenuItem.Category.KIDS,
             quantity=quantity, item=item, position=position))
+
+    if uses_voucher_menu:
+        drink_count = {
+            PartySummary.RoomType.SINGLE_VOUCHER: 1,
+            PartySummary.RoomType.DOUBLE_LITE: 2,
+            PartySummary.RoomType.PRIVATE_2HOUR: 6,
+            PartySummary.RoomType.PRIVATE_3HOUR: 6,
+        }[room_type]
+        drink_quantity = "1 jug" if drink_count == 1 else f"{drink_count} jugs"
+        rows.extend((
+            PartyMenuItem(
+                summary=summary, category=PartyMenuItem.Category.ADULT,
+                quantity=drink_quantity, item="Soft drinks / juice",
+                notes=cleaned.get("voucher_drinks_note", ""), position=100,
+            ),
+            PartyMenuItem(
+                summary=summary, category=PartyMenuItem.Category.ADULT,
+                quantity="1 jug", item="Refillable water", position=101,
+            ),
+        ))
 
     for index, (item, price) in enumerate(EXTRA_MENU_OPTIONS):
         if cleaned.get(f"extra_{index}_selected"):

@@ -127,6 +127,9 @@
         {% endfor %}
       </div>
       {% if is_canberra %}
+      <div class="triple-menu-list triple-menu-pdf-layout customer-voucher-drinks" data-canberra-voucher-drinks>
+        <article class="triple-menu-item triple-menu-wide"><div class="triple-menu-quantity">Included</div><div><h3 data-canberra-voucher-drink-heading>1 drink jug and 1 water jug</h3><div class="triple-included-row"><span data-canberra-voucher-drink-label>✓ 1 jug of drink (juice &amp; soft drinks)</span><span>✓ 1 refillable water jug</span></div>{% include "enquiries/_field.html" with field=form.voucher_drinks_note %}</div></article>
+      </div>
       <div class="customer-voucher-summary" data-canberra-voucher-summary aria-live="polite">
         <div><span>Adult food order total</span><strong data-extra-total data-food-order-total>$0.00</strong></div>
         <div><span>Included food voucher</span><strong>-<span data-food-voucher-amount>$100.00</span></strong></div>
@@ -158,6 +161,7 @@
   const number = value => Number.parseInt(value || '0', 10) || 0;
   const money = value => value.toLocaleString('en-AU', {style: 'currency', currency: 'AUD'});
   const canberraFoodVouchers = {single_voucher: 100, double_lite: 180, private_2hour: 400, private_3hour: 400};
+  const canberraVoucherDrinks = {single_voucher: 1, double_lite: 2, private_2hour: 6, private_3hour: 6};
 
   const roomType = document.getElementById('id_room_type');
   const packageCapacities = {
@@ -204,6 +208,13 @@
       document.querySelector('[data-canberra-double-extra-heading]').hidden = !usesIncludedMenu;
       document.querySelector('[data-canberra-voucher-summary]').hidden = usesIncludedMenu;
       document.querySelector('[data-canberra-voucher-notes]').hidden = usesIncludedMenu;
+      const voucherDrinks = document.querySelector('[data-canberra-voucher-drinks]');
+      voucherDrinks.hidden = usesIncludedMenu;
+      voucherDrinks.querySelectorAll('input, select, textarea').forEach(input => { input.disabled = usesIncludedMenu; });
+      const voucherDrinkCount = canberraVoucherDrinks[roomType.value] || 1;
+      const voucherDrinkUnit = voucherDrinkCount === 1 ? 'jug' : 'jugs';
+      document.querySelector('[data-canberra-voucher-drink-heading]').textContent = `${voucherDrinkCount} drink ${voucherDrinkUnit} and 1 water jug`;
+      document.querySelector('[data-canberra-voucher-drink-label]').textContent = `✓ ${voucherDrinkCount} ${voucherDrinkUnit} of drink (juice & soft drinks)`;
       document.querySelector('[data-canberra-double-extra-total]').hidden = !usesIncludedMenu;
       if (usesIncludedMenu) doubleMenu.after(voucherMenu);
       else document.querySelector('.customer-section-heading.adult-heading').after(voucherMenu);
