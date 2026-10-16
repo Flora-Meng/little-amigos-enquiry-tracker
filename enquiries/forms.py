@@ -162,8 +162,6 @@ class EnquiryAdminUpdateForm(forms.ModelForm):
         status = cleaned.get("status")
         reason = cleaned.get("closed_reason")
         details = (cleaned.get("closed_reason_details") or "").strip()
-        if status == Enquiry.Status.BOOKED and cleaned.get("booking_amount_aud") is None:
-            self.add_error("booking_amount_aud", "Enter the booking amount in AUD.")
         if status == Enquiry.Status.CLOSED and reason == Enquiry.ClosedReason.OTHER and not details:
             self.add_error("closed_reason_details", "Explain the reason when Other is selected.")
         return cleaned

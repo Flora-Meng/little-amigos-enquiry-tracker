@@ -38,15 +38,11 @@ def dashboard(request):
             ("Overdue follow-ups", overdue(visible).count(), "overdue"),
             ("Booked", visible.filter(status=Enquiry.Status.BOOKED).count(), "booked"),
         )
-        booked_total = sum(
-            visible.filter(status=Enquiry.Status.BOOKED).values_list("booking_amount_aud", flat=True)
-        )
         return render(
             request,
             "accounts/admin_dashboard.html",
             {
                 "cards": cards,
-                "booked_total": booked_total,
                 "recent": recent,
                 "status_choices": Enquiry.Status.choices,
             },

@@ -67,7 +67,7 @@ class DashboardTests(TestCase):
         self.assertContains(response, "Southland Store Customer")
         self.assertContains(response, "Canberra Store Customer")
         self.assertContains(response, "Private Online Customer")
-        self.assertContains(response, "$450.00")
+        self.assertNotContains(response, "Total booked value")
         self.assertContains(response, 'name="status"')
 
     def test_dashboard_shows_latest_note(self):
@@ -112,18 +112,39 @@ class DashboardTests(TestCase):
         self.southland_store.refresh_from_db()
         self.assertEqual(self.southland_store.status, Enquiry.Status.CONTACTED)
 
-    def test_booked_status_redirects_for_required_booking_amount(self):
+    def test_ajax_status_change_is_saved_and_survives_list_refresh(self):
+        self.client.force_login(self.admin)
+        response = self.client.post(
+            reverse("quick_update_status", args=(self.southland_store.id,)),
+            {"status": Enquiry.Status.CONTACTED},
+            HTTP_ACCEPT="application/json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.json(),
+            {"ok": True, "status": "contacted", "status_label": "Contacted"},
+        )
+        self.southland_store.refresh_from_db()
+        self.assertEqual(self.southland_store.status, Enquiry.Status.CONTACTED)
+
+        refreshed = self.client.get(reverse("enquiry_list"))
+        self.assertContains(
+            refreshed,
+            f'<option value="contacted" selected>Contacted</option>',
+            html=True,
+        )
+
+    def test_booked_status_can_be_saved_without_booking_amount(self):
         self.client.force_login(self.admin)
         response = self.client.post(
             reverse("quick_update_status", args=(self.southland_store.id,)),
             {"status": Enquiry.Status.BOOKED},
         )
-        self.assertRedirects(
-            response,
-            reverse("enquiry_detail", args=(self.southland_store.id,)),
-        )
+        self.assertRedirects(response, reverse("dashboard"))
         self.southland_store.refresh_from_db()
-        self.assertEqual(self.southland_store.status, Enquiry.Status.NEW)
+        self.assertEqual(self.southland_store.status, Enquiry.Status.BOOKED)
+        self.assertIsNone(self.southland_store.booking_amount_aud)
 
     def test_closed_status_can_be_selected_without_reason(self):
         self.client.force_login(self.admin)

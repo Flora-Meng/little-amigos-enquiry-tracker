@@ -142,14 +142,20 @@ class EnquiryDetailTests(TestCase):
                 self.store.refresh_from_db()
                 self.assertEqual(self.store.follow_up_due_date, timezone.localdate() + timedelta(days=2))
 
-    def test_booked_requires_amount_and_clears_follow_up(self):
+    def test_booked_allows_blank_amount_and_clears_follow_up(self):
         self.client.force_login(self.admin)
         response = self.client.post(
             reverse("update_enquiry", args=(self.store.id,)),
             self.update_payload(status=Enquiry.Status.BOOKED),
         )
-        self.assertEqual(response.status_code, 400)
-        self.assertContains(response, "Enter the booking amount in AUD", status_code=400)
+        self.assertEqual(response.status_code, 302)
+        self.store.refresh_from_db()
+        self.assertEqual(self.store.status, Enquiry.Status.BOOKED)
+        self.assertIsNone(self.store.booking_amount_aud)
+        self.assertIsNone(self.store.follow_up_due_date)
+
+        self.store.status = Enquiry.Status.NEW
+        self.store.save(update_fields=("status", "updated_at"))
 
         response = self.client.post(
             reverse("update_enquiry", args=(self.store.id,)),

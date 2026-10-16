@@ -70,8 +70,6 @@ class Enquiry(models.Model):
             errors["email"] = "Provide at least an email address or phone number."
         if self.party_date and self.party_date_unknown:
             errors["party_date"] = "Choose a date or Not sure yet, not both."
-        if self.status == self.Status.BOOKED and self.booking_amount_aud is None:
-            errors["booking_amount_aud"] = "A booking amount is required when booked."
         if self.closed_reason == self.ClosedReason.OTHER and not self.closed_reason_details.strip():
             errors["closed_reason_details"] = "Provide details when the reason is Other."
         if errors:

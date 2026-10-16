@@ -228,6 +228,7 @@ def update_enquiry(request, enquiry_id):
 def quick_update_status(request, enquiry_id):
     enquiry = _visible_enquiry_or_404(request.user, enquiry_id)
     require_permission(request.user, Action.CHANGE_STATUS, enquiry=enquiry)
+    wants_json = request.headers.get("Accept") == "application/json"
     next_url = request.POST.get("next", "")
     if not url_has_allowed_host_and_scheme(
         next_url,
@@ -237,6 +238,11 @@ def quick_update_status(request, enquiry_id):
         next_url = reverse("dashboard")
     form = QuickStatusForm(request.POST)
     if not form.is_valid():
+        if wants_json:
+            return JsonResponse(
+                {"ok": False, "error": "Please select a valid status."},
+                status=400,
+            )
         messages.error(request, "Please select a valid status.")
         return redirect(next_url)
 
@@ -246,13 +252,28 @@ def quick_update_status(request, enquiry_id):
     try:
         enquiry.full_clean()
     except ValidationError:
-        if enquiry.status == Enquiry.Status.BOOKED:
-            messages.error(request, "Enter the booking amount before changing this enquiry to Booked.")
-        else:
-            messages.error(request, "This status change needs more information.")
+        error = "This status change needs more information."
+        if wants_json:
+            return JsonResponse(
+                {
+                    "ok": False,
+                    "error": error,
+                    "edit_url": reverse("enquiry_detail", args=(enquiry.id,)),
+                },
+                status=422,
+            )
+        messages.error(request, error)
         return redirect("enquiry_detail", enquiry_id=enquiry.id)
 
     enquiry.save()
+    if wants_json:
+        return JsonResponse(
+            {
+                "ok": True,
+                "status": enquiry.status,
+                "status_label": enquiry.get_status_display(),
+            }
+        )
     messages.success(request, f"{enquiry.name} is now {enquiry.get_status_display()}.")
     return redirect(next_url)
 

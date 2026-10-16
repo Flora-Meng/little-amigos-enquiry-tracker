@@ -17,7 +17,6 @@
     {% for label, value, style in cards %}
       <a class="summary-card summary-{{ style }}" href="{% url 'enquiry_list' %}{% if style == 'new-store' %}?source=store&amp;status=new{% elif style == 'waiting' %}?status=waiting_for_reply{% elif style == 'due' %}?follow_up=due_today{% elif style == 'overdue' %}?follow_up=overdue{% elif style == 'booked' %}?status=booked{% endif %}"><span>{{ label }}</span><strong>{{ value }}</strong></a>
     {% endfor %}
-    <a class="summary-card summary-value" href="{% url 'enquiry_list' %}?status=booked"><span>Total booked value</span><strong>${{ booked_total|floatformat:2 }}</strong><small>AUD</small></a>
   </section>
   {% include "accounts/_recent.html" %}
 </main>

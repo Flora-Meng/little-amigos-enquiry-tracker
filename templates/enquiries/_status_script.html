@@ -1,0 +1,55 @@
+<script>
+(() => {
+  const forms = document.querySelectorAll("form.inline-status-form");
+  if (!forms.length) return;
+
+  const showStatusMessage = (message, isError = false) => {
+    let tray = document.querySelector(".message-tray");
+    if (!tray) {
+      tray = document.createElement("div");
+      tray.className = "message-tray";
+      tray.setAttribute("aria-live", "polite");
+      document.body.appendChild(tray);
+    }
+    const toast = document.createElement("div");
+    toast.className = `toast toast-${isError ? "error" : "success"}`;
+    toast.textContent = message;
+    tray.replaceChildren(toast);
+    window.setTimeout(() => toast.remove(), 3500);
+  };
+
+  forms.forEach((form) => {
+    const select = form.querySelector("select[name='status']");
+    if (!select) return;
+    select.dataset.savedValue = select.value;
+    select.removeAttribute("onchange");
+
+    select.addEventListener("change", async () => {
+      const previousValue = select.dataset.savedValue;
+      select.disabled = true;
+      select.setAttribute("aria-busy", "true");
+
+      try {
+        const response = await fetch(form.action, {
+          method: "POST",
+          body: new FormData(form),
+          headers: {"Accept": "application/json"},
+          credentials: "same-origin",
+        });
+        const data = await response.json();
+        if (!response.ok || !data.ok) throw new Error(data.error || "Status could not be saved.");
+
+        select.dataset.savedValue = data.status;
+        select.className = `inline-status-select status status-${data.status}`;
+        showStatusMessage(`${data.status_label} saved.`);
+      } catch (error) {
+        select.value = previousValue;
+        showStatusMessage(error.message || "Status could not be saved. Please try again.", true);
+      } finally {
+        select.disabled = false;
+        select.removeAttribute("aria-busy");
+      }
+    });
+  });
+})();
+</script>
