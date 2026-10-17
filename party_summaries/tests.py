@@ -298,7 +298,7 @@ class PartySummaryTests(TestCase):
         ])
         self.assertEqual([len(group["summaries"]) for group in week["locations"]], [2, 1])
 
-    def test_party_summary_list_pins_current_week_before_future_and_past_weeks(self):
+    def test_party_summary_list_only_pins_current_week_and_preserves_other_order(self):
         today = timezone.localdate()
         current_monday = today - timedelta(days=today.weekday())
         dates = (
@@ -319,11 +319,13 @@ class PartySummaryTests(TestCase):
             [week["start"] for week in response.context["week_groups"]],
             [
                 current_monday,
-                current_monday + timedelta(days=7),
                 current_monday + timedelta(days=14),
+                current_monday + timedelta(days=7),
                 current_monday - timedelta(days=7),
             ],
         )
+        self.assertTrue(response.context["week_groups"][0]["is_current_week"])
+        self.assertContains(response, "This week")
 
     def test_weekly_location_pdf_has_one_page_per_party_and_respects_access(self):
         monday = timezone.localdate() + timedelta(days=(7 - timezone.localdate().weekday()))

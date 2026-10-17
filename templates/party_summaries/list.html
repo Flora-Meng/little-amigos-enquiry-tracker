@@ -4,6 +4,8 @@
 <style>
   .confirmed-status { display: inline-flex; align-items: center; min-height: 36px; padding: 0 12px; border-radius: 11px; color: #247047; background: #e7f7ed; font-size: .78rem; font-weight: 850; white-space: nowrap; }
   .unconfirmed-status { display: inline-flex; align-items: center; min-height: 36px; padding: 0 12px; border-radius: 11px; color: #68777f; background: #f2f0eb; font-size: .78rem; font-weight: 800; white-space: nowrap; }
+  .party-week-current { margin: 0 -16px; padding: 20px 16px; border: 2px solid #8ed8ce; border-radius: 24px; background: #f2fbf9; box-shadow: 0 12px 30px rgba(48, 139, 128, .09); }
+  .party-week-heading .current-week-label { display: inline-flex; margin-bottom: 8px; padding: 7px 12px; border-radius: 999px; color: #fff; background: #2e9f92; font-size: .78rem; font-weight: 900; letter-spacing: .08em; }
 </style>
 {% include "accounts/_header.html" %}
 <main class="page-shell">
@@ -15,6 +17,8 @@
     </div>
     <div class="detail-actions"><a class="button button-quiet" href="{% url 'party_intake_links' %}">Customer form links</a><a class="button button-primary" href="{% url 'party_summary_create' %}">New party summary</a></div>
   </div>
+
+  {% include "party_summaries/_e_invitation_tasks.html" %}
 
   <form class="filter-panel party-filter" method="get">
     <div class="field filter-search">
@@ -34,9 +38,9 @@
   {% if week_groups %}
     <div class="party-week-list">
       {% for week in week_groups %}
-        <section class="party-week">
+        <section class="party-week{% if week.is_current_week %} party-week-current{% endif %}">
           <header class="party-week-heading">
-            <div><p class="eyebrow">Week</p><h2>{{ week.start|date:"j M" }} - {{ week.end|date:"j M Y" }}</h2></div>
+            <div><p class="eyebrow{% if week.is_current_week %} current-week-label{% endif %}">{% if week.is_current_week %}This week{% else %}Week{% endif %}</p><h2>{{ week.start|date:"j M" }} - {{ week.end|date:"j M Y" }}</h2></div>
             <span>{{ week.locations|length }} location{{ week.locations|length|pluralize }}</span>
           </header>
           <div class="party-location-list">
@@ -76,36 +80,5 @@
     <section class="panel party-results"><div class="empty-state"><p>No party summaries found</p><span>Create the first summary or try a different search.</span></div></section>
   {% endif %}
 
-  {% if e_invitation_tasks %}
-    <section class="panel e-invitation-task-panel" aria-labelledby="e-invitation-task-title">
-      <header class="e-invitation-task-heading">
-        <div>
-          <p class="eyebrow">Action required</p>
-          <h2 id="e-invitation-task-title">E-invitations to create</h2>
-          <p>{{ e_invitation_tasks|length }} customer submission{{ e_invitation_tasks|length|pluralize }} waiting for an invitation.</p>
-        </div>
-        <span class="e-invitation-count">{{ e_invitation_tasks|length }}</span>
-      </header>
-      <div class="e-invitation-task-list">
-        {% for intake in e_invitation_tasks %}
-          <article class="e-invitation-task-row">
-            <div>
-              <strong>{{ intake.owner_name }}</strong>
-              <span>{{ intake.location.name }}{% if intake.summary_id %} · {{ intake.summary.party_date|date:"D, j M Y" }} · {{ intake.summary.party_time }}{% endif %}</span>
-              <small>Customer submitted {{ intake.submitted_at|date:"j M Y, g:i a" }}</small>
-            </div>
-            <span class="e-invitation-required-status">E-invitation required</span>
-            <div class="e-invitation-task-actions">
-              {% if intake.summary_id %}<a class="button button-quiet button-small" href="{% url 'party_summary_edit' intake.summary_id %}">Open summary</a>{% endif %}
-              <form method="post" action="{% url 'party_intake_complete_e_invitation' intake.id %}">
-                {% csrf_token %}<input type="hidden" name="next" value="party_summaries">
-                <button class="button button-download button-small" type="submit">Mark e-invitation complete</button>
-              </form>
-            </div>
-          </article>
-        {% endfor %}
-      </div>
-    </section>
-  {% endif %}
 </main>
 {% endblock %}
