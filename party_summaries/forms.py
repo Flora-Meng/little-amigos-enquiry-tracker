@@ -101,7 +101,7 @@ EXTRA_MENU_OPTIONS = (
     ("Mixed Grilled Platter", "128.00"), ("Grilled Salmon Platter", "128.00"),
     ("Lamb Souvlaki platter", "88.00"), ("Grilled chicken breast platter", "88.00"),
     ("Grilled Beef Skewer platter", "88.00"), ("Grilled Pork ribs platter", "88.00"),
-    ("Grilled Lobster platter", "88.00"), ("Chicken pesto pasta bowl", "68.00"),
+    ("Grilled Lobster platter", "388.00"), ("Chicken pesto pasta bowl", "68.00"),
     ("Pesto pasta bowl without chicken", "68.00"), ("Greek Salad Bowl", "38.00"),
     ("Greek Salad Bowl with Grilled chicken", "48.00"), ("Beef Bolognese Spaghetti", "68.00"),
     ("Creamy Prawn Linguine", "68.00"), ("Cocktail Prawn Salad", "96.00"),

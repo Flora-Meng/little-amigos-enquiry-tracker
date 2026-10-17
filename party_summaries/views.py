@@ -221,6 +221,16 @@ def party_summary_list(request):
     location_order = {Location.Code.SOUTHLAND: 0, Location.Code.CANBERRA: 1}
     for week in weeks:
         week["locations"].sort(key=lambda group: location_order.get(group["location"].code, 99))
+    current_week_start = timezone.localdate() - timedelta(days=timezone.localdate().weekday())
+    weeks.sort(
+        key=lambda week: (
+            (0, 0)
+            if week["start"] == current_week_start
+            else (1, week["start"].toordinal())
+            if week["start"] > current_week_start
+            else (2, -week["start"].toordinal())
+        )
+    )
     e_invitation_tasks = list(
         intake_links_visible_to(request.user)
         .filter(submitted_at__isnull=False, e_invitation_completed_at__isnull=True)

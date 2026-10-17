@@ -18,7 +18,7 @@ _VOUCHER_PRICE_GROUPS = {
         "Mixed fryer platter (assorted)", "Mixed fryer platter (vege)",
         "Japanese sushi platter (assorted)", "Japanese sushi platter (vege)",
         "Lamb Souvlaki platter", "Grilled chicken breast platter",
-        "Grilled Beef Skewer platter", "Grilled Pork ribs platter", "Grilled Lobster platter",
+        "Grilled Beef Skewer platter", "Grilled Pork ribs platter",
     ),
     "75.00": (
         "Mini burger sliders 10pcs (Pork)", "Mini burger sliders 10pcs (Prawn)",
@@ -44,6 +44,7 @@ _VOUCHER_PRICE_GROUPS = {
     "128.00": ("Mixed Grilled Platter", "Grilled Salmon Platter"),
     "78.00": ("Fruit Platter",),
     "96.00": ("Cocktail Prawn Salad",),
+    "388.00": ("Grilled Lobster platter",),
 }
 VOUCHER_FOOD_PRICE_LOOKUP = {
     _normalise_food_name(name): Decimal(price)

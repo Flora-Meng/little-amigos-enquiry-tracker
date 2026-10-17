@@ -16,8 +16,11 @@ from django.utils.formats import date_format
 
 from accounts.models import Location
 
-from .forms import TRIPLE_FRYER_CHOICES
-from .models import PartyBillItem, PartyIntakeLink, PartyMenuItem, PartySummary
+from .forms import EXTRA_MENU_OPTIONS, TRIPLE_FRYER_CHOICES
+from .models import (
+    PartyBillItem, PartyIntakeLink, PartyMenuItem, PartySummary,
+    voucher_food_unit_price,
+)
 from .pdf import _numeric_quantity
 
 
@@ -75,6 +78,14 @@ class PartySummaryTests(TestCase):
         data.update(formset_data("extra", [{"quantity": "1", "item": "Fruit Platter", "amount": "75.50"}]))
         data.update(formset_data("bill", []))
         return data
+
+    def test_grilled_lobster_price_is_388_for_all_locations(self):
+        prices = dict(EXTRA_MENU_OPTIONS)
+        self.assertEqual(prices["Grilled Lobster platter"], "388.00")
+        self.assertEqual(
+            voucher_food_unit_price("Grilled Lobster platter"),
+            Decimal("388.00"),
+        )
 
     def _create_summary(self, location=None, user=None):
         return PartySummary.objects.create(
@@ -286,6 +297,33 @@ class PartySummaryTests(TestCase):
             Location.Code.SOUTHLAND, Location.Code.CANBERRA,
         ])
         self.assertEqual([len(group["summaries"]) for group in week["locations"]], [2, 1])
+
+    def test_party_summary_list_pins_current_week_before_future_and_past_weeks(self):
+        today = timezone.localdate()
+        current_monday = today - timedelta(days=today.weekday())
+        dates = (
+            current_monday - timedelta(days=2),
+            current_monday + timedelta(days=1),
+            current_monday + timedelta(days=9),
+            current_monday + timedelta(days=16),
+        )
+        for party_date in dates:
+            summary = self._create_summary()
+            summary.party_date = party_date
+            summary.save(update_fields=("party_date",))
+
+        self.client.force_login(self.flora)
+        response = self.client.get(reverse("party_summary_list"))
+
+        self.assertEqual(
+            [week["start"] for week in response.context["week_groups"]],
+            [
+                current_monday,
+                current_monday + timedelta(days=7),
+                current_monday + timedelta(days=14),
+                current_monday - timedelta(days=7),
+            ],
+        )
 
     def test_weekly_location_pdf_has_one_page_per_party_and_respects_access(self):
         monday = timezone.localdate() + timedelta(days=(7 - timezone.localdate().weekday()))
