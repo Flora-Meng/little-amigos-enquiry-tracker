@@ -82,6 +82,8 @@ class TeamAccountSetupTests(TestCase):
 
         response = self.client.get(response.url)
         self.assertContains(response, "Set your password")
+        self.assertContains(response, 'class="password-visibility-toggle"', count=2)
+        self.assertContains(response, 'aria-label="Show password"', count=2)
         saved = self.client.post(
             response.request["PATH_INFO"],
             {
@@ -97,3 +99,25 @@ class TeamAccountSetupTests(TestCase):
             self.canberra,
             setup_url.rsplit("/", 2)[-2],
         ))
+
+    def test_setup_allows_a_password_similar_to_the_account_email(self):
+        setup_url = self._setup_url(self.canberra)
+        response = self.client.get(setup_url)
+        response = self.client.get(response.url)
+
+        self.assertNotContains(response, "too similar")
+        self.assertNotContains(response, "commonly used")
+        self.assertNotContains(response, "entirely numeric")
+        self.assertContains(response, "at least 6 characters")
+
+        saved = self.client.post(
+            response.request["PATH_INFO"],
+            {
+                "new_password1": "canberra",
+                "new_password2": "canberra",
+            },
+        )
+
+        self.assertRedirects(saved, reverse("staff_password_setup_complete"))
+        self.canberra.refresh_from_db()
+        self.assertTrue(self.canberra.check_password("canberra"))
