@@ -69,13 +69,12 @@ class FollowUpServiceTests(TestCase):
         self.late.refresh_from_db()
         self.assertEqual(self.late.follow_up_due_date, self.today + timedelta(days=2))
 
-    def test_staff_cannot_reschedule_follow_up(self):
+    def test_staff_can_reschedule_own_location_follow_up(self):
         self.client.force_login(self.staff)
-        original = self.due.follow_up_due_date
         response = self.client.post(reverse("reschedule_follow_up", args=(self.due.id,)))
-        self.assertEqual(response.status_code, 403)
+        self.assertRedirects(response, reverse("enquiry_detail", args=(self.due.id,)))
         self.due.refresh_from_db()
-        self.assertEqual(self.due.follow_up_due_date, original)
+        self.assertEqual(self.due.follow_up_due_date, self.today + timedelta(days=2))
 
     def test_terminal_enquiry_cannot_be_rescheduled(self):
         with self.assertRaisesMessage(ValueError, "cannot have an active follow-up"):

@@ -22,11 +22,6 @@ class Action(StrEnum):
 
 ADMIN_ONLY_ENQUIRY_ACTIONS = frozenset(
     {
-        Action.EDIT_CUSTOMER,
-        Action.CHANGE_STATUS,
-        Action.CHANGE_BOOKING_AMOUNT,
-        Action.CHANGE_CLOSED_REASON,
-        Action.UPDATE_FOLLOW_UP,
         Action.ARCHIVE_ENQUIRY,
     }
 )
@@ -68,7 +63,15 @@ def can_perform(user, action: Action, *, enquiry=None, target_user=None) -> bool
     if enquiry is None or not can_view_enquiry(user, enquiry):
         return False
 
-    if action in {Action.VIEW_ENQUIRY, Action.ADD_NOTE}:
+    if action in {
+        Action.VIEW_ENQUIRY,
+        Action.EDIT_CUSTOMER,
+        Action.CHANGE_STATUS,
+        Action.CHANGE_BOOKING_AMOUNT,
+        Action.CHANGE_CLOSED_REASON,
+        Action.UPDATE_FOLLOW_UP,
+        Action.ADD_NOTE,
+    }:
         return True
 
     if action in ADMIN_ONLY_ENQUIRY_ACTIONS:

@@ -62,12 +62,14 @@ class EnquiryDetailTests(TestCase):
         self.assertNotContains(response, '<details class="panel edit-panel"')
         self.assertContains(response, "Archive")
 
-    def test_staff_sees_own_store_detail_but_not_admin_controls(self):
+    def test_staff_sees_own_store_edit_form_but_not_admin_controls(self):
         self.client.force_login(self.southland)
         response = self.client.get(reverse("enquiry_detail", args=(self.store.id,)))
         self.assertContains(response, "Detail Customer")
-        self.assertNotContains(response, "Edit enquiry")
-        self.assertNotContains(response, reverse("update_enquiry", args=(self.store.id,)))
+        self.assertContains(response, "Edit enquiry")
+        self.assertContains(response, reverse("update_enquiry", args=(self.store.id,)))
+        self.assertNotContains(response, 'name="location"')
+        self.assertContains(response, "Little Amigos Southland only")
         self.assertNotContains(response, ">Archive<")
 
     def test_staff_can_open_own_online_but_not_other_location_detail_url(self):
@@ -114,17 +116,26 @@ class EnquiryDetailTests(TestCase):
         self.assertEqual(response.status_code, 404)
         self.assertFalse(PartyIntakeLink.objects.filter(enquiry=self.store).exists())
 
-    def test_staff_direct_update_and_archive_posts_are_rejected(self):
+    def test_staff_can_update_own_location_but_cannot_archive(self):
         self.client.force_login(self.southland)
         update_response = self.client.post(
             reverse("update_enquiry", args=(self.store.id,)),
-            self.update_payload(name="Tampered", status=Enquiry.Status.BOOKED, booking_amount_aud="1"),
+            self.update_payload(
+                name="Corrected Customer",
+                email="corrected@example.com",
+                status=Enquiry.Status.BOOKED,
+                booking_amount_aud="1",
+                location=str(self.canberra.location_id),
+            ),
         )
         archive_response = self.client.post(reverse("archive_enquiry", args=(self.store.id,)))
-        self.assertEqual(update_response.status_code, 403)
+        self.assertRedirects(update_response, reverse("enquiry_detail", args=(self.store.id,)))
         self.assertEqual(archive_response.status_code, 403)
         self.store.refresh_from_db()
-        self.assertEqual(self.store.name, "Detail Customer")
+        self.assertEqual(self.store.name, "Corrected Customer")
+        self.assertEqual(self.store.email, "corrected@example.com")
+        self.assertEqual(self.store.status, Enquiry.Status.BOOKED)
+        self.assertEqual(self.store.location, self.southland.location)
         self.assertFalse(self.store.archived)
 
     def test_waiting_and_follow_up_schedule_two_calendar_days(self):

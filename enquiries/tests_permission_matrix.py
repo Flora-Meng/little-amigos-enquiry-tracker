@@ -122,31 +122,49 @@ class CompletePermissionMatrixTests(TestCase):
                 response = self.client.get(reverse("enquiry_detail", args=(enquiry.id,)))
                 self.assertEqual(response.status_code, 404)
 
-    def test_staff_direct_mutation_requests_are_403_and_database_is_unchanged(self):
+    def test_staff_can_update_own_location_but_cannot_archive_or_move_it(self):
         self.client.force_login(self.southland)
         enquiry = self.southland_store
-        attempts = (
-            (
-                reverse("update_enquiry", args=(enquiry.id,)),
-                self.update_payload(
-                    enquiry,
-                    name="Tampered customer",
-                    status=Enquiry.Status.BOOKED,
-                    booking_amount_aud="1.00",
-                ),
+        update = self.client.post(
+            reverse("update_enquiry", args=(enquiry.id,)),
+            self.update_payload(
+                enquiry,
+                name="Updated by Southland",
+                status=Enquiry.Status.BOOKED,
+                booking_amount_aud="1.00",
+                location=str(self.canberra.location_id),
             ),
-            (reverse("archive_enquiry", args=(enquiry.id,)), {}),
-            (reverse("reschedule_follow_up", args=(enquiry.id,)), {}),
         )
-        for url, payload in attempts:
-            with self.subTest(url=url):
-                self.assertEqual(self.client.post(url, payload).status_code, 403)
+        archive = self.client.post(reverse("archive_enquiry", args=(enquiry.id,)))
+        self.assertEqual(update.status_code, 302)
+        self.assertEqual(archive.status_code, 403)
         enquiry.refresh_from_db()
-        self.assertEqual(enquiry.name, "Southland Permission Record")
-        self.assertEqual(enquiry.status, Enquiry.Status.NEW)
-        self.assertIsNone(enquiry.booking_amount_aud)
+        self.assertEqual(enquiry.name, "Updated by Southland")
+        self.assertEqual(enquiry.status, Enquiry.Status.BOOKED)
+        self.assertEqual(enquiry.booking_amount_aud, Decimal("1.00"))
+        self.assertEqual(enquiry.location, self.southland.location)
         self.assertIsNone(enquiry.follow_up_due_date)
         self.assertFalse(enquiry.archived)
+
+    def test_canberra_staff_can_update_its_own_enquiry(self):
+        self.client.force_login(self.canberra)
+        enquiry = self.canberra_store
+
+        response = self.client.post(
+            reverse("update_enquiry", args=(enquiry.id,)),
+            self.update_payload(
+                enquiry,
+                name="Updated by Canberra",
+                email="updated.canberra@example.com",
+                location=str(self.southland.location_id),
+            ),
+        )
+
+        self.assertRedirects(response, reverse("enquiry_detail", args=(enquiry.id,)))
+        enquiry.refresh_from_db()
+        self.assertEqual(enquiry.name, "Updated by Canberra")
+        self.assertEqual(enquiry.email, "updated.canberra@example.com")
+        self.assertEqual(enquiry.location, self.canberra.location)
 
     def test_staff_can_append_note_only_to_own_location_records(self):
         self.client.force_login(self.southland)

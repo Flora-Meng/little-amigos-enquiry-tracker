@@ -157,15 +157,15 @@ class DashboardTests(TestCase):
         self.assertEqual(self.southland_store.status, Enquiry.Status.CLOSED)
         self.assertEqual(self.southland_store.closed_reason, "")
 
-    def test_staff_cannot_change_status_from_dashboard(self):
+    def test_staff_can_change_own_location_status_from_dashboard(self):
         self.client.force_login(self.southland)
         response = self.client.post(
             reverse("quick_update_status", args=(self.southland_store.id,)),
             {"status": Enquiry.Status.CONTACTED},
         )
-        self.assertEqual(response.status_code, 403)
+        self.assertRedirects(response, reverse("dashboard"))
         self.southland_store.refresh_from_db()
-        self.assertEqual(self.southland_store.status, Enquiry.Status.NEW)
+        self.assertEqual(self.southland_store.status, Enquiry.Status.CONTACTED)
 
     def test_staff_dashboard_receives_all_own_location_rows_only(self):
         self.client.force_login(self.southland)

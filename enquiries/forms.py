@@ -157,6 +157,13 @@ class EnquiryAdminUpdateForm(forms.ModelForm):
             "closed_reason_details": forms.Textarea(attrs={"rows": 3}),
         }
 
+    def __init__(self, *args, user, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.user = user
+        self.fields["location"].queryset = Location.objects.order_by("name")
+        if user.role == User.Role.STAFF:
+            self.fields.pop("location")
+
     def clean(self):
         cleaned = super().clean()
         status = cleaned.get("status")

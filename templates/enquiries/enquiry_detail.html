@@ -80,7 +80,7 @@
 
       {% if update_form %}
       <section class="panel edit-panel">
-        <div class="panel-heading edit-panel-heading"><h2>Edit enquiry</h2><span>Administrator only</span></div>
+        <div class="panel-heading edit-panel-heading"><h2>Edit enquiry</h2><span>{% if request.user.role == 'admin' %}All locations{% else %}{{ enquiry.location.name }} only{% endif %}</span></div>
         <form method="post" action="{% url 'update_enquiry' enquiry.id %}" class="edit-form" novalidate>
           {% csrf_token %}
           <div class="form-grid">
@@ -88,7 +88,7 @@
             {% include "enquiries/_field.html" with field=update_form.phone %}
             {% include "enquiries/_field.html" with field=update_form.email %}
             {% include "enquiries/_field.html" with field=update_form.postcode %}
-            {% include "enquiries/_field.html" with field=update_form.location %}
+            {% if update_form.location %}{% include "enquiries/_field.html" with field=update_form.location %}{% endif %}
             {% include "enquiries/_field.html" with field=update_form.party_date %}
             <label class="check-card compact-check" for="{{ update_form.party_date_unknown.id_for_label }}">{{ update_form.party_date_unknown }}<span><strong>Not sure yet</strong></span></label>
           </div>

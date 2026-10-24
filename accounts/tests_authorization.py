@@ -46,24 +46,36 @@ class AuthorisationTests(TestCase):
             can_perform(self.southland, Action.ADD_NOTE, enquiry=self.southland_online)
         )
 
-    def test_staff_cannot_call_protected_update_actions(self):
-        protected = (
+    def test_staff_can_update_own_location_but_cannot_archive(self):
+        own_location_actions = (
             Action.EDIT_CUSTOMER,
             Action.CHANGE_STATUS,
             Action.CHANGE_BOOKING_AMOUNT,
             Action.CHANGE_CLOSED_REASON,
             Action.UPDATE_FOLLOW_UP,
-            Action.ARCHIVE_ENQUIRY,
         )
-        for action in protected:
+        for action in own_location_actions:
             with self.subTest(action=action):
-                self.assertFalse(
+                self.assertTrue(
                     can_perform(self.southland, action, enquiry=self.southland_store)
                 )
-                with self.assertRaises(PermissionDenied):
-                    require_permission(
-                        self.southland, action, enquiry=self.southland_store
-                    )
+                self.assertFalse(
+                    can_perform(self.southland, action, enquiry=self.canberra_store)
+                )
+
+        self.assertFalse(
+            can_perform(
+                self.southland,
+                Action.ARCHIVE_ENQUIRY,
+                enquiry=self.southland_store,
+            )
+        )
+        with self.assertRaises(PermissionDenied):
+            require_permission(
+                self.southland,
+                Action.ARCHIVE_ENQUIRY,
+                enquiry=self.southland_store,
+            )
 
     def test_zumo_and_employee_password_reset_are_admin_only(self):
         self.assertTrue(can_perform(self.admin, Action.ACCESS_ZUMO))

@@ -15,7 +15,7 @@ from django.utils import timezone
 from django.views.decorators.http import require_GET, require_POST
 from django.views.decorators.csrf import csrf_exempt
 
-from accounts.authorization import Action, require_permission
+from accounts.authorization import Action, can_perform, require_permission
 from accounts.models import Location, User
 
 from .forms import (
@@ -188,7 +188,11 @@ def _enquiry_detail_context(request, enquiry, *, update_form=None):
 def enquiry_detail(request, enquiry_id):
     enquiry = _visible_enquiry_or_404(request.user, enquiry_id)
     require_permission(request.user, Action.VIEW_ENQUIRY, enquiry=enquiry)
-    update_form = EnquiryAdminUpdateForm(instance=enquiry) if request.user.role == User.Role.ADMIN else None
+    update_form = (
+        EnquiryAdminUpdateForm(instance=enquiry, user=request.user)
+        if can_perform(request.user, Action.EDIT_CUSTOMER, enquiry=enquiry)
+        else None
+    )
     return render(
         request,
         "enquiries/enquiry_detail.html",
@@ -205,7 +209,7 @@ def update_enquiry(request, enquiry_id):
         return redirect("enquiry_detail", enquiry_id=enquiry.id)
 
     previous_status = enquiry.status
-    form = EnquiryAdminUpdateForm(request.POST, instance=enquiry)
+    form = EnquiryAdminUpdateForm(request.POST, instance=enquiry, user=request.user)
     if form.is_valid():
         updated = form.save(commit=False)
         apply_status_rules(updated, previous_status)
