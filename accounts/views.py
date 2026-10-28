@@ -1,17 +1,27 @@
 from django.contrib.auth.decorators import login_required
+from django.contrib import messages
 from django.contrib.auth.tokens import default_token_generator
-from django.core.exceptions import PermissionDenied
-from django.http import Http404
-from django.db.models import OuterRef, Subquery
-from django.shortcuts import render
+from django.core.exceptions import PermissionDenied, ValidationError
+from django.db import transaction
+from django.db.models import OuterRef, Prefetch, Subquery
+from django.http import Http404, HttpResponse
+from django.shortcuts import get_object_or_404, redirect, render
+from django.templatetags.static import static
 from django.urls import reverse
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
+from django.views.decorators.http import require_POST
 from enquiries.models import Enquiry, Note
 from enquiries.services import due_today, overdue
 
 from .authorization import enquiries_visible_to
-from .models import User
+from .models import (
+    SouthlandShowcaseAddon,
+    SouthlandShowcaseInvite,
+    SouthlandShowcaseTheme,
+    SouthlandShowcaseThemePhoto,
+    User,
+)
 
 
 @login_required
@@ -169,3 +179,298 @@ def package_showcase(request):
         "package_showcase/canberra.html",
         {"packages": packages, "voucher_groups": voucher_groups},
     )
+
+
+def southland_party_guide(request, token=None):
+    """Public, read-only Southland theme and package guide."""
+    invite = get_object_or_404(SouthlandShowcaseInvite, token=token) if token else None
+    if invite and invite.estimated_guest_count:
+        count = invite.estimated_guest_count
+        invite.recommended_room = (
+            "Single Room" if count <= 8 else
+            "Double Room" if count <= 15 else
+            "Triple Room" if count <= 25 else
+            "Private Party"
+        )
+    packages = (
+        {
+            "key": "essential",
+            "label": "Essential",
+            "room": "Single room",
+            "weekday": 699,
+            "weekend": 899,
+            "kids": 8,
+            "adults": 10,
+            "drinks": 1,
+            "included": (
+                "One fryer platter — choose mixed or vegetarian",
+                "One seasonal fruit platter",
+                "Two 10-inch pizzas — choose the flavours",
+                "1 drink jar and 1 refillable water jar",
+            ),
+        },
+        {
+            "key": "signature",
+            "label": "Signature",
+            "room": "Double room",
+            "weekday": 999,
+            "weekend": 1299,
+            "kids": 15,
+            "adults": 20,
+            "drinks": 2,
+            "included": (
+                "One fryer platter — choose mixed or vegetarian",
+                "One seasonal fruit platter",
+                "Four 10-inch pizzas — choose the flavours",
+                "One salad bowl",
+                "One mini burger platter — 10 pieces",
+                "One toast platter — 12 pieces",
+                "2 drink jars and 1 refillable water jar",
+            ),
+        },
+        {
+            "key": "ultimate",
+            "label": "Ultimate",
+            "room": "Triple room",
+            "weekday": 1899,
+            "weekend": 2199,
+            "kids": 25,
+            "adults": 30,
+            "drinks": 6,
+            "included": (
+                "One fryer platter — choose mixed or vegetarian",
+                "One seasonal fruit platter",
+                "Four 10-inch pizzas — choose the flavours",
+                "One salad bowl",
+                "One mini burger platter — 10 pieces",
+                "One taco platter — 12 pieces",
+                "One pesto pasta bowl",
+                "One toast platter — 12 pieces",
+                "One sushi platter",
+                "6 drink jars and 1 refillable water jar",
+            ),
+        },
+        {
+            "key": "private",
+            "label": "Private",
+            "room": "Whole venue hire",
+            "weekday": 2699,
+            "weekend": 2999,
+            "kids": 35,
+            "adults": 40,
+            "drinks": 8,
+            "included": (
+                "One fryer platter — choose mixed or vegetarian",
+                "One seasonal fruit platter",
+                "Four 10-inch pizzas — choose the flavours",
+                "One salad bowl",
+                "One mini burger platter — 10 pieces",
+                "One taco platter — 12 pieces",
+                "One pesto pasta bowl",
+                "One finger sandwich platter — 16 pieces",
+                "One toast platter — 12 pieces",
+                "One sushi platter",
+                "8 drink jars and 1 refillable water jar",
+            ),
+        },
+    )
+    for package in packages:
+        package["weekday_label"] = f"${package['weekday']:,}"
+        package["weekend_label"] = f"${package['weekend']:,}"
+
+    themes = list(
+        SouthlandShowcaseTheme.objects.filter(is_active=True).prefetch_related(
+            Prefetch("photos", queryset=SouthlandShowcaseThemePhoto.objects.order_by("sort_order", "id"))
+        )
+    )
+    for theme in themes:
+        theme.photo_urls = [_theme_photo_url(photo) for photo in theme.photos.all()]
+        theme.cover_url = theme.photo_urls[0] if theme.photo_urls else ""
+        theme.search_text = f"{theme.name} {theme.search_terms}".lower()
+
+    addons = list(SouthlandShowcaseAddon.objects.filter(is_active=True))
+    for addon in addons:
+        addon.image_url = _addon_image_url(addon)
+        addon.image_urls = _addon_image_urls(addon)
+    return render(
+        request,
+        "package_showcase/southland_public.html",
+        {"packages": packages, "themes": themes, "addons": addons, "invite": invite},
+    )
+
+
+def _theme_photo_url(photo):
+    if photo.image_data:
+        return reverse("southland_theme_photo", kwargs={"photo_id": photo.pk})
+    return static(photo.static_path) if photo.static_path else ""
+
+
+def _addon_image_url(addon):
+    if addon.image_data:
+        return reverse("southland_addon_image", kwargs={"addon_id": addon.pk})
+    return static(addon.static_path) if addon.static_path else ""
+
+
+def _addon_image_urls(addon):
+    if addon.image_data:
+        return [_addon_image_url(addon)]
+    canberra_examples = {
+        "Face painting": ("package_showcase/canberra/addons/face-painting.jpg",),
+        "Customised cake": (
+            "package_showcase/canberra/addons/cake-single-tier-guide.jpg",
+            "package_showcase/canberra/addons/cake-double-tier-guide.jpg",
+        ),
+        "Entertainer or mascot": (
+            "package_showcase/canberra/addons/entertainer-1.jpg",
+            "package_showcase/canberra/addons/entertainer-2.jpg",
+            "package_showcase/canberra/addons/mascot-1.jpg",
+            "package_showcase/canberra/addons/mascot-2.jpg",
+        ),
+    }
+    paths = canberra_examples.get(addon.name)
+    if paths:
+        return [static(path) for path in paths]
+    return [_addon_image_url(addon)] if addon.static_path else []
+
+
+def southland_theme_photo(request, photo_id):
+    photo = get_object_or_404(SouthlandShowcaseThemePhoto, pk=photo_id, image_data__isnull=False)
+    response = HttpResponse(bytes(photo.image_data), content_type=photo.image_content_type or "image/jpeg")
+    response["Cache-Control"] = "public, max-age=86400"
+    return response
+
+
+def southland_addon_image(request, addon_id):
+    addon = get_object_or_404(SouthlandShowcaseAddon, pk=addon_id, image_data__isnull=False)
+    response = HttpResponse(bytes(addon.image_data), content_type=addon.image_content_type or "image/jpeg")
+    response["Cache-Control"] = "public, max-age=86400"
+    return response
+
+
+def _require_admin(user):
+    if user.role != User.Role.ADMIN:
+        raise PermissionDenied("Only administrators can manage the Southland showcase.")
+
+
+def _validated_image(upload):
+    if not upload:
+        return None
+    allowed = {"image/jpeg", "image/png", "image/webp"}
+    if upload.content_type not in allowed:
+        raise ValueError("Upload a JPG, PNG or WebP image.")
+    if upload.size > 5 * 1024 * 1024:
+        raise ValueError("Each image must be 5 MB or smaller.")
+    return {
+        "image_data": upload.read(),
+        "image_name": upload.name[:255],
+        "image_content_type": upload.content_type,
+    }
+
+
+@login_required
+def southland_showcase_manage(request):
+    _require_admin(request.user)
+    themes = list(SouthlandShowcaseTheme.objects.prefetch_related("photos").all())
+    for theme in themes:
+        theme.admin_photos = list(theme.photos.all())
+        for photo in theme.admin_photos:
+            photo.preview_url = _theme_photo_url(photo)
+    addons = list(SouthlandShowcaseAddon.objects.all())
+    for addon in addons:
+        addon.image_url = _addon_image_url(addon)
+    return render(
+        request,
+        "accounts/southland_showcase_manage.html",
+        {
+            "themes": themes,
+            "addons": addons,
+            "category_choices": SouthlandShowcaseTheme.Category.choices,
+        },
+    )
+
+
+@login_required
+@require_POST
+def southland_showcase_update(request):
+    _require_admin(request.user)
+    action = request.POST.get("action", "")
+    try:
+        with transaction.atomic():
+            if action == "add_theme":
+                name = request.POST.get("name", "").strip()
+                if not name:
+                    raise ValueError("Theme name is required.")
+                category = request.POST.get("category", SouthlandShowcaseTheme.Category.FAVOURITES)
+                if category not in SouthlandShowcaseTheme.Category.values:
+                    raise ValueError("Choose a valid theme category.")
+                theme = SouthlandShowcaseTheme.objects.create(
+                    name=name,
+                    category=category,
+                    search_terms=request.POST.get("search_terms", "").strip(),
+                    description=request.POST.get("description", "").strip(),
+                    sort_order=(SouthlandShowcaseTheme.objects.order_by("-sort_order").values_list("sort_order", flat=True).first() or 0) + 1,
+                )
+                image = _validated_image(request.FILES.get("image"))
+                if image:
+                    SouthlandShowcaseThemePhoto.objects.create(theme=theme, **image)
+                messages.success(request, f"{theme.name} was added.")
+            elif action == "add_theme_photo":
+                theme = get_object_or_404(SouthlandShowcaseTheme, pk=request.POST.get("theme_id"))
+                image = _validated_image(request.FILES.get("image"))
+                if not image:
+                    raise ValueError("Choose an image to upload.")
+                SouthlandShowcaseThemePhoto.objects.create(
+                    theme=theme,
+                    sort_order=theme.photos.count() + 1,
+                    **image,
+                )
+                messages.success(request, f"A photo was added to {theme.name}.")
+            elif action == "toggle_theme":
+                theme = get_object_or_404(SouthlandShowcaseTheme, pk=request.POST.get("theme_id"))
+                theme.is_active = not theme.is_active
+                theme.save(update_fields=("is_active", "updated_at"))
+                messages.success(request, f"{theme.name} is now {'visible' if theme.is_active else 'hidden'}.")
+            elif action == "delete_theme":
+                theme = get_object_or_404(SouthlandShowcaseTheme, pk=request.POST.get("theme_id"))
+                name = theme.name
+                theme.delete()
+                messages.success(request, f"{name} was deleted.")
+            elif action == "delete_theme_photo":
+                photo = get_object_or_404(SouthlandShowcaseThemePhoto, pk=request.POST.get("photo_id"))
+                name = photo.theme.name
+                photo.delete()
+                messages.success(request, f"A photo was removed from {name}.")
+            elif action == "add_addon":
+                name = request.POST.get("name", "").strip()
+                price_label = request.POST.get("price_label", "").strip()
+                if not name or not price_label:
+                    raise ValueError("Add-on name and price display are required.")
+                addon = SouthlandShowcaseAddon(
+                    name=name,
+                    price_label=price_label,
+                    price_from=request.POST.get("price_from") or 0,
+                    details=request.POST.get("details", "").strip(),
+                    sort_order=(SouthlandShowcaseAddon.objects.order_by("-sort_order").values_list("sort_order", flat=True).first() or 0) + 1,
+                )
+                image = _validated_image(request.FILES.get("image"))
+                if image:
+                    for field, value in image.items():
+                        setattr(addon, field, value)
+                addon.full_clean()
+                addon.save()
+                messages.success(request, f"{addon.name} was added.")
+            elif action == "toggle_addon":
+                addon = get_object_or_404(SouthlandShowcaseAddon, pk=request.POST.get("addon_id"))
+                addon.is_active = not addon.is_active
+                addon.save(update_fields=("is_active", "updated_at"))
+                messages.success(request, f"{addon.name} is now {'visible' if addon.is_active else 'hidden'}.")
+            elif action == "delete_addon":
+                addon = get_object_or_404(SouthlandShowcaseAddon, pk=request.POST.get("addon_id"))
+                name = addon.name
+                addon.delete()
+                messages.success(request, f"{name} was deleted.")
+            else:
+                raise ValueError("Unknown showcase action.")
+    except (ValueError, TypeError, ValidationError) as exc:
+        messages.error(request, "; ".join(exc.messages) if isinstance(exc, ValidationError) else str(exc))
+    return redirect("southland_showcase_manage")

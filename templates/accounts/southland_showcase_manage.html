@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Manage Southland showcase · Little Amigos Workspace{% endblock %}
+{% block body %}
+{% include "accounts/_header.html" %}
+<main class="page-shell showcase-manager">
+  <div class="page-heading">
+    <div><p class="eyebrow">Southland showcase</p><h1>Manage themes and add-ons</h1><p class="muted">Changes here appear on the public Southland party guide.</p></div>
+    <a class="button button-secondary" href="{% url 'southland_party_guide' %}" target="_blank">Open customer page</a>
+  </div>
+
+  {% if messages %}<div class="manager-messages">{% for message in messages %}<p class="manager-message manager-message-{{ message.tags }}">{{ message }}</p>{% endfor %}</div>{% endif %}
+
+  <section class="panel manager-create-panel">
+    <div class="panel-heading"><div><p class="eyebrow">Add content</p><h2>Add a new theme</h2></div></div>
+    <form class="manager-form" method="post" action="{% url 'southland_showcase_update' %}" enctype="multipart/form-data">
+      {% csrf_token %}<input type="hidden" name="action" value="add_theme">
+      <label><span>Theme name *</span><input name="name" required placeholder="e.g. Space Adventure"></label>
+      <label><span>Category *</span><select name="category">{% for value,label in category_choices %}<option value="{{ value }}">{{ label }}</option>{% endfor %}</select></label>
+      <label><span>Extra search words</span><input name="search_terms" placeholder="e.g. astronaut galaxy"></label>
+      <label class="manager-wide"><span>Description</span><textarea name="description" rows="2" placeholder="Optional note shown in the theme gallery"></textarea></label>
+      <label class="manager-wide"><span>First image (JPG, PNG or WebP; max 5 MB)</span><input type="file" name="image" accept="image/jpeg,image/png,image/webp"></label>
+      <button class="button button-primary" type="submit">Add theme</button>
+    </form>
+  </section>
+
+  <section class="panel">
+    <div class="panel-heading"><div><p class="eyebrow">Theme library</p><h2>{{ themes|length }} themes</h2><p class="muted">Upload more examples, hide a theme temporarily, or remove it completely.</p></div></div>
+    <div class="manager-list">
+      {% for theme in themes %}
+      <article class="manager-item{% if not theme.is_active %} is-hidden{% endif %}">
+        <div class="manager-item-main">
+          <div class="manager-thumbnails">{% for photo in theme.admin_photos %}<div><img src="{{ photo.preview_url }}" alt=""><form method="post" action="{% url 'southland_showcase_update' %}">{% csrf_token %}<input type="hidden" name="action" value="delete_theme_photo"><input type="hidden" name="photo_id" value="{{ photo.pk }}"><button type="submit" aria-label="Remove photo">×</button></form></div>{% empty %}<span>No image</span>{% endfor %}</div>
+          <div><small>{{ theme.get_category_display }}</small><h3>{{ theme.name }}</h3><p>{{ theme.description|default:"No description" }}</p><strong>{% if theme.is_active %}Visible to customers{% else %}Hidden from customers{% endif %}</strong></div>
+        </div>
+        <div class="manager-item-actions">
+          <form class="manager-upload" method="post" action="{% url 'southland_showcase_update' %}" enctype="multipart/form-data">{% csrf_token %}<input type="hidden" name="action" value="add_theme_photo"><input type="hidden" name="theme_id" value="{{ theme.pk }}"><label><span>Add another image</span><input type="file" name="image" accept="image/jpeg,image/png,image/webp" required></label><button class="button button-secondary" type="submit">Upload</button></form>
+          <form method="post" action="{% url 'southland_showcase_update' %}">{% csrf_token %}<input type="hidden" name="action" value="toggle_theme"><input type="hidden" name="theme_id" value="{{ theme.pk }}"><button class="button button-secondary" type="submit">{% if theme.is_active %}Hide{% else %}Show{% endif %}</button></form>
+          <form method="post" action="{% url 'southland_showcase_update' %}" onsubmit="return confirm('Delete this theme and all of its photos?')">{% csrf_token %}<input type="hidden" name="action" value="delete_theme"><input type="hidden" name="theme_id" value="{{ theme.pk }}"><button class="button manager-delete" type="submit">Delete</button></form>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="panel manager-create-panel">
+    <div class="panel-heading"><div><p class="eyebrow">Add content</p><h2>Add a new add-on</h2></div></div>
+    <form class="manager-form" method="post" action="{% url 'southland_showcase_update' %}" enctype="multipart/form-data">
+      {% csrf_token %}<input type="hidden" name="action" value="add_addon">
+      <label><span>Add-on name *</span><input name="name" required placeholder="e.g. Balloon artist"></label>
+      <label><span>Price shown to customer *</span><input name="price_label" required placeholder="e.g. From $250"></label>
+      <label><span>Starting price for estimate *</span><input type="number" name="price_from" min="0" step="0.01" required placeholder="250"></label>
+      <label class="manager-wide"><span>Description</span><textarea name="details" rows="2"></textarea></label>
+      <label class="manager-wide"><span>Image (JPG, PNG or WebP; max 5 MB)</span><input type="file" name="image" accept="image/jpeg,image/png,image/webp"></label>
+      <button class="button button-primary" type="submit">Add add-on</button>
+    </form>
+  </section>
+
+  <section class="panel">
+    <div class="panel-heading"><div><p class="eyebrow">Add-on library</p><h2>{{ addons|length }} add-ons</h2></div></div>
+    <div class="manager-addon-grid">
+      {% for addon in addons %}<article class="manager-addon{% if not addon.is_active %} is-hidden{% endif %}">{% if addon.image_url %}<img src="{{ addon.image_url }}" alt="">{% endif %}<div><small>{% if addon.is_active %}Visible{% else %}Hidden{% endif %}</small><h3>{{ addon.name }}</h3><strong>{{ addon.price_label }}</strong><p>{{ addon.details }}</p></div><footer><form method="post" action="{% url 'southland_showcase_update' %}">{% csrf_token %}<input type="hidden" name="action" value="toggle_addon"><input type="hidden" name="addon_id" value="{{ addon.pk }}"><button class="button button-secondary" type="submit">{% if addon.is_active %}Hide{% else %}Show{% endif %}</button></form><form method="post" action="{% url 'southland_showcase_update' %}" onsubmit="return confirm('Delete this add-on?')">{% csrf_token %}<input type="hidden" name="action" value="delete_addon"><input type="hidden" name="addon_id" value="{{ addon.pk }}"><button class="button manager-delete" type="submit">Delete</button></form></footer></article>{% endfor %}
+    </div>
+  </section>
+</main>
+{% endblock %}

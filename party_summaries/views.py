@@ -124,7 +124,7 @@ def _menu_initial(summary=None):
         elif summary.uses_food_voucher and item.category == PartyMenuItem.Category.ADULT:
             unit_price = voucher_food_unit_price(item.item)
             quantity = menu_quantity_number(item.quantity)
-            if unit_price and (not item.amount or (quantity > 1 and item.amount == unit_price * quantity)):
+            if unit_price and quantity > 1 and item.amount == unit_price * quantity:
                 row["amount"] = unit_price
         result[item.category].append(row)
     result["bill"] = [{"name": item.name, "amount": item.amount} for item in summary.bill_items.all()]
@@ -337,15 +337,20 @@ def party_intake_complete_e_invitation(request, intake_id):
 
 def _party_intake_initial(intake):
     if not intake.summary_id:
+        initial = {}
         if intake.enquiry_id and intake.enquiry.party_date:
-            return {"party_date": intake.enquiry.party_date}
-        return {}
+            initial["party_date"] = intake.enquiry.party_date
+        if intake.room_type:
+            initial["room_type"] = intake.get_room_type_display()
+        return initial
     summary = intake.summary
     return {
         "party_date": summary.party_date,
         "party_time": summary.party_time,
+        "room_type": summary.get_room_type_display() if summary.room_type else "",
         "theme": summary.theme,
         "kids_name": summary.kids_name,
+        "gender": summary.get_gender_display() if summary.gender else "",
         "age": summary.age,
         "rsvp_information": summary.rsvp_information,
     }
@@ -385,8 +390,11 @@ def customer_party_intake(request, token):
                 )
             summary.party_date = cleaned["party_date"]
             summary.party_time = cleaned["party_time"]
+            if cleaned["room_type"]:
+                summary.room_type = cleaned["room_type"]
             summary.theme = cleaned["theme"]
             summary.kids_name = cleaned["kids_name"]
+            summary.gender = cleaned["gender"]
             summary.age = cleaned["age"]
             summary.rsvp_information = cleaned["rsvp_information"]
             summary.save()

@@ -307,14 +307,54 @@ class CustomerPartyIntakeForm(forms.Form):
         label="Party time", max_length=80,
         widget=forms.TextInput(attrs={"placeholder": "e.g. 1:00pm–3:00pm"}),
     )
+    room_type = forms.CharField(
+        label="Room type", required=False, max_length=100,
+        widget=forms.TextInput(attrs={"placeholder": "Optional — e.g. Double room"}),
+    )
     theme = forms.CharField(label="Party theme", max_length=200)
     kids_name = forms.CharField(label="Kid's name", max_length=250)
+    gender = forms.CharField(
+        label="Child's gender", max_length=80,
+        widget=forms.TextInput(attrs={"placeholder": "Please type here"}),
+    )
     age = forms.CharField(label="Turning age", max_length=40)
     rsvp_information = forms.CharField(
         label="RSVP information", max_length=1000,
         help_text="For example: RSVP contact name, phone number and RSVP deadline.",
         widget=forms.Textarea(attrs={"rows": 3, "placeholder": "e.g. RSVP to Flora on 0400 000 000 by 20 October"}),
     )
+
+    def clean_room_type(self):
+        value = self.cleaned_data["room_type"].strip()
+        if not value:
+            return ""
+        aliases = {
+            str(choice_value).casefold(): str(choice_value)
+            for choice_value, _label in PartySummary.RoomType.choices
+        }
+        aliases.update({
+            str(label).casefold(): str(choice_value)
+            for choice_value, label in PartySummary.RoomType.choices
+        })
+        aliases.update({
+            "single room": PartySummary.RoomType.SINGLE,
+            "double room": PartySummary.RoomType.DOUBLE,
+            "triple room": PartySummary.RoomType.TRIPLE,
+            "private room": PartySummary.RoomType.PRIVATE,
+        })
+        return aliases.get(value.casefold(), value)
+
+    def clean_gender(self):
+        value = self.cleaned_data["gender"].strip()
+        aliases = {
+            str(choice_value).casefold(): str(choice_value)
+            for choice_value, _label in PartySummary.Gender.choices
+        }
+        aliases.update({
+            str(label).casefold(): str(choice_value)
+            for choice_value, label in PartySummary.Gender.choices
+        })
+        return aliases.get(value.casefold(), value)
 
 
 class CustomerMenuForm(forms.Form):

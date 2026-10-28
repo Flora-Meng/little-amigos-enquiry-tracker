@@ -19,8 +19,10 @@
       <div class="customer-field-grid">
         {% include "enquiries/_field.html" with field=form.party_date %}
         {% include "enquiries/_field.html" with field=form.party_time %}
+        {% include "enquiries/_field.html" with field=form.room_type %}
         {% include "enquiries/_field.html" with field=form.theme %}
         {% include "enquiries/_field.html" with field=form.kids_name %}
+        {% include "enquiries/_field.html" with field=form.gender %}
         {% include "enquiries/_field.html" with field=form.age %}
         {% include "enquiries/_field.html" with field=form.rsvp_information wide=True %}
       </div>

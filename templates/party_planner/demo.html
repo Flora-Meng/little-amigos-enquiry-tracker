@@ -1,0 +1,261 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Plan your party | Little Amigos Canberra{% endblock %}
+
+{% block body %}
+<main class="planner-shell planner-simple">
+  <header class="planner-header">
+    <div class="planner-brand">
+      <img src="{% static 'img/little-amigos-characters-stacked.png' %}" alt="Little Amigos">
+      <div><span>Little Amigos Canberra</span><strong>Find your party</strong></div>
+    </div>
+    <span class="planner-save-state" id="save-state">No booking or payment yet</span>
+  </header>
+
+  <section class="planner-welcome planner-welcome-compact">
+    <div>
+      <p class="planner-kicker">Hi Nickole 👋</p>
+      <h1>Two party options suit your enquiry.</h1>
+      <p>We’ve already narrowed it down from your estimated 11–50 guests, so you only need to choose the style you prefer.</p>
+    </div>
+    <dl class="planner-enquiry-facts">
+      <div><dt>Location</dt><dd>Canberra</dd></div>
+      <div><dt>Preferred date</dt><dd>18 October <small>approx.</small></dd></div>
+      <div><dt>Guests</dt><dd>11–50</dd></div>
+    </dl>
+  </section>
+
+  <nav class="planner-progress planner-progress-three" aria-label="Party planner progress">
+    <button type="button" class="is-active" data-go-step="1"><span>1</span>Choose</button>
+    <button type="button" data-go-step="2"><span>2</span>Explore</button>
+    <button type="button" data-go-step="3"><span>3</span>Review</button>
+  </nav>
+
+  <form class="planner-card" id="planner-form">
+    <section class="planner-step is-active" data-step="1">
+      <div class="planner-step-heading">
+        <div>
+          <p class="planner-kicker">Our recommendation</p>
+          <h2>Which experience feels right?</h2>
+          <p>No long package list. We recommend these two choices for the guest range in your enquiry.</p>
+        </div>
+      </div>
+
+      <div class="planner-shortlist">
+        <label class="planner-choice-card choice-double">
+          <input type="radio" name="package" value="Double Room" data-price="1099" data-price-label="from $1,099" data-food="$180 adult food voucher" data-room="double">
+          <span class="choice-recommend">Best for a relaxed party</span>
+          <span class="choice-illustration"><i></i><i></i><i></i></span>
+          <span class="choice-copy"><strong>Double Room</strong><small>Your own two-room party space with themed decoration.</small></span>
+          <span class="choice-footer"><b>From $1,099</b><em>Select</em></span>
+        </label>
+
+        <label class="planner-choice-card choice-private">
+          <input type="radio" name="package" value="Private Venue" data-price="1899" data-price-label="from $1,899" data-food="$400 adult food voucher" data-room="private">
+          <span class="choice-recommend">Best for a bigger celebration</span>
+          <span class="choice-illustration"><i></i><i></i><i></i><i></i><i></i></span>
+          <span class="choice-copy"><strong>Private Venue</strong><small>The whole venue, more room to celebrate and host guests.</small></span>
+          <span class="choice-footer"><b>From $1,899</b><em>Select</em></span>
+        </label>
+      </div>
+
+      <p class="planner-recommendation-note">If the exact guest numbers change, Flora will confirm the best option with you before any invoice is issued.</p>
+    </section>
+
+    <section class="planner-step" data-step="2" hidden>
+      <div class="planner-selected-package">
+        <span>Your recommended option</span><strong id="explore-package">Double Room</strong><button type="button" data-go-step="1">Change</button>
+      </div>
+
+      <section class="planner-explore-section">
+        <div class="planner-step-heading planner-heading-tight">
+          <div>
+            <p class="planner-kicker">Theme decoration</p>
+            <h2>Choose a theme they’ll love</h2>
+            <p>Each preview changes to show the decoration scale for your selected room.</p>
+          </div>
+        </div>
+
+        <div class="planner-theme-pills" role="radiogroup" aria-label="Choose a theme">
+          <label><input type="radio" name="theme" value="Princess" data-icon="♕" data-colors="Pink · lilac · sparkle"><span>Princess</span></label>
+          <label><input type="radio" name="theme" value="Frozen" data-icon="❄" data-colors="Ice blue · silver · white"><span>Frozen</span></label>
+          <label><input type="radio" name="theme" value="Bluey" data-icon="🐾" data-colors="Blue · orange · playful"><span>Bluey</span></label>
+          <label><input type="radio" name="theme" value="Spiderman" data-icon="🕸" data-colors="Red · blue · city"><span>Spiderman</span></label>
+          <label><input type="radio" name="theme" value="Dinosaur" data-icon="🦕" data-colors="Green · earthy"><span>Dinosaur</span></label>
+          <label><input type="radio" name="theme" value="Another theme" data-icon="✦" data-colors="Tell us what they love"><span>More themes</span></label>
+        </div>
+
+        <div class="planner-room-preview" id="room-preview">
+          <div class="room-preview-stage" id="room-preview-stage">
+            <span class="preview-balloon preview-balloon-one"></span><span class="preview-balloon preview-balloon-two"></span><span class="preview-balloon preview-balloon-three"></span>
+            <span class="preview-backdrop" id="preview-icon">Pick a theme</span><span class="preview-table"></span><span class="preview-extra-panel"></span>
+          </div>
+          <div class="room-preview-copy">
+            <span id="preview-room-label">Your selected room</span><strong id="preview-theme-title">Choose a theme above</strong>
+            <p id="preview-theme-colors">We’ll show how the decoration fills this room style.</p>
+            <small>Style preview only. The final setup varies with availability and room layout.</small>
+          </div>
+        </div>
+      </section>
+
+      <section class="planner-explore-section planner-food-preview-simple">
+        <div>
+          <p class="planner-kicker">Food preview</p><h2>Simple, family-friendly food</h2>
+          <p>You do not need to choose food now. This is only a preview of what is available.</p>
+        </div>
+        <div class="planner-food-strip">
+          <article><span>🍕</span><strong>Adult food</strong><small id="food-package-copy">Voucher included</small></article>
+          <article><span>🍟</span><strong>Kids’ favourites</strong><small>Nuggets, chips, spaghetti and drinks</small></article>
+          <article><span>🥗</span><strong>Dietary options</strong><small>Vegetarian choices and dietary notes</small></article>
+        </div>
+      </section>
+
+      <details class="planner-addons planner-service-addons">
+        <summary>
+          <span><b>Would you like any extra services?</b><small>Optional — skip this if you only want the package.</small></span>
+          <span class="planner-addons-toggle">View services</span>
+        </summary>
+        <div class="planner-addon-list planner-service-list">
+          <label><input type="checkbox" name="addon" value="Face painting" data-price="0" data-tbc="true"><span><b>Face painting</b><small>A colourful activity for party guests</small></span><strong>Ask for price</strong></label>
+          <label><input type="checkbox" name="addon" value="Entertainer" data-price="0" data-tbc="true"><span><b>Entertainer</b><small>Add a hosted entertainment experience</small></span><strong>Ask for price</strong></label>
+          <label><input type="checkbox" name="addon" value="Birthday cake" data-price="0" data-tbc="true"><span><b>Birthday cake</b><small>Tell us the size and style you need</small></span><strong>Ask for price</strong></label>
+        </div>
+      </details>
+    </section>
+
+    <section class="planner-step" data-step="3" hidden>
+      <div class="planner-step-heading">
+        <div>
+          <p class="planner-kicker">Your party idea</p><h2>Everything in one quick review</h2>
+          <p>You can ask us to lock in your party or send Flora a question. We’ll check the date and details before confirming anything.</p>
+        </div>
+      </div>
+
+      <div class="planner-review planner-review-simple">
+        <div class="planner-review-main">
+          <article><span>Location</span><strong>Canberra</strong></article>
+          <article><span>Preferred date</span><strong>18 October <small>(approx.)</small></strong></article>
+          <article><span>Package</span><strong id="review-package">Not selected</strong><small id="review-package-price"></small></article>
+          <article><span>Theme</span><strong id="review-theme">Not selected</strong></article>
+          <article class="review-wide"><span>Food</span><strong id="review-food">Package food previewed</strong></article>
+          <article class="review-wide"><span>Extra services</span><strong id="review-addons">None selected</strong></article>
+        </div>
+        <aside class="planner-estimate">
+          <span>Package starts from</span><strong id="review-total">Select a package</strong>
+          <small>Flora will confirm the final package price, availability and any optional services.</small>
+        </aside>
+      </div>
+
+      <fieldset class="planner-intent">
+        <legend>What would you like to do?</legend>
+        <label><input type="radio" name="intent" value="Lock me in"><span><strong>Lock me in</strong><small>Request a deposit invoice to secure the party once availability is confirmed.</small></span></label>
+        <label><input type="radio" name="intent" value="I have a question"><span><strong>I have a question</strong><small>Flora will contact you to help.</small></span></label>
+      </fieldset>
+
+      <fieldset class="planner-contact">
+        <legend>How should Flora contact you?</legend>
+        <div>
+          <label><input type="radio" name="contact" value="SMS" checked><span>SMS</span></label>
+          <label><input type="radio" name="contact" value="Email"><span>Email</span></label>
+          <label><input type="radio" name="contact" value="Call"><span>Call</span></label>
+        </div>
+      </fieldset>
+
+      <label class="planner-notes"><span>Question or note <small>Optional</small></span><textarea rows="3" placeholder="Preferred time, cake idea, question…"></textarea></label>
+      <div class="planner-demo-submit"><button class="button button-primary" type="button" id="demo-submit">Send my request</button><small>This local demo will not send anything.</small></div>
+      <div class="planner-success" id="planner-success" hidden><span>✓</span><div><strong id="success-title">Request received.</strong><p id="success-copy">Flora will contact you shortly.</p></div></div>
+    </section>
+
+    <footer class="planner-footer-actions">
+      <button type="button" class="button button-quiet" id="planner-back" hidden>Back</button><span id="planner-step-label">Step 1 of 3</span>
+      <button type="button" class="button button-primary" id="planner-next">See themes & food</button>
+    </footer>
+  </form>
+  <p class="planner-demo-note">Local prototype · Nothing entered here is sent or saved to the live website.</p>
+</main>
+
+<script>
+(() => {
+  const form = document.getElementById('planner-form');
+  const steps = [...form.querySelectorAll('.planner-step')];
+  const progress = [...document.querySelectorAll('.planner-progress button')];
+  const nextButton = document.getElementById('planner-next');
+  const backButton = document.getElementById('planner-back');
+  const stepLabel = document.getElementById('planner-step-label');
+  const saveState = document.getElementById('save-state');
+  let currentStep = 1;
+  const selected = name => form.querySelector(`[name="${name}"]:checked`);
+
+  function updateExperience() {
+    const packageChoice = selected('package');
+    const themeChoice = selected('theme');
+    const addons = [...form.querySelectorAll('[name="addon"]:checked')];
+    if (packageChoice) {
+      document.getElementById('explore-package').textContent = packageChoice.value;
+      document.getElementById('food-package-copy').textContent = packageChoice.dataset.food;
+      document.getElementById('review-package').textContent = packageChoice.value;
+      document.getElementById('review-package-price').textContent = packageChoice.dataset.priceLabel;
+      document.getElementById('review-food').textContent = packageChoice.dataset.food + ' · kids’ food available';
+      document.getElementById('review-total').textContent = packageChoice.dataset.priceLabel;
+      document.getElementById('room-preview-stage').classList.toggle('is-private', packageChoice.dataset.room === 'private');
+      document.getElementById('preview-room-label').textContent = packageChoice.value + ' decoration preview';
+    }
+    if (themeChoice) {
+      document.getElementById('preview-icon').textContent = themeChoice.dataset.icon;
+      document.getElementById('preview-theme-title').textContent = themeChoice.value;
+      document.getElementById('preview-theme-colors').textContent = themeChoice.dataset.colors;
+      document.getElementById('review-theme').textContent = themeChoice.value;
+    }
+    document.getElementById('review-addons').textContent = addons.length ? addons.map(item => item.value).join(' · ') : 'None selected';
+  }
+
+  function showStep(step) {
+    currentStep = Math.max(1, Math.min(3, step));
+    steps.forEach(section => {
+      const active = Number(section.dataset.step) === currentStep;
+      section.classList.toggle('is-active', active); section.hidden = !active;
+    });
+    progress.forEach((button, index) => {
+      button.classList.toggle('is-active', index + 1 === currentStep);
+      button.classList.toggle('is-complete', index + 1 < currentStep);
+    });
+    backButton.hidden = currentStep === 1; nextButton.hidden = currentStep === 3;
+    if (currentStep === 1) nextButton.textContent = 'See themes & food';
+    if (currentStep === 2) nextButton.textContent = 'Review my choices';
+    stepLabel.textContent = `Step ${currentStep} of 3`;
+    updateExperience(); window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function validateStep() {
+    if (currentStep === 1 && !selected('package')) {
+      saveState.textContent = 'Please choose Double Room or Private Venue'; saveState.classList.add('is-warning'); return false;
+    }
+    if (currentStep === 2 && !selected('theme')) {
+      saveState.textContent = 'Please choose one favourite theme'; saveState.classList.add('is-warning'); return false;
+    }
+    return true;
+  }
+
+  nextButton.addEventListener('click', () => { if (validateStep()) showStep(currentStep + 1); });
+  backButton.addEventListener('click', () => showStep(currentStep - 1));
+  document.querySelectorAll('[data-go-step]').forEach(button => button.addEventListener('click', () => {
+    const target = Number(button.dataset.goStep); if (target <= currentStep || validateStep()) showStep(target);
+  }));
+  form.addEventListener('change', () => { saveState.textContent = 'Choice saved for this demo'; saveState.classList.remove('is-warning'); updateExperience(); });
+  document.getElementById('demo-submit').addEventListener('click', () => {
+    if (!selected('intent')) { saveState.textContent = 'Please choose Lock me in or ask a question'; saveState.classList.add('is-warning'); return; }
+    const intent = selected('intent').value;
+    if (intent === 'Lock me in') {
+      document.getElementById('success-title').textContent = 'Thank you — we’ll help lock in your party.';
+      document.getElementById('success-copy').textContent = 'Your deposit invoice will be sent to your email within 24 hours. Your booking is secured once the deposit is paid.';
+    } else {
+      const contact = selected('contact')?.value || 'selected contact method';
+      document.getElementById('success-title').textContent = 'Your question has been sent to Flora.';
+      document.getElementById('success-copy').textContent = `Flora will contact you by ${contact}.`;
+    }
+    document.getElementById('planner-success').hidden = false; document.getElementById('demo-submit').disabled = true;
+  });
+})();
+</script>
+{% endblock %}

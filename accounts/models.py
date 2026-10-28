@@ -87,3 +87,82 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return f"{self.display_name} <{self.email}>"
+
+
+class SouthlandShowcaseTheme(models.Model):
+    class Category(models.TextChoices):
+        MAGIC = "magic", "Magic & wonder"
+        ADVENTURE = "adventure", "Adventure"
+        FAVOURITES = "favourites", "Favourites"
+        CUSTOM = "custom", "Custom"
+
+    name = models.CharField(max_length=120)
+    category = models.CharField(max_length=20, choices=Category.choices, default=Category.FAVOURITES)
+    search_terms = models.CharField(max_length=255, blank=True)
+    description = models.TextField(blank=True)
+    sort_order = models.PositiveIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("sort_order", "name")
+
+    def __str__(self):
+        return self.name
+
+
+class SouthlandShowcaseThemePhoto(models.Model):
+    theme = models.ForeignKey(SouthlandShowcaseTheme, on_delete=models.CASCADE, related_name="photos")
+    static_path = models.CharField(max_length=255, blank=True)
+    image_data = models.BinaryField(null=True, blank=True, editable=False)
+    image_name = models.CharField(max_length=255, blank=True)
+    image_content_type = models.CharField(max_length=100, blank=True)
+    sort_order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ("sort_order", "id")
+
+
+class SouthlandShowcaseAddon(models.Model):
+    name = models.CharField(max_length=120)
+    price_label = models.CharField(max_length=120)
+    price_from = models.DecimalField(max_digits=9, decimal_places=2, default=0)
+    details = models.TextField(blank=True)
+    static_path = models.CharField(max_length=255, blank=True)
+    image_data = models.BinaryField(null=True, blank=True, editable=False)
+    image_name = models.CharField(max_length=255, blank=True)
+    image_content_type = models.CharField(max_length=100, blank=True)
+    sort_order = models.PositiveIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("sort_order", "name")
+
+    def __str__(self):
+        return self.name
+
+
+class SouthlandShowcaseInvite(models.Model):
+    token = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+    customer_name = models.CharField(max_length=120)
+    email = models.EmailField(blank=True)
+    phone = models.CharField(max_length=40, blank=True)
+    party_date = models.DateField(null=True, blank=True)
+    estimated_guest_count = models.PositiveIntegerField(null=True, blank=True)
+    created_by = models.ForeignKey(
+        User,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="southland_showcase_invites",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+
+    def __str__(self):
+        return f"{self.customer_name} · {self.party_date or 'date TBC'}"

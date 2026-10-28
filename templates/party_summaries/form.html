@@ -291,14 +291,23 @@
   document.querySelector('[data-menu="adult"]')?.addEventListener('input', calculate);
   const normaliseFoodName = value => (value || '').toLocaleLowerCase('en-AU')
     .replaceAll('vegetarian', 'vege').match(/[a-z0-9]+/g)?.join(' ') || '';
+  document.querySelectorAll('[data-menu="adult"] .menu-row').forEach(row => {
+    const itemInput = row.querySelector('input[name$="-item"]');
+    if (itemInput) row.dataset.pricedItem = normaliseFoodName(itemInput.value);
+  });
   function applyVoucherFoodDefaults(event) {
     if (!event.target.matches('input[name$="-item"]') || activeLocationCode() !== 'canberra' || !canberraFoodVouchers[roomSelect?.value]) return;
     const row = event.target.closest('.menu-row');
     const quantity = row?.querySelector('input[name$="-quantity"]');
     const amount = row?.querySelector('input[name$="-amount"]');
-    const price = voucherFoodPrices[normaliseFoodName(event.target.value)];
+    const itemKey = normaliseFoodName(event.target.value);
+    const itemChanged = row?.dataset.pricedItem !== itemKey;
+    const price = voucherFoodPrices[itemKey];
     if (quantity && event.target.value.trim() && !quantity.value) quantity.value = '1';
-    if (amount && price !== undefined) amount.value = Number(price).toFixed(2);
+    if (amount && price !== undefined && (itemChanged || amount.value === '')) {
+      amount.value = Number(price).toFixed(2);
+    }
+    if (row) row.dataset.pricedItem = itemKey;
     calculate();
   }
   document.querySelector('[data-menu="adult"]')?.addEventListener('input', applyVoucherFoodDefaults);

@@ -19,12 +19,28 @@ from django.contrib.auth import views as auth_views
 from django.urls import include, path, reverse_lazy
 
 from accounts.forms import EmailAuthenticationForm, StaffPasswordSetupForm
-from accounts.views import dashboard, package_showcase, team_accounts
-from config.views import health_check, initial_admin_password
+from accounts.views import (
+    dashboard,
+    package_showcase,
+    southland_addon_image,
+    southland_party_guide,
+    southland_showcase_manage,
+    southland_showcase_update,
+    southland_theme_photo,
+    team_accounts,
+)
+from config.views import health_check, initial_admin_password, party_planner_demo
 from enquiries.views import add_note, archive_enquiry, delete_note, enquiry_detail, enquiry_list, extension_token_settings, new_store_enquiry, quick_update_status, reschedule_follow_up, update_enquiry, zumo_duplicate_check, zumo_ignore, zumo_import, zumo_imports, zumo_review_again, zumo_review_status
 
 urlpatterns = [
     path("health/", health_check, name="health_check"),
+    path("party-guide/southland/", southland_party_guide, name="southland_party_guide"),
+    path("party-guide/southland/<uuid:token>/", southland_party_guide, name="southland_party_guide_invite"),
+    path("party-guide/southland/theme-photo/<int:photo_id>/", southland_theme_photo, name="southland_theme_photo"),
+    path("party-guide/southland/addon-image/<int:addon_id>/", southland_addon_image, name="southland_addon_image"),
+    path("southland-showcase/manage/", southland_showcase_manage, name="southland_showcase_manage"),
+    path("southland-showcase/manage/update/", southland_showcase_update, name="southland_showcase_update"),
+    path("party-planner/demo/", party_planner_demo, name="party_planner_demo"),
     path(
         "initial-admin-setup/4cbb89f5-a52c-465a-a657-65edbfd2ab6f/",
         initial_admin_password,

@@ -7,6 +7,11 @@ from django.shortcuts import render
 from django.views.decorators.cache import never_cache
 
 
+def party_planner_demo(request):
+    """Interactive, read-only sales-flow prototype for a Canberra enquiry."""
+    return render(request, "party_planner/demo.html")
+
+
 def health_check(request):
     """Confirm that the web process and its database connection are healthy."""
     try:

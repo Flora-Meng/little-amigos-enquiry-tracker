@@ -505,8 +505,10 @@ class PartySummaryTests(TestCase):
         first_response = self.client.post(url, {
             "party_date": "2026-11-07",
             "party_time": "1:00pm–3:00pm",
+            "room_type": "Triple room",
             "theme": "Princess",
             "kids_name": "Indiana",
+            "gender": "Girl",
             "age": "4",
             "rsvp_information": "RSVP to Beleni by 20 October",
         })
@@ -518,6 +520,7 @@ class PartySummaryTests(TestCase):
         self.assertEqual(summary.location, self.southland)
         self.assertEqual(summary.theme, "Princess")
         self.assertEqual(summary.kids_name, "Indiana")
+        self.assertEqual(summary.gender, PartySummary.Gender.GIRL)
         self.assertEqual(summary.rsvp_information, "RSVP to Beleni by 20 October")
         self.assertEqual(summary.room_type, PartySummary.RoomType.TRIPLE)
         self.assertEqual(summary.package_name, PartySummary.Package.CUSTOM)
@@ -527,6 +530,7 @@ class PartySummaryTests(TestCase):
             "party_time": "2:00pm–4:00pm",
             "theme": "Frozen",
             "kids_name": "Indiana",
+            "gender": "Non-binary",
             "age": "5",
             "rsvp_information": "RSVP to Beleni by 21 October",
         })
@@ -537,6 +541,7 @@ class PartySummaryTests(TestCase):
         summary.refresh_from_db()
         self.assertEqual(summary.party_date.isoformat(), "2026-11-08")
         self.assertEqual(summary.theme, "Frozen")
+        self.assertEqual(summary.gender, "Non-binary")
         self.assertEqual(summary.age, "5")
 
     def test_customer_intake_post_does_not_lock_across_nullable_summary_join(self):
@@ -555,6 +560,7 @@ class PartySummaryTests(TestCase):
                 "party_time": "1:00pm–3:00pm",
                 "theme": "Bluey",
                 "kids_name": "Alex",
+                "gender": "Boy",
                 "age": "5",
                 "rsvp_information": "RSVP by 20 November",
             })
@@ -586,6 +592,7 @@ class PartySummaryTests(TestCase):
             "party_time": "1:00pm–3:00pm",
             "theme": "Bluey",
             "kids_name": "Alex",
+            "gender": "Boy",
             "age": "5",
             "rsvp_information": "RSVP by 20 November",
         }
@@ -1085,6 +1092,59 @@ class PartySummaryTests(TestCase):
         response = self.client.get(reverse("party_summary_edit", args=(summary.id,)))
         self.assertContains(response, 'value="17.50"', html=False)
         self.assertNotContains(response, "Other charges / adjustments")
+
+    def test_voucher_food_custom_price_survives_save_and_reload(self):
+        summary = self._create_summary(location=self.canberra, user=self.emma)
+        summary.room_type = PartySummary.RoomType.SINGLE_VOUCHER
+        summary.package_name = PartySummary.Package.SINGLE_WEEKDAY
+        summary.package_amount = Decimal("799.00")
+        summary.save(update_fields=("room_type", "package_name", "package_amount"))
+        PartyMenuItem.objects.create(
+            summary=summary,
+            category=PartyMenuItem.Category.ADULT,
+            quantity="1",
+            item="Taco platter 12pcs (Black Beans)",
+            amount=Decimal("68.00"),
+        )
+        self.client.force_login(self.flora)
+        data = self._post_data()
+        data.update({
+            "location": str(self.canberra.id),
+            "room_type": PartySummary.RoomType.SINGLE_VOUCHER,
+            "package_name": PartySummary.Package.SINGLE_WEEKDAY,
+            "package_amount": "799.00",
+        })
+        data.update(formset_data("adult", [{
+            "quantity": "1",
+            "item": "Taco platter 12pcs (Black Beans)",
+            "amount": "82.00",
+        }]))
+
+        response = self.client.post(reverse("party_summary_edit", args=(summary.id,)), data)
+
+        self.assertRedirects(response, reverse("party_summary_edit", args=(summary.id,)))
+        item = summary.menu_items.get(category=PartyMenuItem.Category.ADULT)
+        self.assertEqual(item.amount, Decimal("82.00"))
+        reload_response = self.client.get(reverse("party_summary_edit", args=(summary.id,)))
+        self.assertEqual(
+            reload_response.context["adult_formset"].forms[0].initial["amount"],
+            Decimal("82.00"),
+        )
+
+        data.update(formset_data("adult", [{
+            "quantity": "1",
+            "item": "Taco platter 12pcs (Black Beans)",
+            "amount": "0.00",
+        }]))
+        response = self.client.post(reverse("party_summary_edit", args=(summary.id,)), data)
+        self.assertRedirects(response, reverse("party_summary_edit", args=(summary.id,)))
+        item = summary.menu_items.get(category=PartyMenuItem.Category.ADULT)
+        self.assertEqual(item.amount, Decimal("0.00"))
+        reload_response = self.client.get(reverse("party_summary_edit", args=(summary.id,)))
+        self.assertEqual(
+            reload_response.context["adult_formset"].forms[0].initial["amount"],
+            Decimal("0.00"),
+        )
 
     def test_staff_form_replaces_adult_food_to_avoid_with_voucher_notes(self):
         summary = self._create_summary(location=self.canberra, user=self.emma)

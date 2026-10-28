@@ -1,0 +1,113 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Explore Little Amigos Southland party themes, packages, food and add-on services.">
+  <title>Southland party guide · Little Amigos</title>
+  <link rel="stylesheet" href="{% static 'css/app.css' %}?v=20261003-2">
+  <link rel="stylesheet" href="{% static 'css/southland_party_guide.css' %}?v=20261025-1">
+</head>
+<body class="southland-guide-body">
+  <header class="guide-topbar">
+    <a class="guide-brand" href="#top"><img src="{% static 'img/little-amigos-characters-stacked.png' %}" alt="" width="52" height="52"><span><small>Little Amigos</small><strong>Southland Party Guide</strong></span></a>
+    <nav aria-label="Page sections"><a href="#recommendation">Find my room</a><a href="#themes">Themes</a><a href="#packages">Packages</a><a href="#menu">Food</a><a href="#addons">Add-ons</a></nav>
+  </header>
+
+  <main id="top">
+    <section class="guide-hero">
+      <div class="guide-hero-copy">
+        <p class="guide-eyebrow">Little Amigos Southland</p>
+        <h1>One place to plan their best day.</h1>
+        <p>Explore every current theme, find the right room for your guest list, preview the food and build an add-on wish list.</p>
+        <div class="guide-hero-actions"><a class="guide-button guide-button-primary" href="#recommendation">Find my room</a><a class="guide-button guide-button-secondary" href="#themes">Browse all themes</a></div>
+      </div>
+      <div class="guide-hero-art" aria-hidden="true"><span class="guide-confetti guide-confetti-one"></span><span class="guide-confetti guide-confetti-two"></span><span class="guide-confetti guide-confetti-three"></span><img src="{% static 'img/little-amigos-characters-stacked.png' %}" alt="" loading="eager"></div>
+    </section>
+
+    {% if invite %}
+    <section class="personal-guide-card" aria-label="Personalised party enquiry details">
+      <div>
+        <p class="guide-eyebrow">Prepared for {{ invite.customer_name }}</p>
+        <h2>Hi {{ invite.customer_name }}, let’s find the right party for you.</h2>
+        <p>Here you can explore our Southland rooms, themes, food and optional services in one place.</p>
+      </div>
+      <dl>
+        <div><dt>Approximate date</dt><dd>{% if invite.party_date %}{{ invite.party_date|date:"j F Y" }}{% else %}To be confirmed{% endif %}</dd></div>
+        <div><dt>Estimated guests</dt><dd>{% if invite.estimated_guest_count %}{{ invite.estimated_guest_count }}{% else %}To be confirmed{% endif %}</dd></div>
+        <div><dt>Location</dt><dd>Little Amigos Southland</dd></div>
+      </dl>
+      {% if invite.estimated_guest_count %}<p class="personal-guide-tip"><strong>Our starting suggestion:</strong> If the {{ invite.estimated_guest_count }} guests are children, we recommend starting with the {{ invite.recommended_room }}. If this number includes adults, tell us the approximate number of children and we’ll recommend the best room.</p>{% endif %}
+    </section>
+    {% endif %}
+
+    <section class="guide-section recommendation-section" id="recommendation" data-room-recommender>
+      <div class="guide-section-heading"><div><p class="guide-eyebrow">Not sure where to start?</p><h2>We’ll recommend the right room.</h2><p>Enter the approximate number of children. You do not need to know the room or party time yet.</p></div></div>
+      <div class="recommender-layout">
+        <label class="kids-count-field"><span>How many children?</span><input type="number" min="1" max="120" inputmode="numeric" placeholder="e.g. 12" data-kids-count></label>
+        <div class="recommendation-result" data-recommendation-result aria-live="polite"><span class="recommendation-icon">✦</span><div><small>Our guide</small><strong>1–8 Single · 9–15 Double · 16–25 Triple · 26+ Private</strong><p>Enter a number and we’ll highlight your recommended package below.</p></div></div>
+      </div>
+      <p class="recommendation-note">This recommendation does not reserve a room. Our Southland team will confirm availability, party time and final pricing with you.</p>
+    </section>
+
+    <section class="guide-section" id="themes" data-theme-catalog>
+      <div class="guide-section-heading">
+        <div><p class="guide-eyebrow">All Southland themes</p><h2>Search every theme</h2><p>Select a theme to see all available example layouts in its gallery.</p></div>
+        <label class="theme-search"><span class="sr-only">Search themes</span><input type="search" placeholder="Try ‘Frozen’ or ‘PAW’…" data-theme-search autocomplete="off"></label>
+      </div>
+      <div class="theme-filters" role="group" aria-label="Filter themes"><button type="button" class="is-active" data-theme-filter="all" aria-pressed="true">All themes <span>{{ themes|length }}</span></button><button type="button" data-theme-filter="magic" aria-pressed="false">Magic &amp; wonder</button><button type="button" data-theme-filter="adventure" aria-pressed="false">Adventure</button><button type="button" data-theme-filter="favourites" aria-pressed="false">Favourites</button><button type="button" data-theme-filter="custom" aria-pressed="false">Custom</button></div>
+      <div class="theme-grid">
+        {% for theme in themes %}
+        <button type="button" class="theme-card" data-theme-card data-theme-open="{{ theme.pk }}" data-category="{{ theme.category }}" data-name="{{ theme.search_text }}">
+          {% if theme.cover_url %}<img src="{{ theme.cover_url }}" alt="{{ theme.name }} party theme example" loading="lazy">{% else %}<span class="theme-placeholder">LA</span>{% endif %}
+          <span class="theme-card-copy"><small>{{ theme.get_category_display }}</small><strong>{{ theme.name }}</strong><em>{{ theme.photo_urls|length }} example{{ theme.photo_urls|length|pluralize }}</em></span>
+        </button>
+        {% endfor %}
+      </div>
+      <p class="theme-empty" data-theme-empty hidden>No matching theme found. Try another spelling or ask us about a custom printed theme.</p>
+      {% for theme in themes %}
+      <dialog class="theme-dialog" data-theme-dialog="{{ theme.pk }}" aria-labelledby="theme-title-{{ theme.pk }}">
+        <div class="theme-dialog-header"><div><small>{{ theme.get_category_display }}</small><h3 id="theme-title-{{ theme.pk }}">{{ theme.name }}</h3></div><button type="button" data-theme-close aria-label="Close theme gallery">×</button></div>
+        {% if theme.description %}<p>{{ theme.description }}</p>{% endif %}
+        <div class="theme-dialog-gallery">{% for photo_url in theme.photo_urls %}<img src="{{ photo_url }}" alt="{{ theme.name }} room decoration example {{ forloop.counter }}" loading="lazy">{% empty %}<p>No photo has been added yet.</p>{% endfor %}</div>
+        {% if theme.category == 'custom' %}<div class="custom-theme-note"><strong>Custom printed theme</strong><span>Includes one 1.8m × 1.2m background board, 3–4 character cut-outs and one personalised name board. Pricing starts from $200 and depends on the package.</span></div>{% endif %}
+      </dialog>
+      {% endfor %}
+    </section>
+
+    <section class="guide-section room-examples">
+      <div class="guide-section-heading"><div><p class="guide-eyebrow">Room layouts</p><h2>See how each space can look</h2><p>Examples of the standard decoration scale included with each room type.</p></div></div>
+      <div class="room-example-grid">
+        <article><img src="{% static 'package_showcase/southland/theme-pages/page-02.jpg' %}" alt="Single room decoration examples" loading="lazy"><h3>Single room</h3></article>
+        <article><img src="{% static 'package_showcase/southland/theme-pages/page-03.jpg' %}" alt="Double room decoration examples" loading="lazy"><h3>Double room</h3></article>
+        <article><img src="{% static 'package_showcase/southland/theme-pages/page-04.jpg' %}" alt="Triple room decoration examples" loading="lazy"><h3>Triple room</h3></article>
+        <article><img src="{% static 'package_showcase/southland/theme-pages/page-05.jpg' %}" alt="Private party decoration examples" loading="lazy"><h3>Private party</h3></article>
+      </div>
+    </section>
+
+    <section class="guide-section package-section" id="packages" data-package-guide>
+      <div class="guide-section-heading"><div><p class="guide-eyebrow">Party packages</p><h2>Compare packages</h2><p>Choose a package to see capacity, current pricing and what is included.</p></div><span class="guide-location-pill">Southland only</span></div>
+      <div class="package-selector" role="tablist" aria-label="Southland party packages">{% for package in packages %}<button type="button" role="tab" class="guide-package-tab{% if forloop.first %} is-active{% endif %}" data-package-tab="{{ package.key }}" aria-selected="{% if forloop.first %}true{% else %}false{% endif %}"><span>{{ package.room }}</span><strong>{{ package.label }}</strong><small>From {{ package.weekday_label }}</small></button>{% endfor %}</div>
+      {% for package in packages %}<article class="package-detail" data-package-panel="{{ package.key }}"{% if not forloop.first %} hidden{% endif %}><div class="package-detail-main"><p class="guide-eyebrow">{{ package.room }}</p><h3>{{ package.label }} package</h3><div class="capacity-row"><span><b>{{ package.kids }}</b> kids included</span><span><b>{{ package.adults }}</b> adults included</span></div><p class="package-kids-note"><strong>For every child:</strong> one hot food, one kids' size drink and play access. Hot food can be split between up to two choices.</p></div><aside class="package-pricing"><div><span>Weekday</span><strong>{{ package.weekday_label }}</strong></div><div><span>Weekend</span><strong>{{ package.weekend_label }}</strong></div></aside></article>{% endfor %}
+    </section>
+
+    <section class="guide-section food-section" id="menu" data-package-guide>
+      <div class="guide-section-heading"><div><p class="guide-eyebrow">Included food</p><h2>Kids first, then grown-ups</h2><p>Preview the children’s choices first, followed by the adult sharing menu in the selected package.</p></div></div>
+      <div class="kids-menu-preview"><div class="food-number">1</div><div><small>Kids' menu</small><h3>One hot meal and one kids' size drink per child</h3><p>Choose up to two hot-food types: Nuggets &amp; Chips, Fish Fingers &amp; Chips, Ham &amp; Cheese Toast, Spring Rolls &amp; Chips, Kid Spaghetti, or Tomato &amp; Cheese Toast.</p></div></div>
+      {% for package in packages %}<div class="adult-menu-preview" data-food-panel="{{ package.key }}"{% if not forloop.first %} hidden{% endif %}><div class="food-preview-heading"><div class="food-number">2</div><div><small>Adults' sharing menu</small><h3>{{ package.label }} package inclusions</h3></div></div><ul>{% for item in package.included %}<li><span aria-hidden="true">✓</span>{{ item }}</li>{% endfor %}</ul></div>{% endfor %}
+    </section>
+
+    <section class="guide-section addon-section" id="addons" data-addon-builder>
+      <div class="guide-section-heading"><div><p class="guide-eyebrow">Optional add-ons</p><h2>Build a party wish list</h2><p>Select services you are interested in. The estimate helps you compare; our team will confirm availability and the exact price.</p></div></div>
+      <div class="addon-grid">{% for addon in addons %}<label class="addon-card"><input type="checkbox" value="{{ addon.pk }}" data-addon-choice data-price="{{ addon.price_from }}" data-addon-name="{{ addon.name }}">{% if addon.image_urls %}<span class="addon-card-gallery addon-card-gallery-{{ addon.image_urls|length }}">{% for image_url in addon.image_urls %}<img src="{{ image_url }}" alt="{{ addon.name }} example {{ forloop.counter }}" loading="lazy">{% endfor %}</span>{% endif %}<span class="addon-card-copy"><span class="addon-check">✓</span><small>Optional service</small><strong>{{ addon.name }}</strong><em>{{ addon.price_label }}</em><p>{{ addon.details }}</p></span></label>{% endfor %}</div>
+      <div class="addon-total"><div><small>Your selected add-ons</small><strong data-addon-summary>No add-ons selected yet</strong></div><div><small>Estimated add-on total</small><strong data-addon-total>$0</strong></div></div>
+      <p class="guide-disclaimer">Cake size, service duration, party-bag quantity and availability affect the final price. This selection is a planning guide only and does not place an order.</p>
+    </section>
+
+    <section class="guide-closing"><div><p class="guide-eyebrow">Ready for the next step?</p><h2>Save the themes and package you love.</h2><p>Share your favourites with our Southland team. We’ll help confirm the room, party time, availability and finishing details.</p></div><a class="guide-button guide-button-primary" href="#top">Back to the top</a></section>
+  </main>
+  <footer class="guide-footer"><span>Little Amigos Southland</span><span>Party information may change; please confirm before booking.</span></footer>
+  <script src="{% static 'js/southland_party_guide.js' %}?v=20261024-2" defer></script>
+</body>
+</html>
