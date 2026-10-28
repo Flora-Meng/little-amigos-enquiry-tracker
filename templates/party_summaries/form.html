@@ -86,18 +86,18 @@
         {{ adult_formset.management_form }}
         <div class="menu-rows menu-standard menu-adult" data-menu="adult">
           <div class="menu-row menu-header{% if summary.uses_food_voucher %} voucher-priced-row{% endif %}"><span>Qty</span><span>Item</span><span>Notes</span><span data-voucher-price{% if not summary.uses_food_voucher %} hidden{% endif %}>Price</span><span></span></div>
-          {% for row in adult_formset %}<div class="menu-row{% if summary.uses_food_voucher %} voucher-priced-row{% endif %}"><div>{{ row.quantity }}{{ row.quantity.errors }}</div><div>{{ row.item }}{{ row.item.errors }}</div><div>{{ row.notes }}{{ row.notes.errors }}</div><div data-voucher-price{% if not summary.uses_food_voucher %} hidden{% endif %}>{{ row.amount }}{{ row.amount.errors }}</div>{{ row.DELETE.as_hidden }}<button class="menu-delete-button" type="button" aria-label="Delete this adult menu row" title="Delete row"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 9v8m4-8v8m4-8v8M5 6h14m-9-3h4l1 3H9l1-3Zm-3 3 1 15h8l1-15"/></svg></button></div>{% endfor %}
+          {% for row in adult_formset %}<div class="menu-row{% if summary.uses_food_voucher %} voucher-priced-row{% endif %}"><div>{{ row.quantity }}{{ row.quantity.errors }}</div><div>{{ row.item }}{{ row.item.errors }}</div><div>{{ row.notes }}{{ row.notes.errors }}</div><div data-voucher-price{% if not summary.uses_food_voucher %} hidden{% endif %}>{{ row.amount }}{{ row.amount.errors }}</div>{{ row.ORDER.as_hidden }}{{ row.DELETE.as_hidden }}<div class="menu-row-actions"><button class="menu-drag-handle" type="button" draggable="true" aria-label="Drag to reorder this adult menu row" title="Drag to reorder">⋮⋮</button><button class="menu-delete-button" type="button" aria-label="Delete this adult menu row" title="Delete row"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 9v8m4-8v8m4-8v8M5 6h14m-9-3h4l1 3H9l1-3Zm-3 3 1 15h8l1-15"/></svg></button></div></div>{% endfor %}
         </div>
-        <template data-empty-menu="adult"><div class="menu-row"><div>{{ adult_formset.empty_form.quantity }}</div><div>{{ adult_formset.empty_form.item }}</div><div>{{ adult_formset.empty_form.notes }}</div><div data-voucher-price hidden>{{ adult_formset.empty_form.amount }}</div>{{ adult_formset.empty_form.DELETE.as_hidden }}<button class="menu-delete-button" type="button" aria-label="Delete this adult menu row" title="Delete row"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 9v8m4-8v8m4-8v8M5 6h14m-9-3h4l1 3H9l1-3Zm-3 3 1 15h8l1-15"/></svg></button></div></template>
+        <template data-empty-menu="adult"><div class="menu-row"><div>{{ adult_formset.empty_form.quantity }}</div><div>{{ adult_formset.empty_form.item }}</div><div>{{ adult_formset.empty_form.notes }}</div><div data-voucher-price hidden>{{ adult_formset.empty_form.amount }}</div>{{ adult_formset.empty_form.ORDER.as_hidden }}{{ adult_formset.empty_form.DELETE.as_hidden }}<div class="menu-row-actions"><button class="menu-drag-handle" type="button" draggable="true" aria-label="Drag to reorder this adult menu row" title="Drag to reorder">⋮⋮</button><button class="menu-delete-button" type="button" aria-label="Delete this adult menu row" title="Delete row"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 9v8m4-8v8m4-8v8M5 6h14m-9-3h4l1 3H9l1-3Zm-3 3 1 15h8l1-15"/></svg></button></div></div></template>
       </section>
       <section class="panel party-menu-card">
         <div class="panel-heading"><div><h2>Kids menu</h2><small class="kids-menu-note">1 drink per child</small></div><button class="menu-add-button" type="button" data-add-menu="kids" aria-label="Add kids menu row"><span aria-hidden="true">+</span> Add row</button></div>
         {{ kids_formset.management_form }}
         <div class="menu-rows menu-standard" data-menu="kids">
           <div class="menu-row menu-header"><span>Qty</span><span>Item</span><span>Notes</span><span></span></div>
-          {% for row in kids_formset %}<div class="menu-row"><div>{{ row.quantity }}{{ row.quantity.errors }}</div><div>{{ row.item }}{{ row.item.errors }}</div><div>{{ row.notes }}{{ row.notes.errors }}</div>{{ row.DELETE.as_hidden }}<button class="menu-delete-button" type="button" aria-label="Delete this kids menu row" title="Delete row"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 9v8m4-8v8m4-8v8M5 6h14m-9-3h4l1 3H9l1-3Zm-3 3 1 15h8l1-15"/></svg></button></div>{% endfor %}
+          {% for row in kids_formset %}<div class="menu-row"><div>{{ row.quantity }}{{ row.quantity.errors }}</div><div>{{ row.item }}{{ row.item.errors }}</div><div>{{ row.notes }}{{ row.notes.errors }}</div>{{ row.ORDER.as_hidden }}{{ row.DELETE.as_hidden }}<div class="menu-row-actions"><button class="menu-drag-handle" type="button" draggable="true" aria-label="Drag to reorder this kids menu row" title="Drag to reorder">⋮⋮</button><button class="menu-delete-button" type="button" aria-label="Delete this kids menu row" title="Delete row"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 9v8m4-8v8m4-8v8M5 6h14m-9-3h4l1 3H9l1-3Zm-3 3 1 15h8l1-15"/></svg></button></div></div>{% endfor %}
         </div>
-        <template data-empty-menu="kids"><div class="menu-row"><div>{{ kids_formset.empty_form.quantity }}</div><div>{{ kids_formset.empty_form.item }}</div><div>{{ kids_formset.empty_form.notes }}</div>{{ kids_formset.empty_form.DELETE.as_hidden }}<button class="menu-delete-button" type="button" aria-label="Delete this kids menu row" title="Delete row"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 9v8m4-8v8m4-8v8M5 6h14m-9-3h4l1 3H9l1-3Zm-3 3 1 15h8l1-15"/></svg></button></div></template>
+        <template data-empty-menu="kids"><div class="menu-row"><div>{{ kids_formset.empty_form.quantity }}</div><div>{{ kids_formset.empty_form.item }}</div><div>{{ kids_formset.empty_form.notes }}</div>{{ kids_formset.empty_form.ORDER.as_hidden }}{{ kids_formset.empty_form.DELETE.as_hidden }}<div class="menu-row-actions"><button class="menu-drag-handle" type="button" draggable="true" aria-label="Drag to reorder this kids menu row" title="Drag to reorder">⋮⋮</button><button class="menu-delete-button" type="button" aria-label="Delete this kids menu row" title="Delete row"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 9v8m4-8v8m4-8v8M5 6h14m-9-3h4l1 3H9l1-3Zm-3 3 1 15h8l1-15"/></svg></button></div></div></template>
       </section>
     </div>
 
@@ -106,9 +106,9 @@
       {{ extra_formset.management_form }}
       <div class="menu-rows menu-extra" data-menu="extra">
         <div class="menu-row menu-header"><span>Qty</span><span>Item</span><span>Notes</span><span>Unit price</span><span></span></div>
-        {% for row in extra_formset %}<div class="menu-row"><div>{{ row.quantity }}{{ row.quantity.errors }}</div><div>{{ row.item }}{{ row.item.errors }}</div><div>{{ row.notes }}{{ row.notes.errors }}</div><div>{{ row.amount }}{{ row.amount.errors }}</div>{{ row.DELETE.as_hidden }}<button class="menu-delete-button" type="button" aria-label="Delete this extra food row" title="Delete row"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 9v8m4-8v8m4-8v8M5 6h14m-9-3h4l1 3H9l1-3Zm-3 3 1 15h8l1-15"/></svg></button></div>{% endfor %}
+        {% for row in extra_formset %}<div class="menu-row"><div>{{ row.quantity }}{{ row.quantity.errors }}</div><div>{{ row.item }}{{ row.item.errors }}</div><div>{{ row.notes }}{{ row.notes.errors }}</div><div>{{ row.amount }}{{ row.amount.errors }}</div>{{ row.ORDER.as_hidden }}{{ row.DELETE.as_hidden }}<div class="menu-row-actions"><button class="menu-drag-handle" type="button" draggable="true" aria-label="Drag to reorder this extra food row" title="Drag to reorder">⋮⋮</button><button class="menu-delete-button" type="button" aria-label="Delete this extra food row" title="Delete row"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 9v8m4-8v8m4-8v8M5 6h14m-9-3h4l1 3H9l1-3Zm-3 3 1 15h8l1-15"/></svg></button></div></div>{% endfor %}
       </div>
-      <template data-empty-menu="extra"><div class="menu-row"><div>{{ extra_formset.empty_form.quantity }}</div><div>{{ extra_formset.empty_form.item }}</div><div>{{ extra_formset.empty_form.notes }}</div><div>{{ extra_formset.empty_form.amount }}</div>{{ extra_formset.empty_form.DELETE.as_hidden }}<button class="menu-delete-button" type="button" aria-label="Delete this extra food row" title="Delete row"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 9v8m4-8v8m4-8v8M5 6h14m-9-3h4l1 3H9l1-3Zm-3 3 1 15h8l1-15"/></svg></button></div></template>
+      <template data-empty-menu="extra"><div class="menu-row"><div>{{ extra_formset.empty_form.quantity }}</div><div>{{ extra_formset.empty_form.item }}</div><div>{{ extra_formset.empty_form.notes }}</div><div>{{ extra_formset.empty_form.amount }}</div>{{ extra_formset.empty_form.ORDER.as_hidden }}{{ extra_formset.empty_form.DELETE.as_hidden }}<div class="menu-row-actions"><button class="menu-drag-handle" type="button" draggable="true" aria-label="Drag to reorder this extra food row" title="Drag to reorder">⋮⋮</button><button class="menu-delete-button" type="button" aria-label="Delete this extra food row" title="Delete row"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 9v8m4-8v8m4-8v8M5 6h14m-9-3h4l1 3H9l1-3Zm-3 3 1 15h8l1-15"/></svg></button></div></div></template>
       <div class="staff-voucher-notes" id="staff-voucher-notes" hidden>{% include "enquiries/_field.html" with field=form.voucher_menu_notes wide=True %}</div>
     </section>
 
@@ -216,6 +216,69 @@
     document.querySelectorAll(`[data-menu="${menu}"] input[name$="-item"]`).forEach(input => input.setAttribute('list', listId));
   }
   ['adult', 'kids', 'extra'].forEach(applyMenuList);
+  function resizeMenuNote(textarea) {
+    if (!textarea?.matches('.menu-notes-input')) return;
+    textarea.style.height = 'auto';
+    textarea.style.height = `${Math.max(42, textarea.scrollHeight)}px`;
+  }
+  document.querySelectorAll('.menu-notes-input').forEach(resizeMenuNote);
+  document.addEventListener('input', event => resizeMenuNote(event.target));
+  function syncMenuOrder(container) {
+    [...container.querySelectorAll('.menu-row:not(.menu-header):not(.menu-row-deleted)')]
+      .forEach((row, index) => {
+        const orderInput = row.querySelector('input[name$="-ORDER"]');
+        if (orderInput) orderInput.value = index + 1;
+      });
+  }
+  document.querySelectorAll('[data-menu]').forEach(container => {
+    syncMenuOrder(container);
+    let draggingRow = null;
+    container.addEventListener('dragstart', event => {
+      const handle = event.target.closest('.menu-drag-handle');
+      if (!handle) return;
+      draggingRow = handle.closest('.menu-row');
+      draggingRow?.classList.add('is-dragging');
+      event.dataTransfer.effectAllowed = 'move';
+      event.dataTransfer.setData('text/plain', 'menu-row');
+    });
+    container.addEventListener('dragover', event => {
+      if (!draggingRow) return;
+      event.preventDefault();
+      event.dataTransfer.dropEffect = 'move';
+      const rows = [...container.querySelectorAll('.menu-row:not(.menu-header):not(.menu-row-deleted):not(.is-dragging)')];
+      const nextRow = rows.find(row => event.clientY < row.getBoundingClientRect().top + row.offsetHeight / 2);
+      if (nextRow) container.insertBefore(draggingRow, nextRow);
+      else container.appendChild(draggingRow);
+    });
+    container.addEventListener('drop', event => {
+      if (!draggingRow) return;
+      event.preventDefault();
+      syncMenuOrder(container);
+    });
+    container.addEventListener('dragend', () => {
+      draggingRow?.classList.remove('is-dragging');
+      draggingRow = null;
+      syncMenuOrder(container);
+    });
+    container.addEventListener('keydown', event => {
+      const handle = event.target.closest('.menu-drag-handle');
+      if (!handle || !event.altKey || !['ArrowUp', 'ArrowDown'].includes(event.key)) return;
+      event.preventDefault();
+      const row = handle.closest('.menu-row');
+      if (event.key === 'ArrowUp') {
+        const previous = row.previousElementSibling;
+        if (previous && !previous.classList.contains('menu-header')) container.insertBefore(row, previous);
+      } else {
+        const next = row.nextElementSibling;
+        if (next) container.insertBefore(next, row);
+      }
+      syncMenuOrder(container);
+      handle.focus();
+    });
+  });
+  document.querySelector('.party-summary-form')?.addEventListener('submit', () => {
+    document.querySelectorAll('[data-menu]').forEach(syncMenuOrder);
+  });
   const packageCatalog = JSON.parse(document.getElementById('package-catalog-data').textContent);
   const roomCatalog = JSON.parse(document.getElementById('room-catalog-data').textContent);
   const locationCodes = JSON.parse(document.getElementById('location-code-data').textContent);
@@ -375,6 +438,8 @@
       totalInput.value = total + 1;
       applyMenuList(menu);
       updateWaterNotes();
+      resizeMenuNote(document.querySelector(`[data-menu="${menu}"] .menu-row:last-child .menu-notes-input`));
+      syncMenuOrder(document.querySelector(`[data-menu="${menu}"]`));
       calculate();
     });
   });

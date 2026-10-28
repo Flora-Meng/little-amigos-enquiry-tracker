@@ -302,12 +302,17 @@ th { color: var(--muted); font-size: .75rem; letter-spacing: .06em; text-transfo
 .kids-menu-note { display: block; margin-top: 4px; color: #c94737; font-weight: 780; }
 .menu-row { display: grid; grid-template-columns: 90px minmax(170px, 1fr) minmax(150px, .8fr) auto; align-items: center; gap: 10px; padding: 9px 16px; border-bottom: 1px solid #f0ede6; }
 .menu-extra .menu-row { grid-template-columns: 80px minmax(170px, 1fr) minmax(140px, .75fr) 120px auto; }
-.menu-row input[type="text"], .menu-row input[type="number"] { width: 100%; min-height: 42px; padding: 0 11px; border: 1px solid #d7d3ca; border-radius: 10px; color: var(--ink); font: inherit; }
-.menu-row input:focus { outline: 3px solid rgba(246,143,111,.2); border-color: var(--peach); }
+.menu-row input[type="text"], .menu-row input[type="number"], .menu-row textarea { width: 100%; min-height: 42px; padding: 0 11px; border: 1px solid #d7d3ca; border-radius: 10px; color: var(--ink); font: inherit; }
+.menu-row textarea { height: auto; padding-top: 9px; padding-bottom: 9px; overflow: hidden; resize: vertical; line-height: 1.35; }
+.menu-row input:focus, .menu-row textarea:focus { outline: 3px solid rgba(246,143,111,.2); border-color: var(--peach); }
 .menu-header { padding-top: 11px; padding-bottom: 11px; color: var(--muted); background: #fcfaf5; font-size: .72rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
 .menu-delete-button { width: 34px; height: 34px; display: grid; place-items: center; padding: 0; border: 1px solid #efd0c9; border-radius: 10px; color: #a75143; background: #fff5f2; cursor: pointer; }
 .menu-delete-button:hover { color: white; background: #bd5b4b; border-color: #bd5b4b; }
 .menu-delete-button svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.menu-row-actions { display: flex; align-items: center; gap: 6px; }
+.menu-drag-handle { width: 30px; height: 34px; display: grid; place-items: center; padding: 0; border: 0; color: #7b878c; background: transparent; font: inherit; font-size: 1.18rem; line-height: 1; cursor: grab; touch-action: none; }
+.menu-drag-handle:active { cursor: grabbing; }
+.menu-row.is-dragging { opacity: .45; background: #eefaf7; }
 .menu-add-button { min-height: 36px; display: inline-flex; align-items: center; gap: 7px; padding: 0 12px; border: 1px solid #9fd7cd; border-radius: 11px; color: #286b62; background: #eefaf7; font: inherit; font-size: .8rem; font-weight: 800; cursor: pointer; }
 .menu-add-button:hover { color: white; background: #39887c; }
 .menu-add-button span { color: inherit !important; font-size: 1.15rem !important; line-height: 1; }

@@ -136,7 +136,7 @@ def _save_menu_items(summary, formsets):
     categories = (("adult_formset", PartyMenuItem.Category.ADULT), ("kids_formset", PartyMenuItem.Category.KIDS), ("extra_formset", PartyMenuItem.Category.EXTRA))
     rows = []
     for key, category in categories:
-        for position, form in enumerate(formsets[key]):
+        for position, form in enumerate(formsets[key].ordered_forms):
             if not form.cleaned_data or form.cleaned_data.get("DELETE"):
                 continue
             item = (form.cleaned_data.get("item") or "").strip()

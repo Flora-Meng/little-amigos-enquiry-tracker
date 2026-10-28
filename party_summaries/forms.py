@@ -616,7 +616,10 @@ class CustomerMenuForm(forms.Form):
 class StandardMenuItemForm(forms.Form):
     quantity = forms.CharField(required=False, max_length=40, widget=forms.TextInput(attrs={"placeholder": "Qty"}))
     item = forms.CharField(required=False, max_length=250, widget=forms.TextInput(attrs={"placeholder": "Select or type an item"}))
-    notes = forms.CharField(required=False, max_length=500, widget=forms.TextInput(attrs={"placeholder": "Notes"}))
+    notes = forms.CharField(
+        required=False, max_length=500,
+        widget=forms.Textarea(attrs={"placeholder": "Notes", "rows": 1, "class": "menu-notes-input"}),
+    )
     amount = forms.DecimalField(required=False, min_value=0, max_digits=10, decimal_places=2,
         widget=forms.NumberInput(attrs={"placeholder": "$0.00", "min": 0, "step": "0.01"}))
 
@@ -656,11 +659,12 @@ def menu_formsets(*, data=None, initial=None, editing=False):
     kids_initial = initial.get("kids", [])
     extra_initial = initial.get("extra", [])
     bill_initial = initial.get("bill", [])
-    options = {"can_delete": True, "max_num": 20, "validate_max": True}
-    AdultSet = formset_factory(StandardMenuItemForm, extra=1 if editing else max(0, 8 - len(adult_initial)), **options)
-    KidsSet = formset_factory(StandardMenuItemForm, extra=1 if editing else max(0, 3 - len(kids_initial)), **options)
-    ExtraSet = formset_factory(ExtraMenuItemForm, extra=1 if editing else max(0, 5 - len(extra_initial)), **options)
-    BillSet = formset_factory(BillItemForm, extra=1, **options)
+    menu_options = {"can_delete": True, "can_order": True, "max_num": 20, "validate_max": True}
+    bill_options = {"can_delete": True, "max_num": 20, "validate_max": True}
+    AdultSet = formset_factory(StandardMenuItemForm, extra=1 if editing else max(0, 8 - len(adult_initial)), **menu_options)
+    KidsSet = formset_factory(StandardMenuItemForm, extra=1 if editing else max(0, 3 - len(kids_initial)), **menu_options)
+    ExtraSet = formset_factory(ExtraMenuItemForm, extra=1 if editing else max(0, 5 - len(extra_initial)), **menu_options)
+    BillSet = formset_factory(BillItemForm, extra=1, **bill_options)
     return {
         "adult_formset": AdultSet(data, prefix="adult", initial=adult_initial),
         "kids_formset": KidsSet(data, prefix="kids", initial=kids_initial),

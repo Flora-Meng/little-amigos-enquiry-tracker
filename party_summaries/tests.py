@@ -664,6 +664,28 @@ class PartySummaryTests(TestCase):
         self.assertRedirects(response, reverse("party_summary_list"))
         self.assertFalse(PartySummary.objects.filter(id=summary.id).exists())
 
+    def test_menu_notes_expand_and_drag_order_is_saved(self):
+        summary = self._create_summary()
+        self.client.force_login(self.flora)
+        long_note = "No prawn. No fish. Replace both with extra vegetarian items and keep them separate."
+        data = self._post_data()
+        data.update(formset_data("adult", [
+            {"quantity": "1", "item": "First platter", "notes": long_note, "ORDER": "2"},
+            {"quantity": "1", "item": "Second platter", "notes": "Serve first", "ORDER": "1"},
+        ]))
+
+        response = self.client.post(reverse("party_summary_edit", args=(summary.id,)), data)
+
+        self.assertRedirects(response, reverse("party_summary_edit", args=(summary.id,)))
+        self.assertEqual(
+            list(summary.menu_items.filter(category=PartyMenuItem.Category.ADULT).values_list("item", flat=True)),
+            ["Second platter", "First platter"],
+        )
+        self.assertEqual(summary.menu_items.get(item="First platter").notes, long_note)
+        edit_response = self.client.get(reverse("party_summary_edit", args=(summary.id,)))
+        self.assertContains(edit_response, 'textarea name="adult-0-notes"', html=False)
+        self.assertContains(edit_response, "menu-drag-handle")
+
     def test_admin_can_toggle_confirmation_and_list_shows_status(self):
         summary = self._create_summary()
         self.client.force_login(self.flora)
