@@ -7,9 +7,17 @@
   .enquiry-customer-link-copy { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 10px; margin-top: 16px; }
   .enquiry-customer-link-copy input { min-width: 0; }
   .enquiry-customer-link-status { display: inline-flex; margin-top: 12px; }
+  .enquiry-photo-panel { margin-top: 22px; }
+  .enquiry-photo-body { padding: 24px 28px; }
+  .enquiry-photo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; margin-bottom: 20px; }
+  .enquiry-photo-card { display: block; overflow: hidden; border: 1px solid #e3ded3; border-radius: 16px; color: inherit; background: #f8f6f1; text-decoration: none; }
+  .enquiry-photo-card img { display: block; width: 100%; height: 150px; object-fit: cover; }
+  .enquiry-photo-card span { display: block; overflow: hidden; padding: 9px 11px; font-size: .76rem; font-weight: 750; text-overflow: ellipsis; white-space: nowrap; }
+  .enquiry-photo-upload { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 12px; }
   @media (max-width: 720px) {
     .enquiry-customer-link-copy { grid-template-columns: 1fr 1fr; }
     .enquiry-customer-link-copy input { grid-column: 1 / -1; }
+    .enquiry-photo-upload { grid-template-columns: 1fr; }
   }
 </style>
 {% include "accounts/_header.html" %}
@@ -55,6 +63,28 @@
           <div><dt>Created</dt><dd>{{ enquiry.created_at|date:"j M Y, g:i a" }}</dd></div>
           <div><dt>Last updated</dt><dd>{{ enquiry.updated_at|date:"j M Y, g:i a" }}</dd></div>
         </dl>
+      </section>
+
+      <section class="panel enquiry-photo-panel">
+        <div class="panel-heading"><div><h2>Reference photos</h2><span>{{ images|length }} image{{ images|length|pluralize }}</span></div></div>
+        <div class="enquiry-photo-body">
+          {% if images %}
+            <div class="enquiry-photo-grid">
+              {% for image in images %}
+                <a class="enquiry-photo-card" href="{% url 'enquiry_image' image.id %}" target="_blank" rel="noopener noreferrer">
+                  <img src="{% url 'enquiry_image' image.id %}" alt="{{ image.file_name }}" loading="lazy">
+                  <span title="{{ image.file_name }}">{{ image.file_name }}</span>
+                </a>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="empty-state compact-empty"><p>No reference photos yet</p><span>Add photos that support the enquiry notes below.</span></div>
+          {% endif %}
+          <form method="post" enctype="multipart/form-data" action="{% url 'add_enquiry_images' enquiry.id %}" class="enquiry-photo-upload">
+            {% csrf_token %}{% include "enquiries/_field.html" with field=image_upload_form.images %}
+            <button class="button button-primary" type="submit">Add reference photos</button>
+          </form>
+        </div>
       </section>
 
       <section class="panel enquiry-customer-link">

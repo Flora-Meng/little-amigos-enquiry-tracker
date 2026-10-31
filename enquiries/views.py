@@ -1,4 +1,5 @@
 import json
+from io import BytesIO
 from datetime import date
 from functools import wraps
 
@@ -7,7 +8,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models import F, OuterRef, Q, Subquery
-from django.http import JsonResponse
+from django.http import FileResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils.http import url_has_allowed_host_and_scheme
@@ -21,14 +22,26 @@ from accounts.models import Location, User
 from .forms import (
     EnquiryAdminUpdateForm,
     EnquiryFilterForm,
+    EnquiryImageUploadForm,
     NoteForm,
     QuickStatusForm,
     StoreEnquiryForm,
 )
-from .models import Enquiry, ExtensionToken, Note, ZumoImportDecision
+from .models import Enquiry, EnquiryImage, ExtensionToken, Note, ZumoImportDecision
 from .routing import normalise_postcode, route_postcode
 from .services import apply_status_rules, due_today, find_duplicates, overdue, schedule_next_follow_up
 from party_summaries.models import PartyIntakeLink
+
+
+def _save_enquiry_images(enquiry, images, user):
+    for upload in images:
+        EnquiryImage.objects.create(
+            enquiry=enquiry,
+            image=upload.read(),
+            file_name=upload.name[:255],
+            content_type=upload.content_type,
+            uploaded_by=user,
+        )
 
 
 @login_required
@@ -36,7 +49,7 @@ def new_store_enquiry(request):
     require_permission(request.user, Action.CREATE_STORE_ENQUIRY)
 
     if request.method == "POST":
-        form = StoreEnquiryForm(request.POST, user=request.user)
+        form = StoreEnquiryForm(request.POST, request.FILES, user=request.user)
         if form.is_valid():
             from accounts.authorization import enquiries_visible_to
 
@@ -67,6 +80,7 @@ def new_store_enquiry(request):
                 enquiry.submitted_by = request.user
                 enquiry.full_clean()
                 enquiry.save()
+                _save_enquiry_images(enquiry, form.cleaned_data.get("images") or [], request.user)
 
                 initial_note = form.cleaned_data["initial_note"].strip()
                 if initial_note:
@@ -178,6 +192,8 @@ def _enquiry_detail_context(request, enquiry, *, update_form=None):
         "enquiry": enquiry,
         "notes": enquiry.notes.select_related("author").all(),
         "note_form": NoteForm(),
+        "image_upload_form": EnquiryImageUploadForm(),
+        "images": enquiry.images.select_related("uploaded_by").all(),
         "update_form": update_form,
         "party_intake": intake,
         "customer_form_url": customer_form_url,
@@ -198,6 +214,47 @@ def enquiry_detail(request, enquiry_id):
         "enquiries/enquiry_detail.html",
         _enquiry_detail_context(request, enquiry, update_form=update_form),
     )
+
+
+@login_required
+@require_POST
+@transaction.atomic
+def add_enquiry_images(request, enquiry_id):
+    enquiry = _visible_enquiry_or_404(request.user, enquiry_id)
+    require_permission(request.user, Action.EDIT_CUSTOMER, enquiry=enquiry)
+    form = EnquiryImageUploadForm(request.POST, request.FILES)
+    if form.is_valid():
+        _save_enquiry_images(enquiry, form.cleaned_data["images"], request.user)
+        enquiry.save(update_fields=("updated_at",))
+        messages.success(request, "Photos added to the enquiry.")
+    else:
+        for errors in form.errors.values():
+            for error in errors:
+                messages.error(request, error)
+    return redirect("enquiry_detail", enquiry_id=enquiry.id)
+
+
+@login_required
+def enquiry_image(request, image_id):
+    image = get_object_or_404(
+        EnquiryImage.objects.select_related("enquiry").filter(
+            enquiry__in=_visible_enquiry_queryset(request.user)
+        ),
+        id=image_id,
+    )
+    response = FileResponse(
+        BytesIO(bytes(image.image)),
+        content_type=image.content_type,
+        filename=image.file_name,
+    )
+    response["X-Content-Type-Options"] = "nosniff"
+    return response
+
+
+def _visible_enquiry_queryset(user):
+    from accounts.authorization import enquiries_visible_to
+
+    return enquiries_visible_to(user, Enquiry.objects.all())
 
 
 @login_required

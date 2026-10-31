@@ -14,7 +14,7 @@
     </div>
   </div>
 
-  <form method="post" class="form-card" novalidate>
+  <form method="post" enctype="multipart/form-data" class="form-card" novalidate>
     {% csrf_token %}
     {% if form.non_field_errors %}<div class="alert" role="alert">{{ form.non_field_errors }}</div>{% endif %}
     {% if duplicate_matches %}
@@ -55,6 +55,12 @@
     <section class="form-section" aria-labelledby="note-heading">
       <div><p class="section-number">03</p><h2 id="note-heading">Conversation note</h2></div>
       {% include "enquiries/_field.html" with field=form.initial_note wide=True %}
+    </section>
+
+    <section class="form-section" aria-labelledby="photo-heading">
+      <div><p class="section-number">04</p><h2 id="photo-heading">Reference photos</h2></div>
+      {% include "enquiries/_field.html" with field=form.images wide=True %}
+      <p class="form-hint">Use this section for theme, decoration or other customer reference photos that make the enquiry notes clearer.</p>
     </section>
 
     <div class="form-actions">

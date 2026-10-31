@@ -30,7 +30,7 @@ from accounts.views import (
     team_accounts,
 )
 from config.views import health_check, initial_admin_password, party_planner_demo
-from enquiries.views import add_note, archive_enquiry, delete_note, enquiry_detail, enquiry_list, extension_token_settings, new_store_enquiry, quick_update_status, reschedule_follow_up, update_enquiry, zumo_duplicate_check, zumo_ignore, zumo_import, zumo_imports, zumo_review_again, zumo_review_status
+from enquiries.views import add_enquiry_images, add_note, archive_enquiry, delete_note, enquiry_detail, enquiry_image, enquiry_list, extension_token_settings, new_store_enquiry, quick_update_status, reschedule_follow_up, update_enquiry, zumo_duplicate_check, zumo_ignore, zumo_import, zumo_imports, zumo_review_again, zumo_review_status
 
 urlpatterns = [
     path("health/", health_check, name="health_check"),
@@ -83,6 +83,8 @@ urlpatterns = [
     path("enquiries/<uuid:enquiry_id>/update/", update_enquiry, name="update_enquiry"),
     path("enquiries/<uuid:enquiry_id>/status/", quick_update_status, name="quick_update_status"),
     path("enquiries/<uuid:enquiry_id>/notes/", add_note, name="add_note"),
+    path("enquiries/<uuid:enquiry_id>/images/", add_enquiry_images, name="add_enquiry_images"),
+    path("enquiry-images/<uuid:image_id>/", enquiry_image, name="enquiry_image"),
     path("notes/<uuid:note_id>/delete/", delete_note, name="delete_note"),
     path("enquiries/<uuid:enquiry_id>/archive/", archive_enquiry, name="archive_enquiry"),
     path("enquiries/<uuid:enquiry_id>/follow-up/", reschedule_follow_up, name="reschedule_follow_up"),

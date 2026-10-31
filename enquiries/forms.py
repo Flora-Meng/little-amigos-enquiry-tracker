@@ -5,7 +5,48 @@ from accounts.models import Location, User
 from .models import Enquiry
 
 
+ALLOWED_ENQUIRY_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp"}
+MAX_ENQUIRY_IMAGE_SIZE = 8 * 1024 * 1024
+MAX_ENQUIRY_IMAGES_PER_UPLOAD = 5
+
+
+class MultipleImageInput(forms.ClearableFileInput):
+    allow_multiple_selected = True
+
+
+class MultipleImageField(forms.FileField):
+    widget = MultipleImageInput
+
+    def clean(self, data, initial=None):
+        single_clean = super().clean
+        if isinstance(data, (list, tuple)):
+            return [single_clean(item, initial) for item in data]
+        if not data:
+            single_clean(data, initial)
+            return []
+        return [single_clean(data, initial)]
+
+
+def validate_enquiry_images(images):
+    if len(images) > MAX_ENQUIRY_IMAGES_PER_UPLOAD:
+        raise forms.ValidationError(
+            f"Upload no more than {MAX_ENQUIRY_IMAGES_PER_UPLOAD} images at a time."
+        )
+    for image in images:
+        if image.content_type not in ALLOWED_ENQUIRY_IMAGE_TYPES:
+            raise forms.ValidationError("Use JPG, PNG or WebP images only.")
+        if image.size > MAX_ENQUIRY_IMAGE_SIZE:
+            raise forms.ValidationError("Each image must be 8 MB or smaller.")
+    return images
+
+
 class StoreEnquiryForm(forms.ModelForm):
+    images = MultipleImageField(
+        label="Reference photos",
+        required=False,
+        help_text="Optional. Add photos that support the enquiry notes, such as themes or decoration references.",
+        widget=MultipleImageInput(attrs={"accept": "image/jpeg,image/png,image/webp"}),
+    )
     initial_note = forms.CharField(
         label="Initial note",
         required=False,
@@ -71,6 +112,21 @@ class StoreEnquiryForm(forms.ModelForm):
         if party_date and unknown:
             self.add_error("party_date", "Choose a date or Not sure yet, not both.")
         return cleaned
+
+    def clean_images(self):
+        return validate_enquiry_images(self.cleaned_data.get("images") or [])
+
+
+class EnquiryImageUploadForm(forms.Form):
+    images = MultipleImageField(
+        label="Add reference photos",
+        required=True,
+        help_text="Add photos that support the enquiry notes. Up to 5 JPG, PNG or WebP images (8 MB each).",
+        widget=MultipleImageInput(attrs={"accept": "image/jpeg,image/png,image/webp"}),
+    )
+
+    def clean_images(self):
+        return validate_enquiry_images(self.cleaned_data.get("images") or [])
 
 
 class QuickStatusForm(forms.Form):

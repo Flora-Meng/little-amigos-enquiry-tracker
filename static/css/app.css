@@ -83,6 +83,9 @@ h2 { margin: 0; font-size: 1.2rem; }
 .field { min-width: 0; display: grid; gap: 7px; }
 .field label { font-size: .9rem; font-weight: 750; }
 .field input, .field select, .field textarea { width: 100%; min-height: 48px; padding: 0 14px; border: 1px solid #d7d3ca; border-radius: 12px; background: white; color: var(--ink); }
+.field input[type="file"] { padding: 7px 10px; line-height: 32px; }
+.field input[type="file"]::file-selector-button { height: 34px; margin: 0 12px 0 0; padding: 0 14px; border: 1px solid #c8c3b8; border-radius: 8px; color: var(--ink); background: #f4f1e9; font: inherit; font-weight: 720; vertical-align: middle; cursor: pointer; }
+.field input[type="file"]::file-selector-button:hover { background: #ebe7dd; }
 .field textarea { min-height: 116px; padding-top: 13px; resize: vertical; }
 .field input:focus, .field select:focus, .field textarea:focus { outline: 3px solid rgba(246,143,111,.25); border-color: var(--peach); }
 .field-invalid input, .field-invalid select, .field-invalid textarea { border-color: #ba5143; }

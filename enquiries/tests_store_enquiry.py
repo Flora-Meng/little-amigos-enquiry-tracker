@@ -1,9 +1,10 @@
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 from django.urls import reverse
 
 from accounts.models import User
 
-from .models import Enquiry, Note
+from .models import Enquiry, EnquiryImage, Note
 
 
 class NewStoreEnquiryTests(TestCase):
@@ -52,6 +53,76 @@ class NewStoreEnquiryTests(TestCase):
         note = Note.objects.get(enquiry=enquiry)
         self.assertEqual(note.body, "Customer called the Southland store.")
         self.assertEqual(note.author_display_name, "Kiva")
+
+    def test_staff_can_add_multiple_images_when_creating_enquiry(self):
+        self.client.force_login(self.southland)
+        response = self.client.post(
+            reverse("new_store_enquiry"),
+            {
+                "name": "Photo Customer",
+                "phone": "0412 000 111",
+                "party_date_unknown": "on",
+                "images": [
+                    SimpleUploadedFile("room.jpg", b"jpeg-one", content_type="image/jpeg"),
+                    SimpleUploadedFile("theme.png", b"png-two", content_type="image/png"),
+                ],
+            },
+        )
+
+        self.assertRedirects(response, reverse("dashboard"))
+        enquiry = Enquiry.objects.get(name="Photo Customer")
+        self.assertEqual(enquiry.images.count(), 2)
+        self.assertEqual(
+            list(enquiry.images.values_list("uploaded_by", flat=True)),
+            [self.southland.id, self.southland.id],
+        )
+
+    def test_location_staff_can_add_and_view_own_enquiry_images_only(self):
+        enquiry = Enquiry.objects.create(
+            name="Image Detail Customer",
+            phone="0412 999 888",
+            party_date_unknown=True,
+            location=self.southland.location,
+            source=Enquiry.Source.STORE,
+            submitted_by=self.southland,
+        )
+        self.client.force_login(self.southland)
+        upload_response = self.client.post(
+            reverse("add_enquiry_images", args=(enquiry.id,)),
+            {
+                "images": SimpleUploadedFile(
+                    "reference.webp", b"webp-data", content_type="image/webp"
+                )
+            },
+        )
+        self.assertRedirects(upload_response, reverse("enquiry_detail", args=(enquiry.id,)))
+        image = EnquiryImage.objects.get(enquiry=enquiry)
+
+        own_response = self.client.get(reverse("enquiry_image", args=(image.id,)))
+        self.assertEqual(own_response.status_code, 200)
+        self.assertEqual(b"".join(own_response.streaming_content), b"webp-data")
+        self.assertEqual(own_response["Content-Type"], "image/webp")
+
+        self.client.force_login(self.canberra)
+        other_location_response = self.client.get(reverse("enquiry_image", args=(image.id,)))
+        self.assertEqual(other_location_response.status_code, 404)
+
+    def test_enquiry_images_reject_non_image_files(self):
+        self.client.force_login(self.southland)
+        response = self.client.post(
+            reverse("new_store_enquiry"),
+            {
+                "name": "Unsafe Upload",
+                "phone": "0412 000 222",
+                "party_date_unknown": "on",
+                "images": SimpleUploadedFile(
+                    "notes.pdf", b"pdf-data", content_type="application/pdf"
+                ),
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Use JPG, PNG or WebP images only.")
+        self.assertFalse(Enquiry.objects.filter(name="Unsafe Upload").exists())
 
     def test_admin_can_choose_location(self):
         self.client.force_login(self.admin)

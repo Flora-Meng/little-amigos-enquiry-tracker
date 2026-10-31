@@ -100,6 +100,28 @@ class Note(models.Model):
             raise ValidationError("Notes are append-only and cannot be edited.")
         super().save(*args, **kwargs)
 
+
+class EnquiryImage(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    enquiry = models.ForeignKey(
+        Enquiry,
+        on_delete=models.CASCADE,
+        related_name="images",
+    )
+    image = models.BinaryField(editable=False)
+    file_name = models.CharField(max_length=255)
+    content_type = models.CharField(max_length=100)
+    uploaded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="enquiry_images",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "enquiry_images"
+        ordering = ("created_at",)
+
 class ZumoImportDecision(models.Model):
     class Decision(models.TextChoices):
         IMPORTED = "imported", "Imported"
