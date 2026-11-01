@@ -123,14 +123,6 @@
           {% include "enquiries/_field.html" with field=form.balloon_color %}
           {% include "enquiries/_field.html" with field=form.rsvp_information wide=True %}
           {% include "enquiries/_field.html" with field=form.special_note wide=True %}
-          <div class="field field-wide decoration-upload{% if form.decoration_example_upload.errors %} field-invalid{% endif %}">
-            <label for="{{ form.decoration_example_upload.id_for_label }}">Decoration example</label>
-            {% if summary.decoration_example %}<img class="decoration-preview" src="{% url 'party_summary_decoration' summary.id %}" alt="Current decoration example"><span class="decoration-file-name">{{ summary.decoration_example_name }}</span>{% endif %}
-            {{ form.decoration_example_upload }}
-            <small>Upload a JPG, PNG or WebP image up to 5 MB.</small>
-            {% for error in form.decoration_example_upload.errors %}<p class="field-error" role="alert">{{ error }}</p>{% endfor %}
-            {% if summary.decoration_example %}<label class="remove-image-check">{{ form.remove_decoration_example }} Remove current image</label>{% endif %}
-          </div>
         </div>
       </section>
       <section class="panel bill-card">
@@ -158,6 +150,19 @@
         </div>
       </section>
     </div>
+    <section class="panel theme-library-upload-panel">
+      <div class="panel-heading"><div><h2>Theme photo library</h2><span>Upload a theme, decoration reference or finished party setup photo. The image is saved in the database; Southland photos become available in the Showcase manager.</span></div></div>
+      <div class="theme-library-upload-body">
+        <div class="field decoration-upload{% if form.decoration_example_upload.errors %} field-invalid{% endif %}">
+          <label for="{{ form.decoration_example_upload.id_for_label }}">Theme library photo</label>
+          {% if summary.decoration_example %}<a href="{% url 'party_summary_decoration' summary.id %}" target="_blank" rel="noopener"><img class="decoration-preview" src="{% url 'party_summary_decoration' summary.id %}" alt="Current theme library photo"></a><span class="decoration-file-name">{{ summary.decoration_example_name }}</span>{% endif %}
+          {{ form.decoration_example_upload }}
+          <small>JPG, PNG or WebP, up to 5 MB. Uploading a new image replaces the current image for this Party Summary.</small>
+          {% for error in form.decoration_example_upload.errors %}<p class="field-error" role="alert">{{ error }}</p>{% endfor %}
+          {% if summary.decoration_example %}<label class="remove-image-check">{{ form.remove_decoration_example }} Remove current image</label>{% endif %}
+        </div>
+      </div>
+    </section>
     <section class="panel invoice-record-panel">
       <div class="panel-heading">
         <div><h2>Invoice records</h2><span>Internal only — this section never appears in the standard Party Summary PDF.</span></div>

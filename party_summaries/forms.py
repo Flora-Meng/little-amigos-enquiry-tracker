@@ -137,10 +137,10 @@ def room_choices_for_location(location_code):
 
 class PartySummaryForm(forms.ModelForm):
     decoration_example_upload = forms.FileField(
-        label="Decoration example",
+        label="Theme library photo",
         required=False,
         widget=forms.FileInput(attrs={"accept": "image/jpeg,image/png,image/webp"}),
-        help_text="JPG, PNG or WebP, up to 5 MB.",
+        help_text="Theme, decoration or finished setup photo. JPG, PNG or WebP, up to 5 MB.",
     )
     remove_decoration_example = forms.BooleanField(
         label="Remove current decoration example",

@@ -1,0 +1,50 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Browse the current Little Amigos Southland party themes.">
+  <title>Southland theme list · Little Amigos</title>
+  <link rel="stylesheet" href="{% static 'css/app.css' %}?v=20261101-1">
+  <link rel="stylesheet" href="{% static 'css/southland_party_guide.css' %}?v=20261101-1">
+</head>
+<body class="southland-guide-body theme-list-body">
+  <header class="guide-topbar">
+    <a class="guide-brand" href="#top"><img src="{% static 'img/little-amigos-characters-stacked.png' %}" alt="" width="52" height="52"><span><small>Little Amigos</small><strong>Southland Theme List</strong></span></a>
+    <a class="guide-button guide-button-secondary" href="{% url 'southland_party_guide' %}">View party packages</a>
+  </header>
+  <main id="top">
+    <section class="theme-list-hero">
+      <p class="guide-eyebrow">Little Amigos Southland</p>
+      <h1>Choose a theme they’ll love.</h1>
+      <p>This page always shows our latest theme examples. Search by theme name, character or idea.</p>
+    </section>
+    <section class="guide-section theme-list-catalog" data-theme-catalog>
+      <div class="guide-section-heading">
+        <div><p class="guide-eyebrow">Current theme collection</p><h2>{{ themes|length }} themes and growing</h2><p>Open any theme to see all available example photos.</p></div>
+        <label class="theme-search"><span class="sr-only">Search themes</span><input type="search" placeholder="Try ‘Frozen’ or ‘PAW’…" data-theme-search autocomplete="off"></label>
+      </div>
+      <div class="theme-filters" role="group" aria-label="Filter themes"><button type="button" class="is-active" data-theme-filter="all" aria-pressed="true">All themes <span>{{ themes|length }}</span></button><button type="button" data-theme-filter="magic" aria-pressed="false">Magic &amp; wonder</button><button type="button" data-theme-filter="adventure" aria-pressed="false">Adventure</button><button type="button" data-theme-filter="favourites" aria-pressed="false">Favourites</button><button type="button" data-theme-filter="custom" aria-pressed="false">Custom</button></div>
+      <div class="theme-grid">
+        {% for theme in themes %}
+        <button type="button" class="theme-card" data-theme-card data-theme-open="{{ theme.pk }}" data-category="{{ theme.category }}" data-name="{{ theme.search_text }}">
+          {% if theme.cover_url %}<img src="{{ theme.cover_url }}" alt="{{ theme.name }} party theme example" loading="lazy">{% else %}<span class="theme-placeholder">LA</span>{% endif %}
+          <span class="theme-card-copy"><small>{{ theme.get_category_display }}</small><strong>{{ theme.name }}</strong><em>{{ theme.photo_urls|length }} example{{ theme.photo_urls|length|pluralize }}</em></span>
+        </button>
+        {% endfor %}
+      </div>
+      <p class="theme-empty" data-theme-empty hidden>No matching theme found. Try another spelling or ask us about a custom printed theme.</p>
+      {% for theme in themes %}
+      <dialog class="theme-dialog" data-theme-dialog="{{ theme.pk }}" aria-labelledby="theme-title-{{ theme.pk }}">
+        <div class="theme-dialog-header"><div><small>{{ theme.get_category_display }}</small><h3 id="theme-title-{{ theme.pk }}">{{ theme.name }}</h3></div><button type="button" data-theme-close aria-label="Close theme gallery">×</button></div>
+        {% if theme.description %}<p>{{ theme.description }}</p>{% endif %}
+        <div class="theme-dialog-gallery">{% for photo_url in theme.photo_urls %}<img src="{{ photo_url }}" alt="{{ theme.name }} room decoration example {{ forloop.counter }}" loading="lazy">{% empty %}<p>No photo has been added yet.</p>{% endfor %}</div>
+      </dialog>
+      {% endfor %}
+    </section>
+  </main>
+  <footer class="guide-footer"><span>Little Amigos Southland</span><span>Theme examples may be adapted to suit the selected room.</span></footer>
+  <script src="{% static 'js/southland_party_guide.js' %}?v=20261024-2" defer></script>
+</body>
+</html>

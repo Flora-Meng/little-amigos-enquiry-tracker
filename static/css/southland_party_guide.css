@@ -199,6 +199,13 @@ html { scroll-behavior: smooth; }
 .recommendation-result.is-ready { background: linear-gradient(135deg,#226d66,#329b91); }
 .recommendation-note { margin: 14px 0 0; color: #708085; font-size: .78rem; line-height: 1.5; }
 
+.theme-list-body main { padding-top: 28px; }
+.theme-list-hero { width: min(1180px,calc(100% - 32px)); margin: 0 auto 22px; padding: clamp(32px,6vw,70px); border-radius: 30px; color: white; background: linear-gradient(135deg,#216d67,#39aa9f 58%,#85d7c8); box-shadow: 0 20px 55px rgba(36,109,102,.18); }
+.theme-list-hero .guide-eyebrow { color: #fff3bc; }
+.theme-list-hero h1 { max-width: 760px; font-size: clamp(2.35rem,6vw,4.6rem); }
+.theme-list-hero > p:last-child { max-width: 690px; margin: 15px 0 0; color: rgba(255,255,255,.86); font-size: 1.05rem; line-height: 1.55; }
+.theme-list-catalog { margin-top: 0; }
+
 .theme-filters button span { display: inline-grid; place-items: center; min-width: 23px; height: 23px; margin-left: 4px; border-radius: 99px; color: var(--guide-teal-dark); background: #e5f5f2; font-size: .68rem; }
 .theme-grid { grid-template-columns: repeat(4,minmax(0,1fr)); }
 .theme-card { min-height: 0; padding: 0; border: 1px solid #e7dfd3; color: var(--guide-ink); background: white; font: inherit; text-align: left; cursor: pointer; }

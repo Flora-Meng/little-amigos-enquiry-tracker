@@ -114,6 +114,13 @@ class SouthlandShowcaseTheme(models.Model):
 
 class SouthlandShowcaseThemePhoto(models.Model):
     theme = models.ForeignKey(SouthlandShowcaseTheme, on_delete=models.CASCADE, related_name="photos")
+    source_summary = models.ForeignKey(
+        "party_summaries.PartySummary",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="southland_showcase_photos",
+    )
     static_path = models.CharField(max_length=255, blank=True)
     image_data = models.BinaryField(null=True, blank=True, editable=False)
     image_name = models.CharField(max_length=255, blank=True)
@@ -122,6 +129,13 @@ class SouthlandShowcaseThemePhoto(models.Model):
 
     class Meta:
         ordering = ("sort_order", "id")
+        constraints = [
+            models.UniqueConstraint(
+                fields=("theme", "source_summary"),
+                condition=models.Q(source_summary__isnull=False),
+                name="unique_summary_photo_per_southland_theme",
+            )
+        ]
 
 
 class SouthlandShowcaseAddon(models.Model):

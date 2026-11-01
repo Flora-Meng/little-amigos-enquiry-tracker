@@ -50,6 +50,24 @@
 .manager-addon > div { padding: 16px 17px; }
 .manager-addon > div > strong { color: #26746c; }
 .manager-addon footer { display: flex; gap: 8px; padding: 0 17px 17px; }
+.manager-library-panel { margin: 24px 0; }
+.manager-library-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 16px; padding: 24px; border-top: 1px solid #ece5db; }
+.manager-library-card { overflow: hidden; display: grid; align-content: start; border: 1px solid #e4ddd2; border-radius: 18px; background: #fff; }
+.manager-library-card > a img { width: 100%; aspect-ratio: 4 / 3; display: block; object-fit: cover; object-position: top; background: #eee; }
+.manager-library-copy { padding: 15px 16px; }
+.manager-library-copy small { color: #d86147; font-size: .68rem; font-weight: 900; letter-spacing: .07em; text-transform: uppercase; }
+.manager-library-copy h3 { margin: 5px 0; }
+.manager-library-copy p { margin: 0; color: var(--muted); font-size: .82rem; }
+.manager-library-copy span { display: inline-flex; margin-top: 9px; padding: 5px 8px; border-radius: 999px; color: #28736b; background: #e4f5f1; font-size: .7rem; font-weight: 800; }
+.manager-library-actions { display: grid; gap: 10px; padding: 0 16px 17px; }
+.manager-library-actions form { display: grid; gap: 8px; padding-top: 10px; border-top: 1px solid #eee8df; }
+.manager-library-actions label { display: grid; gap: 6px; }
+.manager-library-actions label span { font-size: .72rem; font-weight: 850; }
+.manager-library-actions select, .manager-library-actions input { width: 100%; min-height: 42px; padding: 0 10px; border: 1px solid #dcd4c8; border-radius: 10px; color: var(--ink); background: white; font: inherit; }
+.manager-library-actions .button { width: 100%; }
+.theme-library-upload-panel { margin-top: 24px; }
+.theme-library-upload-body { padding: 24px; border-top: 1px solid var(--border); }
+.theme-library-upload-body .decoration-upload { max-width: 680px; }
 
 @media (max-width: 900px) {
   .manager-form { grid-template-columns: 1fr 1fr; }
@@ -57,6 +75,7 @@
   .manager-item { grid-template-columns: 1fr; }
   .manager-item-actions { justify-content: start; }
   .manager-addon-grid { grid-template-columns: 1fr 1fr; }
+  .manager-library-grid { grid-template-columns: 1fr 1fr; }
 }
 
 @media (max-width: 620px) {
@@ -66,6 +85,7 @@
   .manager-item-main { grid-template-columns: 1fr; }
   .manager-upload { align-items: stretch; flex-direction: column; }
   .manager-addon-grid { grid-template-columns: 1fr; padding: 17px; }
+  .manager-library-grid { grid-template-columns: 1fr; padding: 17px; }
 }
 
 [hidden] { display: none !important; }

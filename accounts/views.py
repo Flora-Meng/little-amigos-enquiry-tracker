@@ -16,6 +16,7 @@ from enquiries.services import due_today, overdue
 
 from .authorization import enquiries_visible_to
 from .models import (
+    Location,
     SouthlandShowcaseAddon,
     SouthlandShowcaseInvite,
     SouthlandShowcaseTheme,
@@ -278,15 +279,7 @@ def southland_party_guide(request, token=None):
         package["weekday_label"] = f"${package['weekday']:,}"
         package["weekend_label"] = f"${package['weekend']:,}"
 
-    themes = list(
-        SouthlandShowcaseTheme.objects.filter(is_active=True).prefetch_related(
-            Prefetch("photos", queryset=SouthlandShowcaseThemePhoto.objects.order_by("sort_order", "id"))
-        )
-    )
-    for theme in themes:
-        theme.photo_urls = [_theme_photo_url(photo) for photo in theme.photos.all()]
-        theme.cover_url = theme.photo_urls[0] if theme.photo_urls else ""
-        theme.search_text = f"{theme.name} {theme.search_terms}".lower()
+    themes = _southland_theme_catalog()
 
     addons = list(SouthlandShowcaseAddon.objects.filter(is_active=True))
     for addon in addons:
@@ -296,6 +289,28 @@ def southland_party_guide(request, token=None):
         request,
         "package_showcase/southland_public.html",
         {"packages": packages, "themes": themes, "addons": addons, "invite": invite},
+    )
+
+
+def _southland_theme_catalog():
+    themes = list(
+        SouthlandShowcaseTheme.objects.filter(is_active=True).prefetch_related(
+            Prefetch("photos", queryset=SouthlandShowcaseThemePhoto.objects.order_by("sort_order", "id"))
+        )
+    )
+    for theme in themes:
+        theme.photo_urls = [_theme_photo_url(photo) for photo in theme.photos.all()]
+        theme.cover_url = theme.photo_urls[0] if theme.photo_urls else ""
+        theme.search_text = f"{theme.name} {theme.search_terms}".lower()
+    return themes
+
+
+def southland_theme_list(request):
+    """A permanent public link that always shows the current Southland themes."""
+    return render(
+        request,
+        "package_showcase/southland_theme_list.html",
+        {"themes": _southland_theme_catalog()},
     )
 
 
@@ -370,6 +385,8 @@ def _validated_image(upload):
 @login_required
 def southland_showcase_manage(request):
     _require_admin(request.user)
+    from party_summaries.models import PartySummary
+
     themes = list(SouthlandShowcaseTheme.objects.prefetch_related("photos").all())
     for theme in themes:
         theme.admin_photos = list(theme.photos.all())
@@ -378,12 +395,27 @@ def southland_showcase_manage(request):
     addons = list(SouthlandShowcaseAddon.objects.all())
     for addon in addons:
         addon.image_url = _addon_image_url(addon)
+    library_photos = list(
+        PartySummary.objects.filter(
+            location__code=Location.Code.SOUTHLAND,
+            decoration_example__isnull=False,
+        )
+        .select_related("location")
+        .prefetch_related("southland_showcase_photos__theme")
+        .order_by("-party_date", "-updated_at")
+    )
+    for summary in library_photos:
+        summary.library_photo_url = reverse("party_summary_decoration", args=(summary.pk,))
+        summary.applied_theme_names = [
+            photo.theme.name for photo in summary.southland_showcase_photos.all()
+        ]
     return render(
         request,
         "accounts/southland_showcase_manage.html",
         {
             "themes": themes,
             "addons": addons,
+            "library_photos": library_photos,
             "category_choices": SouthlandShowcaseTheme.Category.choices,
         },
     )
@@ -425,6 +457,53 @@ def southland_showcase_update(request):
                     **image,
                 )
                 messages.success(request, f"A photo was added to {theme.name}.")
+            elif action == "apply_summary_photo":
+                from party_summaries.models import PartySummary
+
+                theme = get_object_or_404(SouthlandShowcaseTheme, pk=request.POST.get("theme_id"))
+                summary = get_object_or_404(
+                    PartySummary,
+                    pk=request.POST.get("summary_id"),
+                    location__code=Location.Code.SOUTHLAND,
+                    decoration_example__isnull=False,
+                )
+                SouthlandShowcaseThemePhoto.objects.filter(
+                    theme=theme, source_summary=summary,
+                ).delete()
+                SouthlandShowcaseThemePhoto.objects.create(
+                    theme=theme,
+                    source_summary=summary,
+                    image_data=bytes(summary.decoration_example),
+                    image_name=summary.decoration_example_name,
+                    image_content_type=summary.decoration_example_content_type,
+                    sort_order=theme.photos.count() + 1,
+                )
+                messages.success(request, f"The Party Summary photo was added to {theme.name}.")
+            elif action == "create_theme_from_summary":
+                from party_summaries.models import PartySummary
+
+                summary = get_object_or_404(
+                    PartySummary,
+                    pk=request.POST.get("summary_id"),
+                    location__code=Location.Code.SOUTHLAND,
+                    decoration_example__isnull=False,
+                )
+                name = request.POST.get("name", "").strip() or summary.theme.strip()
+                if not name:
+                    raise ValueError("Enter a name for the new theme.")
+                theme = SouthlandShowcaseTheme.objects.create(
+                    name=name,
+                    category=SouthlandShowcaseTheme.Category.FAVOURITES,
+                    sort_order=(SouthlandShowcaseTheme.objects.order_by("-sort_order").values_list("sort_order", flat=True).first() or 0) + 1,
+                )
+                SouthlandShowcaseThemePhoto.objects.create(
+                    theme=theme,
+                    source_summary=summary,
+                    image_data=bytes(summary.decoration_example),
+                    image_name=summary.decoration_example_name,
+                    image_content_type=summary.decoration_example_content_type,
+                )
+                messages.success(request, f"{theme.name} was created from the Party Summary photo.")
             elif action == "toggle_theme":
                 theme = get_object_or_404(SouthlandShowcaseTheme, pk=request.POST.get("theme_id"))
                 theme.is_active = not theme.is_active

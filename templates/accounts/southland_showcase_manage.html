@@ -5,7 +5,7 @@
 <main class="page-shell showcase-manager">
   <div class="page-heading">
     <div><p class="eyebrow">Southland showcase</p><h1>Manage themes and add-ons</h1><p class="muted">Changes here appear on the public Southland party guide.</p></div>
-    <a class="button button-secondary" href="{% url 'southland_party_guide' %}" target="_blank">Open customer page</a>
+    <div class="detail-actions"><a class="button button-secondary" href="{% url 'southland_theme_list' %}" target="_blank">Open customer theme list</a><a class="button button-secondary" href="{% url 'southland_party_guide' %}" target="_blank">Open full party guide</a></div>
   </div>
 
   {% if messages %}<div class="manager-messages">{% for message in messages %}<p class="manager-message manager-message-{{ message.tags }}">{{ message }}</p>{% endfor %}</div>{% endif %}
@@ -39,6 +39,22 @@
         </div>
       </article>
       {% endfor %}
+    </div>
+  </section>
+
+  <section class="panel manager-library-panel">
+    <div class="panel-heading"><div><p class="eyebrow">Theme photo library</p><h2>Photos from Party Summaries</h2><p class="muted">Every Southland Theme Library photo uploaded in a Party Summary appears here. Add it to an existing theme or create a new theme; the permanent customer link updates automatically.</p></div></div>
+    <div class="manager-library-grid">
+      {% for summary in library_photos %}
+      <article class="manager-library-card">
+        <a href="{{ summary.library_photo_url }}" target="_blank" rel="noopener"><img src="{{ summary.library_photo_url }}" alt="{{ summary.theme|default:'Party theme' }} reference from {{ summary.owner_name }}"></a>
+        <div class="manager-library-copy"><small>{{ summary.party_date|date:"j M Y" }} · {{ summary.get_room_type_display }}</small><h3>{{ summary.theme|default:"Theme name not entered" }}</h3><p>{{ summary.owner_name }}{% if summary.kids_name %} · {{ summary.kids_name }}{% endif %}</p>{% if summary.applied_theme_names %}<span>Added to: {{ summary.applied_theme_names|join:", " }}</span>{% endif %}</div>
+        <div class="manager-library-actions">
+          <form method="post" action="{% url 'southland_showcase_update' %}">{% csrf_token %}<input type="hidden" name="action" value="apply_summary_photo"><input type="hidden" name="summary_id" value="{{ summary.pk }}"><label><span>Add to an existing theme</span><select name="theme_id" required><option value="">Choose a theme</option>{% for theme in themes %}<option value="{{ theme.pk }}">{{ theme.name }}</option>{% endfor %}</select></label><button class="button button-secondary" type="submit">Add / refresh photo</button></form>
+          <form method="post" action="{% url 'southland_showcase_update' %}">{% csrf_token %}<input type="hidden" name="action" value="create_theme_from_summary"><input type="hidden" name="summary_id" value="{{ summary.pk }}"><label><span>Create a new theme</span><input name="name" value="{{ summary.theme }}" placeholder="New theme name" required></label><button class="button button-primary" type="submit">Create theme</button></form>
+        </div>
+      </article>
+      {% empty %}<div class="empty-state"><p>No Party Summary photos yet</p><span>Upload a Theme Library photo in a Southland Party Summary and it will appear here.</span></div>{% endfor %}
     </div>
   </section>
 

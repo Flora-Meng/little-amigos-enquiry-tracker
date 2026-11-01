@@ -24,6 +24,7 @@ from accounts.views import (
     package_showcase,
     southland_addon_image,
     southland_party_guide,
+    southland_theme_list,
     southland_showcase_manage,
     southland_showcase_update,
     southland_theme_photo,
@@ -35,6 +36,7 @@ from enquiries.views import add_enquiry_images, add_note, archive_enquiry, delet
 urlpatterns = [
     path("health/", health_check, name="health_check"),
     path("party-guide/southland/", southland_party_guide, name="southland_party_guide"),
+    path("party-guide/southland/themes/", southland_theme_list, name="southland_theme_list"),
     path("party-guide/southland/<uuid:token>/", southland_party_guide, name="southland_party_guide_invite"),
     path("party-guide/southland/theme-photo/<int:photo_id>/", southland_theme_photo, name="southland_theme_photo"),
     path("party-guide/southland/addon-image/<int:addon_id>/", southland_addon_image, name="southland_addon_image"),
