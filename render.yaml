@@ -18,6 +18,10 @@ services:
         fromDatabase:
           name: little-amigos-enquiry-tracker-db
           property: connectionString
+      - key: LARK_APP_ID
+        sync: false
+      - key: LARK_APP_SECRET
+        sync: false
 
 databases:
   - name: little-amigos-enquiry-tracker-db

@@ -48,6 +48,7 @@ from .models import (
 from .pdf import (
     build_invoice_summary_pdf, build_invoice_summaries_pdf,
     build_party_summaries_pdf, build_party_summary_pdf,
+    build_selected_invoice_summaries_pdf,
 )
 
 
@@ -201,11 +202,22 @@ def party_summary_list(request):
     summaries = summaries_visible_to(request.user)
     search = request.GET.get("search", "").strip()
     party_date = request.GET.get("party_date", "").strip()
+    selected_week = request.GET.get("week", "").strip()
     if search:
         summaries = summaries.filter(Q(owner_name__icontains=search) | Q(owner_number__icontains=search)
             | Q(kids_name__icontains=search) | Q(theme__icontains=search) | Q(location__name__icontains=search))
     if party_date:
         summaries = summaries.filter(party_date=party_date)
+    if selected_week:
+        try:
+            week_start_filter = datetime.strptime(f"{selected_week}-1", "%G-W%V-%u").date()
+        except ValueError:
+            selected_week = ""
+        else:
+            summaries = summaries.filter(
+                party_date__gte=week_start_filter,
+                party_date__lte=week_start_filter + timedelta(days=6),
+            )
     summaries = list(summaries.order_by("-party_date", "-updated_at"))
     weeks = []
     for summary in summaries:
@@ -232,7 +244,55 @@ def party_summary_list(request):
     )
     return render(request, "party_summaries/list.html", {"summaries": summaries, "week_groups": weeks,
         "result_count": len(summaries), "search": search, "party_date": party_date,
-        "e_invitation_tasks": e_invitation_tasks})
+        "selected_week": selected_week, "e_invitation_tasks": e_invitation_tasks})
+
+
+@login_required
+@require_POST
+def party_summary_bulk_action(request):
+    selected_ids = list(dict.fromkeys(request.POST.getlist("summary_ids")))
+    if not selected_ids:
+        messages.warning(request, "Select at least one party first.")
+        return redirect("party_summary_list")
+    summaries = list(
+        summaries_visible_to(request.user)
+        .filter(id__in=selected_ids)
+        .defer("invoice_file")
+        .prefetch_related("menu_items", "bill_items")
+        .order_by("party_date", "party_time", "owner_name")
+    )
+    if not summaries:
+        raise Http404
+
+    action = request.POST.get("action")
+    if action == "download_invoice":
+        pdf_buffer = build_selected_invoice_summaries_pdf(summaries)
+        first_date = min(summary.party_date for summary in summaries)
+        last_date = max(summary.party_date for summary in summaries)
+        filename = f"selected-invoice-summaries-{first_date:%Y-%m-%d}-to-{last_date:%Y-%m-%d}.pdf"
+        return FileResponse(
+            pdf_buffer, content_type="application/pdf", as_attachment=True, filename=filename,
+        )
+    if action == "upload_lark":
+        from .lark import LarkAPIError, LarkConfigurationError, sync_summaries_to_lark
+
+        try:
+            result = sync_summaries_to_lark(summaries)
+        except (LarkAPIError, LarkConfigurationError) as error:
+            messages.error(request, str(error))
+        else:
+            if result["uploaded"]:
+                messages.success(
+                    request,
+                    f"Uploaded {result['uploaded']} part{'' if result['uploaded'] == 1 else 'ies'} to Lark."
+                )
+            if result["skipped"]:
+                messages.info(request, f"Skipped {result['skipped']} already uploaded parties.")
+            if result["failed"]:
+                detail = " | ".join(result["errors"][:3])
+                messages.error(request, f"{result['failed']} parties failed to upload. {detail}")
+        return redirect("party_summary_list")
+    raise Http404
 
 
 @login_required

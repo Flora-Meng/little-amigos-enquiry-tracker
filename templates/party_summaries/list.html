@@ -29,6 +29,10 @@
       <label for="summary-date">Party date</label>
       <input id="summary-date" type="date" name="party_date" value="{{ party_date }}">
     </div>
+    <div class="field">
+      <label for="summary-week">Party week</label>
+      <input id="summary-week" type="week" name="week" value="{{ selected_week }}">
+    </div>
     <div class="filter-actions">
       <a class="button button-quiet" href="{% url 'party_summary_list' %}">Clear</a>
       <button class="button button-primary" type="submit">Search</button>
@@ -36,12 +40,24 @@
   </form>
 
   {% if week_groups %}
+    <form method="post" action="{% url 'party_summary_bulk_action' %}" id="party-bulk-form">
+      {% csrf_token %}
+      <div class="party-bulk-actions">
+        <div>
+          <strong><span id="selected-party-count">0</span> selected</strong>
+          <span>Choose a week above, then select the parties to include.</span>
+        </div>
+        <div>
+          <button class="button button-download" type="submit" name="action" value="download_invoice">Download selected invoice summaries</button>
+          <button class="button button-primary" type="submit" name="action" value="upload_lark">Upload selected to Lark</button>
+        </div>
+      </div>
     <div class="party-week-list">
       {% for week in week_groups %}
-        <section class="party-week{% if week.is_current_week %} party-week-current{% endif %}">
+        <section class="party-week{% if week.is_current_week %} party-week-current{% endif %}" data-party-week="{{ week.start|date:'Y-m-d' }}">
           <header class="party-week-heading">
             <div><p class="eyebrow{% if week.is_current_week %} current-week-label{% endif %}">{% if week.is_current_week %}This week{% else %}Week{% endif %}</p><h2>{{ week.start|date:"j M" }} - {{ week.end|date:"j M Y" }}</h2></div>
-            <span>{{ week.locations|length }} location{{ week.locations|length|pluralize }}</span>
+            <div class="party-week-select"><label><input type="checkbox" class="select-party-week"> Select this week</label><span>{{ week.locations|length }} location{{ week.locations|length|pluralize }}</span></div>
           </header>
           <div class="party-location-list">
             {% for location_group in week.locations %}
@@ -55,12 +71,13 @@
                 </header>
                 <div class="table-scroll">
                   <table class="party-table">
-                    <thead><tr><th>Date &amp; time</th><th>Owner</th><th>Room</th><th>Guests</th><th>Balance</th><th>Actions</th></tr></thead>
+                    <thead><tr><th class="party-select-column"><span class="sr-only">Select</span></th><th>Date &amp; time</th><th>Owner</th><th>Room</th><th>Guests</th><th>Balance</th><th>Actions</th></tr></thead>
                     <tbody>
                     {% for summary in location_group.summaries %}
                       <tr>
+                        <td data-label="Select" class="party-select-column"><input class="party-select-checkbox" type="checkbox" name="summary_ids" value="{{ summary.id }}" aria-label="Select {{ summary.owner_name }}"></td>
                         <td data-label="Date & time"><strong>{{ summary.party_date|date:"D, j M Y" }}</strong><span class="table-subtext">{{ summary.party_time }}</span></td>
-                        <td data-label="Owner"><a class="record-link" href="{% url 'party_summary_edit' summary.id %}">{{ summary.owner_name }}</a><span class="table-subtext">{{ summary.owner_number }}</span></td>
+                        <td data-label="Owner"><a class="record-link" href="{% url 'party_summary_edit' summary.id %}">{{ summary.owner_name }}</a><span class="table-subtext">{{ summary.owner_number }}</span>{% if summary.lark_synced_at %}<span class="lark-sync-status lark-sync-success">✓ Uploaded to Lark</span>{% elif summary.lark_sync_error %}<span class="lark-sync-status lark-sync-failed">Lark upload needs attention</span>{% endif %}</td>
                         <td data-label="Room"><span class="pill">{{ summary.get_room_type_display }}</span></td>
                         <td data-label="Guests">{{ summary.kids_count }} kids · {{ summary.adults_count }} adults</td>
                         <td data-label="Balance"><strong>${{ summary.total_balance|floatformat:2 }}</strong></td>
@@ -76,9 +93,44 @@
         </section>
       {% endfor %}
     </div>
+    </form>
   {% else %}
     <section class="panel party-results"><div class="empty-state"><p>No party summaries found</p><span>Create the first summary or try a different search.</span></div></section>
   {% endif %}
 
 </main>
+<script>
+  (function () {
+    const form = document.getElementById("party-bulk-form");
+    if (!form) return;
+    const partyCheckboxes = Array.from(form.querySelectorAll(".party-select-checkbox"));
+    const count = document.getElementById("selected-party-count");
+    function updateCount() {
+      count.textContent = partyCheckboxes.filter((checkbox) => checkbox.checked).length;
+      form.querySelectorAll("[data-party-week]").forEach((week) => {
+        const weekBoxes = Array.from(week.querySelectorAll(".party-select-checkbox"));
+        const weekToggle = week.querySelector(".select-party-week");
+        const selected = weekBoxes.filter((checkbox) => checkbox.checked).length;
+        weekToggle.checked = weekBoxes.length > 0 && selected === weekBoxes.length;
+        weekToggle.indeterminate = selected > 0 && selected < weekBoxes.length;
+      });
+    }
+    form.querySelectorAll(".select-party-week").forEach((toggle) => {
+      toggle.addEventListener("change", function () {
+        toggle.closest("[data-party-week]").querySelectorAll(".party-select-checkbox").forEach((checkbox) => {
+          checkbox.checked = toggle.checked;
+        });
+        updateCount();
+      });
+    });
+    partyCheckboxes.forEach((checkbox) => checkbox.addEventListener("change", updateCount));
+    form.addEventListener("submit", function (event) {
+      if (!partyCheckboxes.some((checkbox) => checkbox.checked)) {
+        event.preventDefault();
+        window.alert("Please select at least one party.");
+      }
+    });
+    updateCount();
+  }());
+</script>
 {% endblock %}

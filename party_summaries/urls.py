@@ -9,6 +9,7 @@ urlpatterns = [
     path("menu/<uuid:token>/", views.customer_menu, name="customer_menu"),
     path("menu/<uuid:token>/thanks/", views.customer_menu_thanks, name="customer_menu_thanks"),
     path("", views.party_summary_list, name="party_summary_list"),
+    path("bulk-action/", views.party_summary_bulk_action, name="party_summary_bulk_action"),
     path("intake-links/", views.party_intake_links, name="party_intake_links"),
     path("intake-links/from-enquiry/<uuid:enquiry_id>/", views.party_intake_from_enquiry,
         name="party_intake_from_enquiry"),

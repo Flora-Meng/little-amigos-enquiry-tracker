@@ -21,6 +21,7 @@ from .models import (
     PartyBillItem, PartyIntakeLink, PartyMenuItem, PartySummary,
     voucher_food_unit_price,
 )
+from .lark import sync_summaries_to_lark
 from .pdf import _numeric_quantity
 
 
@@ -418,6 +419,148 @@ class PartySummaryTests(TestCase):
         self.assertIn("$1,200.00", totals_text)
         self.client.force_login(self.emma)
         self.assertEqual(self.client.get(url).status_code, 404)
+
+    def test_week_filter_and_selected_invoice_summary(self):
+        monday = timezone.localdate() + timedelta(days=(7 - timezone.localdate().weekday()))
+        southland_summary = self._create_summary()
+        southland_summary.party_date = monday + timedelta(days=1)
+        southland_summary.save(update_fields=("party_date",))
+        canberra_summary = self._create_summary(location=self.canberra, user=self.emma)
+        canberra_summary.party_date = monday + timedelta(days=3)
+        canberra_summary.save(update_fields=("party_date",))
+        outside_summary = self._create_summary()
+        outside_summary.party_date = monday + timedelta(days=8)
+        outside_summary.save(update_fields=("party_date",))
+        iso_year, iso_week, _ = monday.isocalendar()
+        self.client.force_login(self.flora)
+
+        filtered = self.client.get(
+            reverse("party_summary_list"), {"week": f"{iso_year}-W{iso_week:02d}"},
+        )
+
+        self.assertEqual(filtered.context["result_count"], 2)
+        self.assertContains(filtered, southland_summary.owner_name)
+        self.assertNotContains(filtered, str(outside_summary.id))
+
+        response = self.client.post(reverse("party_summary_bulk_action"), {
+            "summary_ids": [str(southland_summary.id), str(canberra_summary.id)],
+            "action": "download_invoice",
+        })
+        self.assertEqual(response.status_code, 200)
+        reader = PdfReader(BytesIO(b"".join(response.streaming_content)))
+        self.assertEqual(len(reader.pages), 6)
+
+    def test_bulk_action_cannot_include_another_locations_party_for_staff(self):
+        southland_summary = self._create_summary(user=self.kiva)
+        canberra_summary = self._create_summary(location=self.canberra, user=self.emma)
+        self.client.force_login(self.kiva)
+
+        response = self.client.post(reverse("party_summary_bulk_action"), {
+            "summary_ids": [str(southland_summary.id), str(canberra_summary.id)],
+            "action": "download_invoice",
+        })
+
+        self.assertEqual(response.status_code, 200)
+        reader = PdfReader(BytesIO(b"".join(response.streaming_content)))
+        self.assertEqual(len(reader.pages), 3)
+
+    def test_lark_upload_uses_actual_balance_and_assigns_food_tags(self):
+        class FakeLarkClient:
+            order_table_id = "orders"
+            food_table_id = "food"
+
+            def __init__(self):
+                self.created = {"orders": [], "food": []}
+
+            def fields(self, table_id):
+                names = (
+                    ("Party ID", 1), ("Store", 3), ("Date", 5),
+                    ("Owner Name", 1), ("Time", 1), ("Room Type", 3),
+                    ("Deposit", 2), ("Balance", 2), ("Total", 2),
+                ) if table_id == "orders" else (
+                    ("Party ID", 1), ("Store", 3), ("Date", 5), ("Item", 1),
+                    ("Note", 1), ("Qty", 2), ("Price", 2), ("Amount", 2), ("Tag", 3),
+                )
+                return [{"field_name": name, "type": field_type} for name, field_type in names]
+
+            def create_records(self, table_id, records):
+                self.created[table_id].extend(records)
+                return [{"record_id": f"{table_id}-{index}"} for index, _ in enumerate(records)]
+
+            def get_record(self, table_id, record_id):
+                raise AssertionError("Party ID is writable in this test")
+
+        summary = self._create_summary(location=self.canberra, user=self.emma)
+        summary.room_type = PartySummary.RoomType.DOUBLE_LITE
+        summary.actual_balance = Decimal("420.00")
+        summary.deposit_amount = Decimal("500.00")
+        summary.save()
+        for name, amount in (("Fryer", "88.00"), ("Sandwiches", "65.00"), ("Pizza", "19.00"), ("Chips", "38.00"), ("Water", "0.00")):
+            PartyMenuItem.objects.create(
+                summary=summary, category=PartyMenuItem.Category.ADULT,
+                quantity="1", item=name, amount=Decimal(amount),
+            )
+        client = FakeLarkClient()
+
+        result = sync_summaries_to_lark([summary], client=client)
+
+        self.assertEqual(result["uploaded"], 1)
+        self.assertEqual(client.created["orders"][0]["Balance"], 420.0)
+        self.assertEqual(client.created["orders"][0]["Total"], 920.0)
+        tags = {record["Item"]: record["Tag"] for record in client.created["food"]}
+        self.assertEqual(tags["Water"], "Free")
+        self.assertEqual(tags["Fryer"], "Package")
+        self.assertEqual(tags["Sandwiches"], "Package")
+        self.assertEqual(tags["Pizza"], "Package")
+        self.assertEqual(tags["Chips"], "Extra")
+        summary.refresh_from_db()
+        self.assertTrue(summary.lark_synced_at)
+
+        repeated = sync_summaries_to_lark([summary], client=client)
+        self.assertEqual(repeated["skipped"], 1)
+        self.assertEqual(len(client.created["orders"]), 1)
+
+    def test_lark_upload_reads_formula_party_id_before_creating_food(self):
+        class FormulaPartyIdClient:
+            order_table_id = "orders"
+            food_table_id = "food"
+
+            def __init__(self):
+                self.food_records = []
+
+            def fields(self, table_id):
+                if table_id == "orders":
+                    return [
+                        {"field_name": "Party ID", "type": 20},
+                        {"field_name": "Owner Name", "type": 1},
+                    ]
+                return [
+                    {"field_name": "Party ID", "type": 1},
+                    {"field_name": "Item", "type": 1},
+                    {"field_name": "Tag", "type": 3},
+                ]
+
+            def create_records(self, table_id, records):
+                if table_id == "food":
+                    self.food_records.extend(records)
+                return [{"record_id": "rec-order-1"}]
+
+            def get_record(self, table_id, record_id):
+                return {"fields": {"Party ID": "S-D2611030"}}
+
+        summary = self._create_summary()
+        PartyMenuItem.objects.create(
+            summary=summary, category=PartyMenuItem.Category.KIDS,
+            quantity="10", item="Nuggets", amount=Decimal("0.00"),
+        )
+        client = FormulaPartyIdClient()
+
+        result = sync_summaries_to_lark([summary], client=client)
+
+        self.assertEqual(result["uploaded"], 1)
+        self.assertEqual(client.food_records[0]["Party ID"], "S-D2611030")
+        summary.refresh_from_db()
+        self.assertEqual(summary.lark_party_id, "S-D2611030")
 
     def test_confirmation_email_is_generated_from_current_summary(self):
         summary = self._create_summary()

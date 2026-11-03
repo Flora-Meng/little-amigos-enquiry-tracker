@@ -189,3 +189,13 @@ LOGOUT_REDIRECT_URL = "login"
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Lark Base integration. Credentials are configured only in the deployment
+# environment and must never be committed to the repository.
+LARK_APP_ID = os.environ.get("LARK_APP_ID", "")
+LARK_APP_SECRET = os.environ.get("LARK_APP_SECRET", "")
+LARK_PARTY_BASE_TOKEN = os.environ.get(
+    "LARK_PARTY_BASE_TOKEN", "SHeabSayZaye4oslvPBjhpNvpTl",
+)
+LARK_ORDER_TABLE_ID = os.environ.get("LARK_ORDER_TABLE_ID", "tbl4NUJBJQ5s1Eve")
+LARK_FOOD_ORDER_TABLE_ID = os.environ.get("LARK_FOOD_ORDER_TABLE_ID", "tblYqLHF7wSvIe9i")
