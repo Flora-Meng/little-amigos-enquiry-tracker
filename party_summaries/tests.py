@@ -437,20 +437,35 @@ class PartySummaryTests(TestCase):
             reverse("party_summary_list"), {
                 "date_from": monday.isoformat(),
                 "date_to": (monday + timedelta(days=6)).isoformat(),
+                "location": Location.Code.SOUTHLAND,
             },
         )
 
-        self.assertEqual(filtered.context["result_count"], 2)
+        self.assertEqual(filtered.context["result_count"], 1)
         self.assertContains(filtered, southland_summary.owner_name)
+        self.assertNotContains(filtered, str(canberra_summary.id))
         self.assertNotContains(filtered, str(outside_summary.id))
 
         response = self.client.post(reverse("party_summary_bulk_action"), {
-            "summary_ids": [str(southland_summary.id), str(canberra_summary.id)],
+            "summary_ids": [str(southland_summary.id)],
             "action": "download_invoice",
         })
         self.assertEqual(response.status_code, 200)
         reader = PdfReader(BytesIO(b"".join(response.streaming_content)))
-        self.assertEqual(len(reader.pages), 6)
+        self.assertEqual(len(reader.pages), 3)
+
+    def test_admin_cannot_download_two_venues_in_one_invoice_pdf(self):
+        southland_summary = self._create_summary()
+        canberra_summary = self._create_summary(location=self.canberra, user=self.emma)
+        self.client.force_login(self.flora)
+
+        response = self.client.post(reverse("party_summary_bulk_action"), {
+            "summary_ids": [str(southland_summary.id), str(canberra_summary.id)],
+            "action": "download_invoice",
+        }, follow=True)
+
+        self.assertRedirects(response, reverse("party_summary_list"))
+        self.assertContains(response, "one venue at a time")
 
     def test_bulk_action_cannot_include_another_locations_party_for_staff(self):
         southland_summary = self._create_summary(user=self.kiva)

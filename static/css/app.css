@@ -239,7 +239,7 @@ th { color: var(--muted); font-size: .75rem; letter-spacing: .06em; text-transfo
 .module-party { border-color: #a8dbd2; background: #f6fcfa; }
 .module-party .module-icon { color: #306f66; background: #d8f3ed; }
 .dashboard-section-title { margin: 0 0 14px; color: var(--muted); font-size: .88rem; letter-spacing: .08em; text-transform: uppercase; }
-.party-filter { grid-template-columns: minmax(260px, 1fr) repeat(3, 170px) auto; align-items: end; }
+.party-filter { grid-template-columns: minmax(240px, 1fr) repeat(4, 160px) auto; align-items: end; }
 .party-filter .filter-search { grid-column: auto; }
 .party-filter .filter-actions { grid-column: auto; grid-row: auto; }
 .party-results { min-height: 260px; }

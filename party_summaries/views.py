@@ -204,11 +204,21 @@ def party_summary_list(request):
     party_date = request.GET.get("party_date", "").strip()
     date_from = request.GET.get("date_from", "").strip()
     date_to = request.GET.get("date_to", "").strip()
+    selected_location = request.GET.get("location", "").strip()
     if search:
         summaries = summaries.filter(Q(owner_name__icontains=search) | Q(owner_number__icontains=search)
             | Q(kids_name__icontains=search) | Q(theme__icontains=search) | Q(location__name__icontains=search))
     if party_date:
         summaries = summaries.filter(party_date=party_date)
+    available_locations = Location.objects.order_by("name")
+    if request.user.role == User.Role.STAFF:
+        available_locations = available_locations.filter(id=request.user.location_id)
+    available_locations = list(available_locations)
+    allowed_location_codes = {location.code for location in available_locations}
+    if selected_location in allowed_location_codes:
+        summaries = summaries.filter(location__code=selected_location)
+    else:
+        selected_location = ""
     if date_from:
         try:
             date_from_value = datetime.strptime(date_from, "%Y-%m-%d").date()
@@ -249,7 +259,8 @@ def party_summary_list(request):
     )
     return render(request, "party_summaries/list.html", {"summaries": summaries, "week_groups": weeks,
         "result_count": len(summaries), "search": search, "party_date": party_date,
-        "date_from": date_from, "date_to": date_to, "e_invitation_tasks": e_invitation_tasks})
+        "date_from": date_from, "date_to": date_to, "selected_location": selected_location,
+        "available_locations": available_locations, "e_invitation_tasks": e_invitation_tasks})
 
 
 @login_required
@@ -271,6 +282,12 @@ def party_summary_bulk_action(request):
 
     action = request.POST.get("action")
     if action == "download_invoice":
+        if len({summary.location_id for summary in summaries}) != 1:
+            messages.error(
+                request,
+                "Invoice summaries must be downloaded one venue at a time. Select Southland or Canberra first."
+            )
+            return redirect("party_summary_list")
         pdf_buffer = build_selected_invoice_summaries_pdf(summaries)
         first_date = min(summary.party_date for summary in summaries)
         last_date = max(summary.party_date for summary in summaries)

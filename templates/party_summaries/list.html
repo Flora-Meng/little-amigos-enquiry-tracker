@@ -37,6 +37,13 @@
       <label for="summary-date-to">To date</label>
       <input id="summary-date-to" type="date" name="date_to" value="{{ date_to }}">
     </div>
+    <div class="field">
+      <label for="summary-location">Venue</label>
+      <select id="summary-location" name="location">
+        <option value="">All venues</option>
+        {% for location in available_locations %}<option value="{{ location.code }}"{% if selected_location == location.code %} selected{% endif %}>{{ location.name }}</option>{% endfor %}
+      </select>
+    </div>
     <div class="filter-actions">
       <a class="button button-quiet" href="{% url 'party_summary_list' %}">Clear</a>
       <button class="button button-primary" type="submit">Search</button>
@@ -50,7 +57,7 @@
         <div>
           <label class="party-select-all"><input id="select-all-results" type="checkbox"> Select all filtered results</label>
           <strong><span id="selected-party-count">0</span> selected</strong>
-          <span>Choose any date range above, then select the parties to include.</span>
+          <span>Choose one venue and any date range above, then select the parties to include.</span>
         </div>
         <div>
           <button class="button button-download" type="submit" name="action" value="download_invoice">Download selected invoice summaries</button>
