@@ -902,17 +902,20 @@ def build_invoice_summaries_pdf(summaries):
 
 
 def build_selected_invoice_summaries_pdf(summaries):
-    """Combine a staff selection, including separate totals pages per location."""
+    """Combine a selection with a separate totals page for every week and location."""
     summaries = list(summaries)
     if not summaries:
         raise ValueError("At least one party summary is required")
     writer = PdfWriter()
     grouped = {}
     for summary in summaries:
-        grouped.setdefault(summary.location_id, []).append(summary)
-    for location_summaries in grouped.values():
-        location_summaries.sort(key=lambda item: (item.party_date, item.party_time, item.owner_name))
-        writer.append(PdfReader(build_invoice_summaries_pdf(location_summaries)))
+        week_start = summary.party_date - timedelta(days=summary.party_date.weekday())
+        grouped.setdefault((week_start, summary.location_id), []).append(summary)
+    for weekly_location_summaries in grouped.values():
+        weekly_location_summaries.sort(
+            key=lambda item: (item.party_date, item.party_time, item.owner_name)
+        )
+        writer.append(PdfReader(build_invoice_summaries_pdf(weekly_location_summaries)))
     output = SpooledTemporaryFile(max_size=2 * 1024 * 1024, mode="w+b")
     writer.write(output)
     output.seek(0)

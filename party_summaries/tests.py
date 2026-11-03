@@ -466,6 +466,31 @@ class PartySummaryTests(TestCase):
         reader = PdfReader(BytesIO(b"".join(response.streaming_content)))
         self.assertEqual(len(reader.pages), 3)
 
+    def test_selected_month_has_a_separate_invoice_totals_page_for_each_week(self):
+        monday = timezone.localdate() + timedelta(days=(7 - timezone.localdate().weekday()))
+        summaries = []
+        for week_offset in range(4):
+            summary = self._create_summary()
+            summary.party_date = monday + timedelta(days=week_offset * 7 + 2)
+            summary.actual_balance = Decimal("100.00")
+            summary.save(update_fields=("party_date", "actual_balance"))
+            summaries.append(summary)
+        self.client.force_login(self.flora)
+
+        response = self.client.post(reverse("party_summary_bulk_action"), {
+            "summary_ids": [str(summary.id) for summary in summaries],
+            "action": "download_invoice",
+        })
+
+        self.assertEqual(response.status_code, 200)
+        reader = PdfReader(BytesIO(b"".join(response.streaming_content)))
+        self.assertEqual(len(reader.pages), 12)
+        weekly_totals_pages = [
+            page for page in reader.pages
+            if "Weekly Invoice Summary" in (page.extract_text() or "")
+        ]
+        self.assertEqual(len(weekly_totals_pages), 4)
+
     def test_lark_upload_uses_actual_balance_and_assigns_food_tags(self):
         class FakeLarkClient:
             order_table_id = "orders"
