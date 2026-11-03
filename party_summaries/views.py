@@ -202,22 +202,27 @@ def party_summary_list(request):
     summaries = summaries_visible_to(request.user)
     search = request.GET.get("search", "").strip()
     party_date = request.GET.get("party_date", "").strip()
-    selected_week = request.GET.get("week", "").strip()
+    date_from = request.GET.get("date_from", "").strip()
+    date_to = request.GET.get("date_to", "").strip()
     if search:
         summaries = summaries.filter(Q(owner_name__icontains=search) | Q(owner_number__icontains=search)
             | Q(kids_name__icontains=search) | Q(theme__icontains=search) | Q(location__name__icontains=search))
     if party_date:
         summaries = summaries.filter(party_date=party_date)
-    if selected_week:
+    if date_from:
         try:
-            week_start_filter = datetime.strptime(f"{selected_week}-1", "%G-W%V-%u").date()
+            date_from_value = datetime.strptime(date_from, "%Y-%m-%d").date()
         except ValueError:
-            selected_week = ""
+            date_from = ""
         else:
-            summaries = summaries.filter(
-                party_date__gte=week_start_filter,
-                party_date__lte=week_start_filter + timedelta(days=6),
-            )
+            summaries = summaries.filter(party_date__gte=date_from_value)
+    if date_to:
+        try:
+            date_to_value = datetime.strptime(date_to, "%Y-%m-%d").date()
+        except ValueError:
+            date_to = ""
+        else:
+            summaries = summaries.filter(party_date__lte=date_to_value)
     summaries = list(summaries.order_by("-party_date", "-updated_at"))
     weeks = []
     for summary in summaries:
@@ -244,7 +249,7 @@ def party_summary_list(request):
     )
     return render(request, "party_summaries/list.html", {"summaries": summaries, "week_groups": weeks,
         "result_count": len(summaries), "search": search, "party_date": party_date,
-        "selected_week": selected_week, "e_invitation_tasks": e_invitation_tasks})
+        "date_from": date_from, "date_to": date_to, "e_invitation_tasks": e_invitation_tasks})
 
 
 @login_required

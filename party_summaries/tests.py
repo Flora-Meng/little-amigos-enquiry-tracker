@@ -420,7 +420,7 @@ class PartySummaryTests(TestCase):
         self.client.force_login(self.emma)
         self.assertEqual(self.client.get(url).status_code, 404)
 
-    def test_week_filter_and_selected_invoice_summary(self):
+    def test_date_range_filter_and_selected_invoice_summary(self):
         monday = timezone.localdate() + timedelta(days=(7 - timezone.localdate().weekday()))
         southland_summary = self._create_summary()
         southland_summary.party_date = monday + timedelta(days=1)
@@ -431,11 +431,13 @@ class PartySummaryTests(TestCase):
         outside_summary = self._create_summary()
         outside_summary.party_date = monday + timedelta(days=8)
         outside_summary.save(update_fields=("party_date",))
-        iso_year, iso_week, _ = monday.isocalendar()
         self.client.force_login(self.flora)
 
         filtered = self.client.get(
-            reverse("party_summary_list"), {"week": f"{iso_year}-W{iso_week:02d}"},
+            reverse("party_summary_list"), {
+                "date_from": monday.isoformat(),
+                "date_to": (monday + timedelta(days=6)).isoformat(),
+            },
         )
 
         self.assertEqual(filtered.context["result_count"], 2)

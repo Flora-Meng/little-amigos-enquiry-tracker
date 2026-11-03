@@ -30,8 +30,12 @@
       <input id="summary-date" type="date" name="party_date" value="{{ party_date }}">
     </div>
     <div class="field">
-      <label for="summary-week">Party week</label>
-      <input id="summary-week" type="week" name="week" value="{{ selected_week }}">
+      <label for="summary-date-from">From date</label>
+      <input id="summary-date-from" type="date" name="date_from" value="{{ date_from }}">
+    </div>
+    <div class="field">
+      <label for="summary-date-to">To date</label>
+      <input id="summary-date-to" type="date" name="date_to" value="{{ date_to }}">
     </div>
     <div class="filter-actions">
       <a class="button button-quiet" href="{% url 'party_summary_list' %}">Clear</a>
@@ -44,8 +48,9 @@
       {% csrf_token %}
       <div class="party-bulk-actions">
         <div>
+          <label class="party-select-all"><input id="select-all-results" type="checkbox"> Select all filtered results</label>
           <strong><span id="selected-party-count">0</span> selected</strong>
-          <span>Choose a week above, then select the parties to include.</span>
+          <span>Choose any date range above, then select the parties to include.</span>
         </div>
         <div>
           <button class="button button-download" type="submit" name="action" value="download_invoice">Download selected invoice summaries</button>
@@ -105,8 +110,12 @@
     if (!form) return;
     const partyCheckboxes = Array.from(form.querySelectorAll(".party-select-checkbox"));
     const count = document.getElementById("selected-party-count");
+    const selectAll = document.getElementById("select-all-results");
     function updateCount() {
-      count.textContent = partyCheckboxes.filter((checkbox) => checkbox.checked).length;
+      const selectedTotal = partyCheckboxes.filter((checkbox) => checkbox.checked).length;
+      count.textContent = selectedTotal;
+      selectAll.checked = partyCheckboxes.length > 0 && selectedTotal === partyCheckboxes.length;
+      selectAll.indeterminate = selectedTotal > 0 && selectedTotal < partyCheckboxes.length;
       form.querySelectorAll("[data-party-week]").forEach((week) => {
         const weekBoxes = Array.from(week.querySelectorAll(".party-select-checkbox"));
         const weekToggle = week.querySelector(".select-party-week");
@@ -122,6 +131,10 @@
         });
         updateCount();
       });
+    });
+    selectAll.addEventListener("change", function () {
+      partyCheckboxes.forEach((checkbox) => { checkbox.checked = selectAll.checked; });
+      updateCount();
     });
     partyCheckboxes.forEach((checkbox) => checkbox.addEventListener("change", updateCount));
     form.addEventListener("submit", function (event) {
