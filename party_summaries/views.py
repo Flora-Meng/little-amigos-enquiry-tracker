@@ -2,10 +2,11 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 from io import BytesIO
 import re
+import uuid
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.db.models import DecimalField, Q, Sum, Value
 from django.db.models.functions import Coalesce
 from django.http import FileResponse, Http404
@@ -510,7 +511,7 @@ def customer_party_intake_thanks(request, token):
     }))
 
 
-def _form_context(form, formsets, summary=None, request=None):
+def _form_context(form, formsets, summary=None, request=None, create_token=None):
     package_catalog = {}
     for location_code in (Location.Code.SOUTHLAND, Location.Code.CANBERRA):
         prices = PartySummary.package_prices_for_location(location_code)
@@ -552,13 +553,31 @@ def _form_context(form, formsets, summary=None, request=None):
         context["customer_menu_url"] = request.build_absolute_uri(
             reverse("customer_menu", args=(summary.customer_menu_token,))
         )
+    if summary is None:
+        context["create_token"] = create_token or uuid.uuid4()
     return context
+
+
+def _summary_save_redirect(summary, action=None):
+    if action == "download":
+        return redirect("party_summary_pdf", summary_id=summary.id)
+    if action == "download_invoice":
+        return redirect("party_summary_invoice_pdf", summary_id=summary.id)
+    return redirect("party_summary_edit", summary_id=summary.id)
 
 
 @login_required
 @transaction.atomic
 def party_summary_create(request):
     if request.method == "POST":
+        try:
+            creation_token = uuid.UUID(request.POST.get("create_token", ""))
+        except (ValueError, TypeError, AttributeError):
+            creation_token = uuid.uuid4()
+        existing = summaries_visible_to(request.user).filter(creation_token=creation_token).first()
+        if existing is not None:
+            messages.info(request, "This party summary was already saved. The existing summary is open below.")
+            return _summary_save_redirect(existing, request.POST.get("action"))
         form = PartySummaryForm(request.POST, request.FILES, user=request.user)
         formsets = menu_formsets(data=request.POST)
         if form.is_valid() and all(formset.is_valid() for formset in formsets.values()):
@@ -568,20 +587,33 @@ def party_summary_create(request):
                     raise Http404
                 summary.location = request.user.location
             summary.created_by = request.user
-            summary.save()
+            summary.creation_token = creation_token
+            try:
+                with transaction.atomic():
+                    summary.save()
+            except IntegrityError:
+                existing = summaries_visible_to(request.user).filter(
+                    creation_token=creation_token,
+                ).first()
+                if existing is None:
+                    raise
+                messages.info(
+                    request,
+                    "This party summary was already saved. The existing summary is open below.",
+                )
+                return _summary_save_redirect(existing, request.POST.get("action"))
             _save_menu_items(summary, formsets)
             _save_decoration_example(summary, form)
             _save_invoice_file(summary, form)
             messages.success(request, f"Party summary for {summary.owner_name} was saved.")
-            if request.POST.get("action") == "download":
-                return redirect("party_summary_pdf", summary_id=summary.id)
-            if request.POST.get("action") == "download_invoice":
-                return redirect("party_summary_invoice_pdf", summary_id=summary.id)
-            return redirect("party_summary_list")
+            return _summary_save_redirect(summary, request.POST.get("action"))
     else:
+        creation_token = uuid.uuid4()
         form = PartySummaryForm(user=request.user)
         formsets = menu_formsets(initial=_menu_initial())
-    return render(request, "party_summaries/form.html", _form_context(form, formsets, request=request))
+    return render(request, "party_summaries/form.html", _form_context(
+        form, formsets, request=request, create_token=creation_token,
+    ))
 
 
 @login_required
@@ -600,11 +632,7 @@ def party_summary_edit(request, summary_id):
             _save_decoration_example(updated, form)
             _save_invoice_file(updated, form)
             messages.success(request, "Party summary saved successfully.")
-            if request.POST.get("action") == "download":
-                return redirect("party_summary_pdf", summary_id=updated.id)
-            if request.POST.get("action") == "download_invoice":
-                return redirect("party_summary_invoice_pdf", summary_id=updated.id)
-            return redirect("party_summary_edit", summary_id=updated.id)
+            return _summary_save_redirect(updated, request.POST.get("action"))
     else:
         form = PartySummaryForm(instance=summary, user=request.user)
         formsets = menu_formsets(initial=_menu_initial(summary), editing=True)

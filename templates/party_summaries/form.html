@@ -40,6 +40,7 @@
 
   <form method="post" enctype="multipart/form-data" class="party-summary-form" novalidate>
     {% csrf_token %}
+    {% if not summary %}<input type="hidden" name="create_token" value="{{ create_token }}">{% endif %}
     {% if form.errors or adult_formset.errors or kids_formset.errors or extra_formset.errors or bill_formset.errors %}
     <div class="party-save-errors" role="alert">
       <strong>Party summary was not saved. Please check:</strong>
@@ -204,6 +205,21 @@
 </main>
 <script>
 (() => {
+  const summaryForm = document.querySelector('.party-summary-form');
+  summaryForm?.addEventListener('submit', event => {
+    const submitter = event.submitter;
+    if (submitter?.name && submitter.value) {
+      const action = document.createElement('input');
+      action.type = 'hidden';
+      action.name = submitter.name;
+      action.value = submitter.value;
+      summaryForm.appendChild(action);
+    }
+    summaryForm.querySelectorAll('button[type="submit"]').forEach(button => {
+      button.disabled = true;
+      if (button === submitter) button.textContent = 'Saving…';
+    });
+  });
   const copyButton = document.getElementById('copy-customer-menu-url');
   copyButton?.addEventListener('click', async () => {
     const input = document.getElementById('customer-menu-url');

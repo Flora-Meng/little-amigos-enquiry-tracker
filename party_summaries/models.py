@@ -148,6 +148,7 @@ class PartySummary(models.Model):
         ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    creation_token = models.UUIDField(null=True, blank=True, unique=True, editable=False)
     location = models.ForeignKey(Location, on_delete=models.PROTECT, related_name="party_summaries")
     party_date = models.DateField()
     party_time = models.CharField(max_length=80)

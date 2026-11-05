@@ -96,6 +96,12 @@ class PartySummaryTests(TestCase):
             package_amount=Decimal("1299.00"), deposit_amount=Decimal("500.00"), created_by=user or self.flora,
         )
 
+    def _assert_create_redirects_to_edit(self, response):
+        summary = PartySummary.objects.order_by("-created_at").first()
+        self.assertIsNotNone(summary)
+        self.assertRedirects(response, reverse("party_summary_edit", args=(summary.id,)))
+        return summary
+
     def _customer_menu_data(self):
         return {
             "party_date": "2026-09-12",
@@ -177,13 +183,31 @@ class PartySummaryTests(TestCase):
     def test_admin_can_create_summary_with_all_menu_sections_and_calculated_balance(self):
         self.client.force_login(self.flora)
         response = self.client.post(reverse("party_summary_create"), self._post_data())
-        self.assertRedirects(response, reverse("party_summary_list"))
+        self._assert_create_redirects_to_edit(response)
         summary = PartySummary.objects.get(owner_name="Rebecca Power")
         self.assertEqual(summary.menu_items.filter(category="adult").count(), 2)
         self.assertEqual(summary.menu_items.filter(category="kids").count(), 1)
         self.assertEqual(summary.menu_items.filter(category="extra").count(), 1)
         self.assertEqual(summary.extra_food_total, Decimal("75.50"))
         self.assertEqual(summary.total_balance, Decimal("874.50"))
+
+    def test_repeated_new_summary_submission_updates_one_record_instead_of_creating_two(self):
+        self.client.force_login(self.flora)
+        create_page = self.client.get(reverse("party_summary_create"))
+        create_token = create_page.context["create_token"]
+        data = self._post_data()
+        data["create_token"] = str(create_token)
+
+        first = self.client.post(reverse("party_summary_create"), data)
+        summary = PartySummary.objects.get()
+        self.assertRedirects(first, reverse("party_summary_edit", args=(summary.id,)))
+
+        second = self.client.post(reverse("party_summary_create"), data)
+
+        self.assertEqual(PartySummary.objects.count(), 1)
+        self.assertRedirects(second, reverse("party_summary_edit", args=(summary.id,)))
+        self.assertContains(create_page, 'name="create_token"')
+        self.assertContains(create_page, "Saving…")
 
     def test_extra_food_uses_quantity_times_unit_price(self):
         self.client.force_login(self.flora)
@@ -194,7 +218,7 @@ class PartySummaryTests(TestCase):
 
         response = self.client.post(reverse("party_summary_create"), data)
 
-        self.assertRedirects(response, reverse("party_summary_list"))
+        self._assert_create_redirects_to_edit(response)
         summary = PartySummary.objects.get(owner_name="Rebecca Power")
         item = summary.menu_items.get(category=PartyMenuItem.Category.EXTRA)
         self.assertEqual(item.amount, Decimal("57.00"))
@@ -215,7 +239,7 @@ class PartySummaryTests(TestCase):
             {"name": "Balloon upgrade", "amount": "35.50"},
         ]))
         response = self.client.post(reverse("party_summary_create"), data)
-        self.assertRedirects(response, reverse("party_summary_list"))
+        self._assert_create_redirects_to_edit(response)
         summary = PartySummary.objects.get(owner_name="Rebecca Power")
         self.assertEqual(list(summary.bill_items.values_list("name", flat=True)), [
             "Extra entertainer", "Balloon upgrade",
@@ -232,7 +256,7 @@ class PartySummaryTests(TestCase):
 
         response = self.client.post(reverse("party_summary_create"), data)
 
-        self.assertRedirects(response, reverse("party_summary_list"))
+        self._assert_create_redirects_to_edit(response)
         summary = PartySummary.objects.get(owner_name="Rebecca Power")
         discount = summary.bill_items.get()
         self.assertEqual(discount.amount, Decimal("-598.00"))
@@ -256,7 +280,7 @@ class PartySummaryTests(TestCase):
         data = self._post_data()
         data.pop("location")
         response = self.client.post(reverse("party_summary_create"), data)
-        self.assertRedirects(response, reverse("party_summary_list"))
+        self._assert_create_redirects_to_edit(response)
         self.assertEqual(PartySummary.objects.get().location, self.southland)
 
     def test_staff_only_sees_own_location_summaries(self):
@@ -356,7 +380,7 @@ class PartySummaryTests(TestCase):
 
         response = self.client.post(reverse("party_summary_create"), data)
 
-        self.assertRedirects(response, reverse("party_summary_list"))
+        self._assert_create_redirects_to_edit(response)
         summary = PartySummary.objects.get()
         self.assertEqual(summary.actual_balance, Decimal("321.45"))
         self.assertEqual(summary.invoice_notes, "Paid after the final guest count was confirmed.")
@@ -961,7 +985,7 @@ class PartySummaryTests(TestCase):
         data["package_name"] = PartySummary.Package.DOUBLE_LITE_WEEKDAY
         data["package_amount"] = "0"
         response = self.client.post(reverse("party_summary_create"), data)
-        self.assertRedirects(response, reverse("party_summary_list"))
+        self._assert_create_redirects_to_edit(response)
         summary = PartySummary.objects.get()
         self.assertEqual(summary.location, self.canberra)
         self.assertEqual(summary.package_amount, Decimal("1099.00"))
@@ -973,7 +997,7 @@ class PartySummaryTests(TestCase):
         data["package_name"] = PartySummary.Package.DOUBLE_WEEKDAY
         data["package_amount"] = "0"
         response = self.client.post(reverse("party_summary_create"), data)
-        self.assertRedirects(response, reverse("party_summary_list"))
+        self._assert_create_redirects_to_edit(response)
         self.assertEqual(PartySummary.objects.get().package_amount, Decimal("1280.00"))
 
     def test_refillable_water_notes_are_cleared_but_soft_drink_notes_are_kept(self):
@@ -984,7 +1008,7 @@ class PartySummaryTests(TestCase):
             {"quantity": "1 jug", "item": "Refillable water", "notes": "Should be removed"},
         ]))
         response = self.client.post(reverse("party_summary_create"), data)
-        self.assertRedirects(response, reverse("party_summary_list"))
+        self._assert_create_redirects_to_edit(response)
         summary = PartySummary.objects.get()
         self.assertEqual(summary.menu_items.get(item="Soft drinks / juice").notes, "2 Coke, 2 Sprite")
         self.assertEqual(summary.menu_items.get(item="Refillable water").notes, "")
@@ -995,7 +1019,7 @@ class PartySummaryTests(TestCase):
         for name in ("kids_count", "adults_count", "deposit_amount", "package_name", "package_amount"):
             data[name] = ""
         response = self.client.post(reverse("party_summary_create"), data)
-        self.assertRedirects(response, reverse("party_summary_list"))
+        self._assert_create_redirects_to_edit(response)
         summary = PartySummary.objects.get()
         self.assertEqual(summary.kids_count, 0)
         self.assertEqual(summary.package_name, PartySummary.Package.CUSTOM)
@@ -1011,7 +1035,7 @@ class PartySummaryTests(TestCase):
             "package_amount": "650.00",
         })
         response = self.client.post(reverse("party_summary_create"), data)
-        self.assertRedirects(response, reverse("party_summary_list"))
+        self._assert_create_redirects_to_edit(response)
         summary = PartySummary.objects.get()
         self.assertEqual(summary.package_display_name, "Mini Party")
         email_response = self.client.get(reverse("party_summary_confirmation_email", args=(summary.id,)))
@@ -1042,7 +1066,7 @@ class PartySummaryTests(TestCase):
         data = self._post_data()
         image = SimpleUploadedFile("rainbow.png", b"fake-png-content", content_type="image/png")
         response = self.client.post(reverse("party_summary_create"), {**data, "decoration_example_upload": image})
-        self.assertRedirects(response, reverse("party_summary_list"))
+        self._assert_create_redirects_to_edit(response)
         summary = PartySummary.objects.get()
         self.assertEqual(bytes(summary.decoration_example), b"fake-png-content")
         response = self.client.get(reverse("party_summary_decoration", args=(summary.id,)))
