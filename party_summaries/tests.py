@@ -674,6 +674,64 @@ class PartySummaryTests(TestCase):
         self.assertNotIn("Location", order)
         self.assertEqual(client.created["food"][0]["Qty"], "10.0")
 
+    def test_lark_upload_links_food_to_menu_and_writes_package_to_note(self):
+        class LinkedMenuClient:
+            order_table_id = "orders"
+            food_table_id = "food"
+
+            def __init__(self):
+                self.created = {"orders": [], "food": []}
+
+            def fields(self, table_id):
+                fields = {
+                    "orders": [
+                        {"field_name": "Party ID", "type": 20},
+                        {"field_name": "Owner Name", "type": 1},
+                    ],
+                    "food": [
+                        {"field_name": "Party ID", "type": 1},
+                        {"field_name": "Item", "type": 18},
+                        {"field_name": "Note", "type": 3},
+                        {"field_name": "Qty", "type": 2},
+                    ],
+                    "menu": [
+                        {"field_name": "Item", "type": 1, "is_primary": True},
+                        {"field_name": "Store", "type": 3},
+                    ],
+                }
+                return fields[table_id]
+
+            def tables(self):
+                return [{"name": "Menu", "table_id": "menu"}]
+
+            def records(self, table_id):
+                return [{
+                    "record_id": "rec-menu-nuggets",
+                    "fields": {"Item": "Nuggets", "Store": "Southland"},
+                }]
+
+            def create_records(self, table_id, records):
+                self.created[table_id].extend(records)
+                return [{"record_id": "rec-order-1"}]
+
+            def get_record(self, table_id, record_id):
+                return {"fields": {"Party ID": "S-D2611030"}}
+
+        summary = self._create_summary()
+        PartyMenuItem.objects.create(
+            summary=summary, category=PartyMenuItem.Category.KIDS,
+            quantity="10", item="Nuggets", amount=Decimal("0.00"),
+        )
+        client = LinkedMenuClient()
+
+        result = sync_summaries_to_lark([summary], client=client)
+
+        self.assertEqual(result["uploaded"], 1)
+        food = client.created["food"][0]
+        self.assertEqual(food["Party ID"], "S-D2611030")
+        self.assertEqual(food["Item"], ["rec-menu-nuggets"])
+        self.assertEqual(food["Note"], "Free")
+
     def test_confirmation_email_is_generated_from_current_summary(self):
         summary = self._create_summary()
         summary.kids_name = "Indiana"

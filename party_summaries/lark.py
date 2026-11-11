@@ -18,7 +18,8 @@ from .models import PartyMenuItem, menu_quantity_number
 
 LARK_API_ROOT = "https://open.larksuite.com/open-apis"
 READ_ONLY_FIELD_TYPES = {19, 20, 1001, 1002, 1003, 1004, 1005}
-UNSUPPORTED_DIRECT_WRITE_FIELD_TYPES = {11, 17, 18, 21, 22, 23}
+LINK_FIELD_TYPES = {18, 21}
+UNSUPPORTED_DIRECT_WRITE_FIELD_TYPES = {11, 17, *LINK_FIELD_TYPES, 22, 23}
 
 
 class LarkConfigurationError(RuntimeError):
@@ -88,6 +89,39 @@ class LarkBaseClient:
                 f"/bitable/v1/apps/{self.app_token}/tables/{table_id}/fields",
                 token=self.token,
                 query=query,
+            )
+            items.extend(data.get("items") or [])
+            if not data.get("has_more"):
+                return items
+            page_token = data.get("page_token") or ""
+
+    def tables(self):
+        items = []
+        page_token = ""
+        while True:
+            query = {"page_size": 100}
+            if page_token:
+                query["page_token"] = page_token
+            data = _request(
+                "GET", f"/bitable/v1/apps/{self.app_token}/tables",
+                token=self.token, query=query,
+            )
+            items.extend(data.get("items") or [])
+            if not data.get("has_more"):
+                return items
+            page_token = data.get("page_token") or ""
+
+    def records(self, table_id):
+        items = []
+        page_token = ""
+        while True:
+            query = {"page_size": 500}
+            if page_token:
+                query["page_token"] = page_token
+            data = _request(
+                "GET",
+                f"/bitable/v1/apps/{self.app_token}/tables/{table_id}/records",
+                token=self.token, query=query,
             )
             items.extend(data.get("items") or [])
             if not data.get("has_more"):
@@ -177,7 +211,8 @@ def _put(fields, catalog, aliases, value):
 
 
 def _short_store_name(summary):
-    return summary.location.name.removeprefix("Little Amigos ").strip()
+    name = summary.location.name.removeprefix("Little Amigos ").strip()
+    return "DFO" if name.casefold() == "canberra" else name
 
 
 def _order_fields(summary, catalog):
@@ -243,21 +278,118 @@ def _food_tag(summary, item, line_total, voucher_package_ids):
     return "Extra" if item.category == PartyMenuItem.Category.EXTRA else "Package"
 
 
-def _food_fields(summary, item, catalog, party_id, tag):
+def _display_value(value):
+    if isinstance(value, list):
+        return " ".join(_display_value(item) for item in value)
+    if isinstance(value, dict):
+        return str(
+            value.get("text") or value.get("name") or value.get("value") or ""
+        )
+    return "" if value is None else str(value)
+
+
+def _menu_record_ids(client, food_catalog, items, store_name):
+    item_field = _resolve_field(food_catalog, ("Item", "Food", "Food Item"))
+    if not item_field or item_field.get("type") not in LINK_FIELD_TYPES:
+        return {}
+
+    menu_table = next(
+        (
+            table for table in client.tables()
+            if _normalise_field_name(table.get("name")) == "menu"
+        ),
+        None,
+    )
+    if not menu_table:
+        raise LarkAPIError("The Lark Base has no table named Menu.")
+    menu_table_id = menu_table.get("table_id")
+    menu_fields = client.fields(menu_table_id)
+    primary = next(
+        (field for field in menu_fields if field.get("is_primary")),
+        None,
+    ) or _resolve_field(
+        _field_catalog(menu_fields), ("Item", "Food", "Menu", "Name"),
+        writable_only=False,
+    )
+    if not primary:
+        raise LarkAPIError("The Lark Menu table has no identifiable item-name field.")
+    store_field = _resolve_field(
+        _field_catalog(menu_fields), ("Store", "Location"), writable_only=False,
+    )
+
+    by_item = {}
+    by_item_and_store = {}
+    for record in client.records(menu_table_id):
+        values = record.get("fields") or {}
+        item_name = _normalise_field_name(_display_value(values.get(primary["field_name"])))
+        if not item_name:
+            continue
+        record_id = record.get("record_id")
+        by_item.setdefault(item_name, record_id)
+        if store_field:
+            record_store = _normalise_field_name(
+                _display_value(values.get(store_field["field_name"]))
+            )
+            by_item_and_store.setdefault((item_name, record_store), record_id)
+
+    wanted_store = _normalise_field_name(store_name)
+    matched = {}
+    missing = []
+    for item in items:
+        name = _normalise_field_name(item.item)
+        record_id = by_item_and_store.get((name, wanted_store)) or by_item.get(name)
+        if record_id:
+            matched[item.id] = record_id
+        else:
+            missing.append(item.item)
+    if missing:
+        names = ", ".join(dict.fromkeys(missing))
+        raise LarkAPIError(f"These food items were not found in the Lark Menu: {names}")
+    return matched
+
+
+def _put_link_or_value(fields, catalog, aliases, value, record_id=None):
+    field = _resolve_field(catalog, aliases)
+    if not field:
+        return None
+    if field.get("type") in LINK_FIELD_TYPES:
+        if record_id:
+            fields[field["field_name"]] = [record_id]
+        return field
+    converted = _field_value(field, value)
+    if converted is not None:
+        fields[field["field_name"]] = converted
+    return field
+
+
+def _food_fields(
+    summary, item, catalog, party_id, tag, *, order_record_id=None,
+    menu_record_id=None,
+):
     fields = {}
     quantity, unit_price, line_total = _line_amounts(item)
-    _put(fields, catalog, ("Party ID",), party_id)
+    _put_link_or_value(
+        fields, catalog, ("Party ID",), party_id, record_id=order_record_id,
+    )
     _put(fields, catalog, ("Store", "Location"), _short_store_name(summary))
     date_field = _resolve_field(catalog, ("Date", "Party Date"))
     if date_field:
         fields[date_field["field_name"]] = _date_value(date_field, summary.party_date)
-    _put(fields, catalog, ("Item", "Food", "Food Item"), item.item)
-    _put(fields, catalog, ("Note", "Notes"), item.notes)
+    _put_link_or_value(
+        fields, catalog, ("Item", "Food", "Food Item"), item.item,
+        record_id=menu_record_id,
+    )
+    _put(fields, catalog, ("Food Notes", "Item Notes", "Notes"), item.notes)
     _put(fields, catalog, ("Qty", "Quantity"), float(quantity))
     _put(fields, catalog, ("Price", "Unit Price"), float(unit_price))
-    _put(fields, catalog, ("One-off Price", "One Off Price"), float(unit_price))
+    if not menu_record_id:
+        _put(fields, catalog, ("One-off Price", "One Off Price"), float(unit_price))
     _put(fields, catalog, ("Amount", "Line Total"), float(line_total))
-    _put(fields, catalog, ("Tag", "Type", "Food Type", "Food Category", "Package / Extra"), tag)
+    _put(
+        fields, catalog,
+        ("Tag", "Type", "Food Type", "Food Category", "Package / Extra", "Note"),
+        tag,
+    )
     return fields
 
 
@@ -317,12 +449,17 @@ def sync_summaries_to_lark(summaries, *, client=None):
 
             items = list(summary.menu_items.all())
             voucher_package_ids = _voucher_package_item_ids(summary, items)
+            menu_record_ids = _menu_record_ids(
+                client, food_catalog, items, _short_store_name(summary),
+            )
             food_records = []
             for item in items:
                 _, _, line_total = _line_amounts(item)
                 tag = _food_tag(summary, item, line_total, voucher_package_ids)
                 food_records.append(_food_fields(
                     summary, item, food_catalog, party_id, tag,
+                    order_record_id=summary.lark_order_record_id,
+                    menu_record_id=menu_record_ids.get(item.id),
                 ))
             if food_records:
                 client.create_records(client.food_table_id, food_records)
