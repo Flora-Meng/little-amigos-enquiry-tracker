@@ -17,7 +17,8 @@ from .models import PartyMenuItem, menu_quantity_number
 
 
 LARK_API_ROOT = "https://open.larksuite.com/open-apis"
-READ_ONLY_FIELD_TYPES = {20, 1001, 1002, 1003, 1004, 1005}
+READ_ONLY_FIELD_TYPES = {19, 20, 1001, 1002, 1003, 1004, 1005}
+UNSUPPORTED_DIRECT_WRITE_FIELD_TYPES = {11, 17, 18, 21, 22, 23}
 
 
 class LarkConfigurationError(RuntimeError):
@@ -141,10 +142,37 @@ def _date_value(field, value):
     return value.isoformat()
 
 
+def _field_value(field, value):
+    """Convert ordinary Python values to the shape expected by a Base field."""
+    field_type = field.get("type")
+    if field_type in UNSUPPORTED_DIRECT_WRITE_FIELD_TYPES:
+        return None
+    if field_type in {1, 13}:
+        return str(value)
+    if field_type == 2:
+        return float(value)
+    if field_type == 3:
+        return str(value)
+    if field_type == 4:
+        if isinstance(value, (list, tuple, set)):
+            return [str(item) for item in value]
+        return [str(value)]
+    if field_type == 5 and hasattr(value, "isoformat"):
+        return _date_value(field, value)
+    if field_type == 7:
+        return bool(value)
+    if field_type == 15:
+        text = str(value)
+        return {"text": text, "link": text}
+    return value
+
+
 def _put(fields, catalog, aliases, value):
     field = _resolve_field(catalog, aliases)
     if field is not None and value is not None:
-        fields[field["field_name"]] = value
+        converted = _field_value(field, value)
+        if converted is not None:
+            fields[field["field_name"]] = converted
     return field
 
 

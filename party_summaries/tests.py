@@ -628,6 +628,52 @@ class PartySummaryTests(TestCase):
         summary.refresh_from_db()
         self.assertEqual(summary.lark_party_id, "S-D2611030")
 
+    def test_lark_upload_converts_text_fields_and_skips_link_fields(self):
+        class MixedFieldClient:
+            order_table_id = "orders"
+            food_table_id = "food"
+
+            def __init__(self):
+                self.created = {"orders": [], "food": []}
+
+            def fields(self, table_id):
+                if table_id == "orders":
+                    return [
+                        {"field_name": "Party ID", "type": 1},
+                        {"field_name": "Owner Name", "type": 1},
+                        {"field_name": "Deposit", "type": 1},
+                        {"field_name": "Deposit Method", "type": 18},
+                        {"field_name": "Location", "type": 18},
+                    ]
+                return [
+                    {"field_name": "Party ID", "type": 1},
+                    {"field_name": "Item", "type": 1},
+                    {"field_name": "Qty", "type": 1},
+                ]
+
+            def create_records(self, table_id, records):
+                self.created[table_id].extend(records)
+                return [{"record_id": f"{table_id}-1"}]
+
+            def get_record(self, table_id, record_id):
+                raise AssertionError("Party ID is writable in this test")
+
+        summary = self._create_summary()
+        PartyMenuItem.objects.create(
+            summary=summary, category=PartyMenuItem.Category.KIDS,
+            quantity="10", item="Nuggets", amount=Decimal("0.00"),
+        )
+        client = MixedFieldClient()
+
+        result = sync_summaries_to_lark([summary], client=client)
+
+        self.assertEqual(result["uploaded"], 1)
+        order = client.created["orders"][0]
+        self.assertEqual(order["Deposit"], str(float(summary.deposit_amount)))
+        self.assertNotIn("Deposit Method", order)
+        self.assertNotIn("Location", order)
+        self.assertEqual(client.created["food"][0]["Qty"], "10.0")
+
     def test_confirmation_email_is_generated_from_current_summary(self):
         summary = self._create_summary()
         summary.kids_name = "Indiana"
