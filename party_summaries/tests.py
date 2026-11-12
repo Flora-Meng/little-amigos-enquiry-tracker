@@ -732,6 +732,72 @@ class PartySummaryTests(TestCase):
         self.assertEqual(food["Item"], ["rec-menu-nuggets"])
         self.assertEqual(food["Note"], "Free")
 
+    def test_lark_upload_maps_workspace_food_names_to_lark_menu_names(self):
+        class AliasedMenuClient:
+            order_table_id = "orders"
+            food_table_id = "food"
+
+            def __init__(self):
+                self.created = {"orders": [], "food": []}
+
+            def fields(self, table_id):
+                fields = {
+                    "orders": [
+                        {"field_name": "Party ID", "type": 20},
+                        {"field_name": "Owner Name", "type": 1},
+                    ],
+                    "food": [
+                        {"field_name": "Party ID", "type": 1},
+                        {"field_name": "Item", "type": 18},
+                        {"field_name": "Note", "type": 3},
+                    ],
+                    "menu": [
+                        {"field_name": "Item", "type": 1, "is_primary": True},
+                    ],
+                }
+                return fields[table_id]
+
+            def tables(self):
+                return [{"name": "Menu", "table_id": "menu"}]
+
+            def records(self, table_id):
+                names = (
+                    "Mixed fryer platter (assorted)", "Fruit Platter",
+                    "Pizza (Margherita)", "Jug of Drink", "Drink", "Kid Juice",
+                )
+                return [
+                    {"record_id": f"menu-{index}", "fields": {"Item": name}}
+                    for index, name in enumerate(names)
+                ]
+
+            def create_records(self, table_id, records):
+                self.created[table_id].extend(records)
+                return [{"record_id": "rec-order-1"}]
+
+            def get_record(self, table_id, record_id):
+                return {"fields": {"Party ID": "S-D2611030"}}
+
+        summary = self._create_summary()
+        workspace_names = (
+            "Mixed Fryer platter", "Seasonal fruit platter",
+            "Pizza (Margherita, 10-inch)", "Soft drinks / juice",
+            "Refillable water", "Kids' size drink",
+        )
+        for position, name in enumerate(workspace_names):
+            PartyMenuItem.objects.create(
+                summary=summary, category=PartyMenuItem.Category.ADULT,
+                quantity="1", item=name, position=position,
+            )
+        client = AliasedMenuClient()
+
+        result = sync_summaries_to_lark([summary], client=client)
+
+        self.assertEqual(result["uploaded"], 1)
+        self.assertEqual(
+            [record["Item"] for record in client.created["food"]],
+            [[f"menu-{index}"] for index in range(len(workspace_names))],
+        )
+
     def test_confirmation_email_is_generated_from_current_summary(self):
         summary = self._create_summary()
         summary.kids_name = "Indiana"

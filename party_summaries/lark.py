@@ -21,6 +21,43 @@ READ_ONLY_FIELD_TYPES = {19, 20, 1001, 1002, 1003, 1004, 1005}
 LINK_FIELD_TYPES = {18, 21}
 UNSUPPORTED_DIRECT_WRITE_FIELD_TYPES = {11, 17, *LINK_FIELD_TYPES, 22, 23}
 
+# Party summaries keep the customer-facing wording that staff already use.  The
+# Lark Menu has a few different canonical names, so translate only at sync time.
+# Keys and values are normalised by ``_normalise_field_name`` before matching.
+LARK_MENU_ITEM_ALIASES = {
+    "Kid spaghetti": "Kid Sphagetti",
+    "Mixed Fryer platter": "Mixed fryer platter (assorted)",
+    "Mix Fryer platter": "Mixed fryer platter (assorted)",
+    "Vege Fryer Platter": "Mixed fryer platter (vege)",
+    "Mix Fryer platter (Vege)": "Mixed fryer platter (vege)",
+    "Pizza (Margherita, 10-inch)": "Pizza (Margherita)",
+    "Pizza (Pepperoni, 10-inch)": "Pizza (Pepperoni)",
+    "Pizza (Vegetarian, 10-inch)": "Pizza (Vege)",
+    "Pizza (Cheese, 10-inch)": "Pizza (Cheese)",
+    "Pizza (Vegetarian)": "Pizza (Vege)",
+    "Caesar salad bowl": "Caesar chicken salad",
+    "Mini burger platter 10pcs (Pork)": "Mini burger sliders 10pcs (Pork)",
+    "Mini burger platter 10pcs (Prawn)": "Mini burger sliders 10pcs (Prawn)",
+    "Mini burger platter 10pcs (Vegetarian)": "Mini burger sliders 10pcs (Vege)",
+    "Mini burger 10pcs (Pork)": "Mini burger sliders 10pcs (Pork)",
+    "Mini burger 10pcs (Prawn)": "Mini burger sliders 10pcs (Prawn)",
+    "Mini burger 10pcs (Vege)": "Mini burger sliders 10pcs (Vege)",
+    "Smoked salmon toast 12pcs": "Smoked Salmon Avocado Toast 10pcs",
+    "Mushroom toast 12pcs (vegetarian)": "Millennial Mushroom Toast 10pcs",
+    "Japanese sushi platter (vegetarian)": "Japanese sushi platter (vege)",
+    "Mini burger sliders 10pcs (Chicken)": "Mini Burger Sliders (Chicken)",
+    "Mini burger sliders 10pcs (Beef)": "Mini Burger Sliders (Beef)",
+    "Grilled Salmon Platter": "Grilled salmon platter 10pcs",
+    "Grilled Beef Skewer platter": "Grilled Beef Skewer platter 10pcs",
+    "Beef Bolognese Spaghetti": "Beef Ragu Spaghetti",
+    "Finger Sandwiches 16pcs (Egg)": "Finger Sandwiches 16pcs (Eggs)",
+    "Seasonal fruit platter": "Fruit Platter",
+    "Soft drinks / juice": "Jug of Drink",
+    "Refillable water": "Drink",
+    "Water": "Drink",
+    "Kids' size drink": "Kid Juice",
+}
+
 
 class LarkConfigurationError(RuntimeError):
     pass
@@ -151,6 +188,17 @@ class LarkBaseClient:
 
 def _normalise_field_name(value):
     return "".join(character for character in (value or "").casefold() if character.isalnum())
+
+
+NORMALISED_LARK_MENU_ITEM_ALIASES = {
+    _normalise_field_name(source): _normalise_field_name(target)
+    for source, target in LARK_MENU_ITEM_ALIASES.items()
+}
+
+
+def _normalise_menu_item_name(value):
+    name = _normalise_field_name(value)
+    return NORMALISED_LARK_MENU_ITEM_ALIASES.get(name, name)
 
 
 def _field_catalog(field_items):
@@ -336,7 +384,7 @@ def _menu_record_ids(client, food_catalog, items, store_name):
     matched = {}
     missing = []
     for item in items:
-        name = _normalise_field_name(item.item)
+        name = _normalise_menu_item_name(item.item)
         record_id = by_item_and_store.get((name, wanted_store)) or by_item.get(name)
         if record_id:
             matched[item.id] = record_id
