@@ -319,11 +319,11 @@ def _voucher_package_item_ids(summary, items):
 
 
 def _food_tag(summary, item, line_total, voucher_package_ids):
-    if line_total == 0:
-        return "Free"
+    if item.category == PartyMenuItem.Category.EXTRA:
+        return "Free" if line_total == 0 else "Extra"
     if summary.uses_food_voucher:
-        return "Package" if item.id in voucher_package_ids else "Extra"
-    return "Extra" if item.category == PartyMenuItem.Category.EXTRA else "Package"
+        return "Package" if line_total == 0 or item.id in voucher_package_ids else "Extra"
+    return "Package"
 
 
 def _display_value(value):

@@ -566,6 +566,10 @@ class PartySummaryTests(TestCase):
                 summary=summary, category=PartyMenuItem.Category.ADULT,
                 quantity="1", item=name, amount=Decimal(amount),
             )
+        PartyMenuItem.objects.create(
+            summary=summary, category=PartyMenuItem.Category.EXTRA,
+            quantity="1", item="Complimentary fruit", amount=Decimal("0.00"),
+        )
         client = FakeLarkClient()
 
         result = sync_summaries_to_lark([summary], client=client)
@@ -574,7 +578,8 @@ class PartySummaryTests(TestCase):
         self.assertEqual(client.created["orders"][0]["Balance"], 420.0)
         self.assertEqual(client.created["orders"][0]["Total"], 920.0)
         tags = {record["Item"]: record["Tag"] for record in client.created["food"]}
-        self.assertEqual(tags["Water"], "Free")
+        self.assertEqual(tags["Water"], "Package")
+        self.assertEqual(tags["Complimentary fruit"], "Free")
         self.assertEqual(tags["Fryer"], "Package")
         self.assertEqual(tags["Sandwiches"], "Package")
         self.assertEqual(tags["Pizza"], "Package")
