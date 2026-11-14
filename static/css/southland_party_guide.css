@@ -227,10 +227,13 @@ html { scroll-behavior: smooth; }
 .theme-dialog-gallery img { width: 100%; border-radius: 16px; background: #f0ebe3; }
 .custom-theme-note { display: grid; gap: 5px; margin: 0 25px 28px; padding: 17px; border-radius: 15px; color: #7b4b20; background: #fff0cd; line-height: 1.45; }
 
-.room-example-grid { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 13px; }
-.room-example-grid article { overflow: hidden; border: 1px solid var(--guide-line); border-radius: 19px; background: white; }
-.room-example-grid img { width: 100%; aspect-ratio: 4/5; display: block; object-fit: cover; object-position: top; }
-.room-example-grid h3 { margin: 0; padding: 14px 16px 16px; font-size: 1rem; }
+.room-example-selector { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 10px; }
+.room-example-tab { min-height: 68px; padding: 13px 16px; border: 1px solid #ddd6cb; border-radius: 16px; color: #617075; background: white; font: inherit; font-weight: 900; cursor: pointer; transition: border .15s ease,transform .15s ease,box-shadow .15s ease; }
+.room-example-tab:hover { transform: translateY(-2px); border-color: #9bd2cc; }
+.room-example-tab.is-active { padding: 12px 15px; border: 2px solid var(--guide-teal); color: var(--guide-teal-dark); background: #ecfaf7; box-shadow: 0 10px 22px rgba(51,135,127,.11); }
+.room-example-stage { width: min(100%,820px); margin: 18px auto 0; }
+.room-example-stage article { overflow: hidden; border: 1px solid var(--guide-line); border-radius: 22px; background: white; box-shadow: 0 16px 38px rgba(48,61,63,.08); }
+.room-example-stage img { width: 100%; max-height: 900px; display: block; object-fit: contain; object-position: top center; }
 
 .addon-section { background: linear-gradient(180deg,#fffafd,#fffefd); }
 .addon-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 14px; }
@@ -262,7 +265,7 @@ html { scroll-behavior: smooth; }
   .personal-guide-card { grid-template-columns: 1fr; }
   .personal-guide-tip { grid-column: auto; }
   .theme-grid { grid-template-columns: repeat(3,minmax(0,1fr)); }
-  .room-example-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .room-example-selector { grid-template-columns: repeat(2,minmax(0,1fr)); }
   .addon-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
 }
 
@@ -276,7 +279,9 @@ html { scroll-behavior: smooth; }
   .theme-dialog-gallery { grid-template-columns: 1fr; padding: 16px; }
   .theme-dialog-header { padding: 17px; }
   .theme-dialog > p { margin: 16px 17px 0; }
-  .room-example-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .room-example-selector { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .room-example-tab { min-height: 58px; padding: 10px; }
+  .room-example-tab.is-active { padding: 9px; }
   .addon-grid { grid-template-columns: 1fr; }
   .addon-card-gallery { height: 220px; }
   .addon-total { align-items: flex-start; flex-direction: column; }

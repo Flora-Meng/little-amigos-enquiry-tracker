@@ -7,7 +7,7 @@
   <meta name="description" content="Explore Little Amigos Southland party themes, packages, food and add-on services.">
   <title>Southland party guide · Little Amigos</title>
   <link rel="stylesheet" href="{% static 'css/app.css' %}?v=20261101-1">
-  <link rel="stylesheet" href="{% static 'css/southland_party_guide.css' %}?v=20261101-1">
+  <link rel="stylesheet" href="{% static 'css/southland_party_guide.css' %}?v=20261114-1">
 </head>
 <body class="southland-guide-body">
   <header class="guide-topbar">
@@ -78,11 +78,17 @@
 
     <section class="guide-section room-examples">
       <div class="guide-section-heading"><div><p class="guide-eyebrow">Room layouts</p><h2>See how each space can look</h2><p>Examples of the standard decoration scale included with each room type.</p></div></div>
-      <div class="room-example-grid">
-        <article><img src="{% static 'package_showcase/southland/theme-pages/page-02.jpg' %}" alt="Single room decoration examples" loading="lazy"><h3>Single room</h3></article>
-        <article><img src="{% static 'package_showcase/southland/theme-pages/page-03.jpg' %}" alt="Double room decoration examples" loading="lazy"><h3>Double room</h3></article>
-        <article><img src="{% static 'package_showcase/southland/theme-pages/page-04.jpg' %}" alt="Triple room decoration examples" loading="lazy"><h3>Triple room</h3></article>
-        <article><img src="{% static 'package_showcase/southland/theme-pages/page-05.jpg' %}" alt="Private party decoration examples" loading="lazy"><h3>Private party</h3></article>
+      <div class="room-example-selector" role="tablist" aria-label="Choose a room layout">
+        <button class="room-example-tab is-active" type="button" role="tab" data-room-example-tab="single" aria-selected="true">Single room</button>
+        <button class="room-example-tab" type="button" role="tab" data-room-example-tab="double" aria-selected="false">Double room</button>
+        <button class="room-example-tab" type="button" role="tab" data-room-example-tab="triple" aria-selected="false">Triple room</button>
+        <button class="room-example-tab" type="button" role="tab" data-room-example-tab="private" aria-selected="false">Private party</button>
+      </div>
+      <div class="room-example-stage">
+        <article data-room-example-panel="single"><img src="{% static 'package_showcase/southland/theme-pages/page-02.jpg' %}" alt="Single room decoration examples" loading="lazy"></article>
+        <article data-room-example-panel="double" hidden><img src="{% static 'package_showcase/southland/theme-pages/page-03.jpg' %}" alt="Double room decoration examples" loading="lazy"></article>
+        <article data-room-example-panel="triple" hidden><img src="{% static 'package_showcase/southland/theme-pages/page-04.jpg' %}" alt="Triple room decoration examples" loading="lazy"></article>
+        <article data-room-example-panel="private" hidden><img src="{% static 'package_showcase/southland/theme-pages/page-05.jpg' %}" alt="Private party decoration examples" loading="lazy"></article>
       </div>
     </section>
 
@@ -108,6 +114,6 @@
     <section class="guide-closing"><div><p class="guide-eyebrow">Ready for the next step?</p><h2>Save the themes and package you love.</h2><p>Share your favourites with our Southland team. We’ll help confirm the room, party time, availability and finishing details.</p></div><a class="guide-button guide-button-primary" href="#top">Back to the top</a></section>
   </main>
   <footer class="guide-footer"><span>Little Amigos Southland</span><span>Party information may change; please confirm before booking.</span></footer>
-  <script src="{% static 'js/southland_party_guide.js' %}?v=20261024-2" defer></script>
+  <script src="{% static 'js/southland_party_guide.js' %}?v=20261114-1" defer></script>
 </body>
 </html>
