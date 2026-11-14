@@ -170,7 +170,7 @@
         {% if summary %}<a class="button button-download" href="{% url 'party_summary_invoice_pdf' summary.id %}">Download invoice summary</a>{% endif %}
       </div>
       <div class="invoice-record-grid">
-        {% include "enquiries/_field.html" with field=form.actual_balance %}
+        {% include "enquiries/_field.html" with field=form.actual_balance extra_class="invoice-balance-field" %}
         <div class="field invoice-total-field">
           <label>Total invoiced</label>
           <strong id="total-invoiced">${{ summary.total_invoiced|default:0|floatformat:2 }}</strong>

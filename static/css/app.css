@@ -383,6 +383,9 @@ th { color: var(--muted); font-size: .75rem; letter-spacing: .06em; text-transfo
 .invoice-record-grid { display: grid; grid-template-columns: minmax(190px, .38fr) minmax(190px, .38fr) minmax(320px, 1fr); }
 .invoice-record-grid > .field { padding: 18px 22px; }
 .invoice-record-grid > .field:not(:last-child) { border-right: 1px solid #f0ede6; }
+.invoice-balance-field { align-content: start; }
+.invoice-balance-field label { font-size: 1rem; }
+.invoice-balance-field input { height: 68px; min-height: 68px; padding: 0 16px; border-color: #b9d6d0; color: #286b62; font-size: 1.55rem; font-weight: 800; letter-spacing: -.02em; }
 .invoice-total-field { align-content: start; }
 .invoice-total-field strong { color: #286b62; font-size: 1.6rem; }
 .invoice-total-field small { color: var(--muted); font-size: .76rem; }

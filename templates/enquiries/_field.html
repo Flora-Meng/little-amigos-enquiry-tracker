@@ -1,4 +1,4 @@
-<div class="field{% if wide %} field-wide{% endif %}{% if field.errors %} field-invalid{% endif %}">
+<div class="field{% if extra_class %} {{ extra_class }}{% endif %}{% if wide %} field-wide{% endif %}{% if field.errors %} field-invalid{% endif %}">
   <label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %}<span aria-hidden="true"> *</span>{% endif %}</label>
   {{ field }}
   {% for error in field.errors %}<p class="field-error" role="alert">{{ error }}</p>{% endfor %}
