@@ -85,14 +85,45 @@
 
   const addonBuilder = document.querySelector('[data-addon-builder]');
   if (addonBuilder) {
-    const choices = [...addonBuilder.querySelectorAll('[data-addon-choice]')];
+    const optionChoices = [...addonBuilder.querySelectorAll('[data-addon-option]')];
+    const quantityChoices = [...addonBuilder.querySelectorAll('[data-addon-quantity]')];
+    const allInputs = [...addonBuilder.querySelectorAll('input')];
     const summary = addonBuilder.querySelector('[data-addon-summary]');
     const total = addonBuilder.querySelector('[data-addon-total]');
-    choices.forEach(choice => choice.addEventListener('change', () => {
-      const selected = choices.filter(item => item.checked);
-      const amount = selected.reduce((sum, item) => sum + Number(item.dataset.price || 0), 0);
-      summary.textContent = selected.length ? selected.map(item => item.dataset.addonName).join(', ') : 'No add-ons selected yet';
-      total.textContent = `$${amount.toLocaleString('en-AU', { maximumFractionDigits: 0 })}+`;
-    }));
+
+    function updateAddons() {
+      const selected = optionChoices.filter(item => item.checked);
+      const selections = selected.map(item => ({
+        name: item.dataset.addonName,
+        amount: Number(item.dataset.price || 0),
+      }));
+
+      quantityChoices.forEach(input => {
+        const quantity = Math.max(0, Number.parseInt(input.value, 10) || 0);
+        input.value = String(quantity);
+        if (quantity) {
+          selections.push({
+            name: `${input.dataset.addonName} × ${quantity}`,
+            amount: quantity * Number(input.dataset.unitPrice || 0),
+          });
+        }
+      });
+
+      addonBuilder.querySelectorAll('[data-addon-card]').forEach(card => {
+        const selectedOption = card.querySelector('[data-addon-option]:checked');
+        const quantity = Number.parseInt(card.querySelector('[data-addon-quantity]')?.value || '0', 10);
+        card.classList.toggle('is-selected', Boolean(selectedOption || quantity > 0));
+      });
+
+      const amount = selections.reduce((sum, item) => sum + item.amount, 0);
+      summary.textContent = selections.length ? selections.map(item => item.name).join(', ') : 'No add-ons selected yet';
+      total.textContent = `$${amount.toLocaleString('en-AU', { maximumFractionDigits: 0 })}`;
+    }
+
+    allInputs.forEach(input => {
+      input.addEventListener('change', updateAddons);
+      input.addEventListener('input', updateAddons);
+    });
+    updateAddons();
   }
 })();

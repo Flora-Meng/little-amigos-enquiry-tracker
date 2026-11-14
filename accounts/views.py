@@ -286,9 +286,31 @@ def southland_party_guide(request, token=None):
     themes = _southland_theme_catalog()
 
     addons = list(SouthlandShowcaseAddon.objects.filter(is_active=True))
+    addon_options = {
+        "Face painting": [
+            {"label": "1.5 hours", "price": 330},
+            {"label": "2 hours", "price": 380},
+        ],
+        "Customised cake": [
+            {"label": "Tall 6-inch cake", "price": 188},
+            {"label": "Tall 8-inch cake", "price": 238},
+            {"label": "6+8 two-tier cake", "price": 288},
+            {"label": "Tall 6+8 two-tier cake", "price": 368},
+        ],
+        "Entertainer or mascot": [
+            {"label": "1 hour", "price": 380},
+            {"label": "2 hours", "price": 580},
+        ],
+        "Professional photographer": [
+            {"label": "1 hour", "price": 200},
+            {"label": "2 hours", "price": 380},
+        ],
+    }
     for addon in addons:
         addon.image_url = _addon_image_url(addon)
         addon.image_urls = _addon_image_urls(addon)
+        addon.selection_options = addon_options.get(addon.name, [])
+        addon.is_quantity_addon = addon.name == "Party bags"
     return render(
         request,
         "package_showcase/southland_public.html",

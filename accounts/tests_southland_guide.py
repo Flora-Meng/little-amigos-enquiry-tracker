@@ -64,6 +64,16 @@ class SouthlandPartyGuideTests(TestCase):
         self.assertContains(response, "Face painting")
         self.assertContains(response, "Professional photographer")
 
+    def test_addons_have_selectable_variants_and_quantity(self):
+        response = self.client.get(reverse("southland_party_guide"))
+
+        self.assertContains(response, "Face painting — 1.5 hours")
+        self.assertContains(response, "Entertainer or mascot — 2 hours")
+        self.assertContains(response, "Tall 6+8 two-tier cake")
+        self.assertContains(response, "Professional photographer — 2 hours")
+        self.assertContains(response, "data-addon-quantity")
+        self.assertContains(response, 'data-unit-price="8"')
+
     def test_room_examples_are_combined_with_package_tabs(self):
         response = self.client.get(reverse("southland_party_guide"))
 

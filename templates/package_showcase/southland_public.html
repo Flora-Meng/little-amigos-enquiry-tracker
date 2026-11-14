@@ -7,7 +7,7 @@
   <meta name="description" content="Explore Little Amigos Southland party themes, packages, food and add-on services.">
   <title>Southland party guide · Little Amigos</title>
   <link rel="stylesheet" href="{% static 'css/app.css' %}?v=20261101-1">
-  <link rel="stylesheet" href="{% static 'css/southland_party_guide.css' %}?v=20261114-2">
+  <link rel="stylesheet" href="{% static 'css/southland_party_guide.css' %}?v=20261114-3">
 </head>
 <body class="southland-guide-body">
   <header class="guide-topbar">
@@ -90,7 +90,26 @@
 
     <section class="guide-section addon-section" id="addons" data-addon-builder>
       <div class="guide-section-heading"><div><p class="guide-eyebrow">Optional add-ons</p><h2>Build a party wish list</h2><p>Select services you are interested in. The estimate helps you compare; our team will confirm availability and the exact price.</p></div></div>
-      <div class="addon-grid">{% for addon in addons %}<label class="addon-card"><input type="checkbox" value="{{ addon.pk }}" data-addon-choice data-price="{{ addon.price_from }}" data-addon-name="{{ addon.name }}">{% if addon.image_urls %}<span class="addon-card-gallery addon-card-gallery-{{ addon.image_urls|length }}">{% for image_url in addon.image_urls %}<img src="{{ image_url }}" alt="{{ addon.name }} example {{ forloop.counter }}" loading="lazy">{% endfor %}</span>{% endif %}<span class="addon-card-copy"><span class="addon-check">✓</span><small>Optional service</small><strong>{{ addon.name }}</strong><em>{{ addon.price_label }}</em><p>{{ addon.details }}</p></span></label>{% endfor %}</div>
+      <div class="addon-grid">
+        {% for addon in addons %}
+        <article class="addon-card" data-addon-card>
+          {% if addon.image_urls %}<span class="addon-card-gallery addon-card-gallery-{{ addon.image_urls|length }}">{% for image_url in addon.image_urls %}<img src="{{ image_url }}" alt="{{ addon.name }} example {{ forloop.counter }}" loading="lazy">{% endfor %}</span>{% endif %}
+          <div class="addon-card-copy">
+            <small>Optional service</small><strong>{{ addon.name }}</strong><em>{{ addon.price_label }}</em><p>{{ addon.details }}</p>
+            {% if addon.selection_options %}
+            <fieldset class="addon-options"><legend>Choose an option</legend>
+              <label class="addon-option addon-option-none"><input type="radio" name="addon-{{ addon.pk }}" value="" checked><span>Not selected</span><b>$0</b></label>
+              {% for option in addon.selection_options %}<label class="addon-option"><input type="radio" name="addon-{{ addon.pk }}" value="{{ option.label }}" data-addon-option data-addon-name="{{ addon.name }} — {{ option.label }}" data-price="{{ option.price }}"><span>{{ option.label }}</span><b>${{ option.price }}</b></label>{% endfor %}
+            </fieldset>
+            {% elif addon.is_quantity_addon %}
+            <label class="addon-quantity"><span><b>Number of bags</b><small>$8 each</small></span><input type="number" min="0" max="200" step="1" value="0" inputmode="numeric" aria-label="Number of party bags" data-addon-quantity data-addon-name="Party bags" data-unit-price="8"></label>
+            {% else %}
+            <label class="addon-option addon-option-single"><input type="checkbox" data-addon-option data-addon-name="{{ addon.name }}" data-price="{{ addon.price_from }}"><span>Add to wish list</span><b>${{ addon.price_from }}</b></label>
+            {% endif %}
+          </div>
+        </article>
+        {% endfor %}
+      </div>
       <div class="addon-total"><div><small>Your selected add-ons</small><strong data-addon-summary>No add-ons selected yet</strong></div><div><small>Estimated add-on total</small><strong data-addon-total>$0</strong></div></div>
       <p class="guide-disclaimer">Cake size, service duration, party-bag quantity and availability affect the final price. This selection is a planning guide only and does not place an order.</p>
     </section>
@@ -98,6 +117,6 @@
     <section class="guide-closing"><div><p class="guide-eyebrow">Ready for the next step?</p><h2>Save the themes and package you love.</h2><p>Share your favourites with our Southland team. We’ll help confirm the room, party time, availability and finishing details.</p></div><a class="guide-button guide-button-primary" href="#top">Back to the top</a></section>
   </main>
   <footer class="guide-footer"><span>Little Amigos Southland</span><span>Party information may change; please confirm before booking.</span></footer>
-  <script src="{% static 'js/southland_party_guide.js' %}?v=20261114-2" defer></script>
+  <script src="{% static 'js/southland_party_guide.js' %}?v=20261114-3" defer></script>
 </body>
 </html>
