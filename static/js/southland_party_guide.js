@@ -16,20 +16,6 @@
 
   packageTabs.forEach(tab => tab.addEventListener('click', () => showPackage(tab.dataset.packageTab)));
 
-  const roomExampleTabs = [...document.querySelectorAll('[data-room-example-tab]')];
-  const roomExamplePanels = [...document.querySelectorAll('[data-room-example-panel]')];
-  roomExampleTabs.forEach(tab => tab.addEventListener('click', () => {
-    const key = tab.dataset.roomExampleTab;
-    roomExampleTabs.forEach(item => {
-      const active = item.dataset.roomExampleTab === key;
-      item.classList.toggle('is-active', active);
-      item.setAttribute('aria-selected', String(active));
-    });
-    roomExamplePanels.forEach(panel => {
-      panel.hidden = panel.dataset.roomExamplePanel !== key;
-    });
-  }));
-
   const recommender = document.querySelector('[data-room-recommender]');
   const kidsInput = recommender?.querySelector('[data-kids-count]');
   const result = recommender?.querySelector('[data-recommendation-result]');

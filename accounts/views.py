@@ -203,6 +203,7 @@ def southland_party_guide(request, token=None):
             "kids": 8,
             "adults": 10,
             "drinks": 1,
+            "room_image": "package_showcase/southland/theme-pages/page-02.jpg",
             "included": (
                 "One fryer platter — choose mixed or vegetarian",
                 "One seasonal fruit platter",
@@ -219,6 +220,7 @@ def southland_party_guide(request, token=None):
             "kids": 15,
             "adults": 20,
             "drinks": 2,
+            "room_image": "package_showcase/southland/theme-pages/page-03.jpg",
             "included": (
                 "One fryer platter — choose mixed or vegetarian",
                 "One seasonal fruit platter",
@@ -238,6 +240,7 @@ def southland_party_guide(request, token=None):
             "kids": 25,
             "adults": 30,
             "drinks": 6,
+            "room_image": "package_showcase/southland/theme-pages/page-04.jpg",
             "included": (
                 "One fryer platter — choose mixed or vegetarian",
                 "One seasonal fruit platter",
@@ -260,6 +263,7 @@ def southland_party_guide(request, token=None):
             "kids": 35,
             "adults": 40,
             "drinks": 8,
+            "room_image": "package_showcase/southland/theme-pages/page-05.jpg",
             "included": (
                 "One fryer platter — choose mixed or vegetarian",
                 "One seasonal fruit platter",

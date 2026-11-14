@@ -64,15 +64,15 @@ class SouthlandPartyGuideTests(TestCase):
         self.assertContains(response, "Face painting")
         self.assertContains(response, "Professional photographer")
 
-    def test_room_layouts_use_four_tabs_and_one_visible_image(self):
+    def test_room_examples_are_combined_with_package_tabs(self):
         response = self.client.get(reverse("southland_party_guide"))
 
-        self.assertContains(response, 'data-room-example-tab="single"')
-        self.assertContains(response, 'data-room-example-tab="double"')
-        self.assertContains(response, 'data-room-example-tab="triple"')
-        self.assertContains(response, 'data-room-example-tab="private"')
-        self.assertContains(response, 'data-room-example-panel="single"')
-        self.assertContains(response, 'data-room-example-panel="double" hidden')
+        self.assertContains(response, "Compare rooms and packages")
+        self.assertContains(response, 'data-package-tab="essential"')
+        self.assertContains(response, 'data-package-tab="private"')
+        self.assertContains(response, 'data-package-panel="essential"')
+        self.assertContains(response, "Single room decoration example")
+        self.assertNotContains(response, "data-room-example-tab")
 
     def test_personalised_guide_shows_enquiry_details(self):
         invite = SouthlandShowcaseInvite.objects.create(
