@@ -311,6 +311,8 @@ def southland_party_guide(request, token=None):
         addon.image_urls = _addon_image_urls(addon)
         addon.selection_options = addon_options.get(addon.name, [])
         addon.is_quantity_addon = addon.name == "Party bags"
+        if addon.name == "Entertainer or mascot":
+            addon.price_label = "1 hour $380 · 2 hours $580"
     return render(
         request,
         "package_showcase/southland_public.html",
