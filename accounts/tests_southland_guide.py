@@ -97,6 +97,9 @@ class SouthlandPartyGuideTests(TestCase):
         self.assertContains(response, 'data-package-panel="essential"')
         self.assertContains(response, "Single room decoration example")
         self.assertNotContains(response, "data-room-example-tab")
+        content = response.content.decode()
+        self.assertLess(content.index('id="packages"'), content.index('id="themes"'))
+        self.assertLess(content.index('href="#packages"'), content.index('href="#themes"'))
 
     def test_personalised_guide_shows_enquiry_details(self):
         invite = SouthlandShowcaseInvite.objects.create(
