@@ -83,6 +83,8 @@ class SouthlandPartyGuideTests(TestCase):
         self.assertContains(response, "Review your selections")
         self.assertContains(response, "Around one week before the party")
         self.assertNotContains(response, "Estimated add-on total")
+        self.assertContains(response, 'data-package-deposit="$500 deposit"')
+        self.assertContains(response, 'data-package-deposit="$1,000 deposit"')
 
     def test_room_examples_are_combined_with_package_tabs(self):
         response = self.client.get(reverse("southland_party_guide"))

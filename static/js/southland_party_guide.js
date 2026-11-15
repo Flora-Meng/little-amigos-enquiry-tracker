@@ -4,6 +4,7 @@
   const foodPanels = [...document.querySelectorAll('[data-food-panel]')];
   const planPackage = document.querySelector('[data-plan-package]');
   const planPrice = document.querySelector('[data-plan-price]');
+  const planDeposit = document.querySelector('[data-plan-deposit]');
 
   function showPackage(key, scroll = false) {
     packageTabs.forEach(tab => {
@@ -17,6 +18,7 @@
     if (selectedPackage && planPackage && planPrice) {
       planPackage.textContent = `${selectedPackage.dataset.packageRoom} · ${selectedPackage.dataset.packageLabel}`;
       planPrice.textContent = `Weekday ${selectedPackage.dataset.packageWeekday} · Weekend ${selectedPackage.dataset.packageWeekend}`;
+      if (planDeposit) planDeposit.textContent = selectedPackage.dataset.packageDeposit;
     }
     if (scroll) document.querySelector('#packages')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }

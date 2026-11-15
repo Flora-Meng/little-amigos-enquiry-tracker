@@ -264,20 +264,20 @@ html { scroll-behavior: smooth; }
 .addon-card { position: relative; display: block; overflow: hidden; border: 2px solid transparent; border-radius: 21px; background: white; box-shadow: inset 0 0 0 1px var(--guide-line); transition: transform .18s ease,border .18s ease,box-shadow .18s ease; }
 .addon-card:hover { transform: translateY(-2px); box-shadow: 0 14px 28px rgba(57,61,63,.1); }
 .addon-card.is-selected { border-color: var(--guide-teal); box-shadow: 0 14px 30px rgba(55,150,141,.15); }
-.addon-card-gallery { height: 230px; display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); grid-template-rows: repeat(2,minmax(0,1fr)); gap: 3px; padding: 3px; overflow: hidden; background: #eef8f5; }
+.addon-card-gallery { height: 180px; display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); grid-template-rows: repeat(2,minmax(0,1fr)); gap: 3px; padding: 3px; overflow: hidden; background: #eef8f5; }
 .addon-card-gallery img { width: 100%; height: 100%; min-height: 0; display: block; object-fit: cover; object-position: center; background: #eef8f5; }
 .addon-card-gallery-1 { display: block; padding: 0; }
 .addon-card-gallery-2 { grid-template-rows: 1fr; }
 .addon-card-gallery-2 img { object-fit: contain; background: #fff; }
-.addon-card-copy { position: relative; display: block; padding: 17px 18px 19px; }
+.addon-card-copy { position: relative; display: block; padding: 14px 16px 16px; }
 .addon-card-copy small, .addon-card-copy strong, .addon-card-copy em { display: block; }
 .addon-card-copy small { color: var(--guide-coral-dark); font-size: .63rem; font-weight: 950; letter-spacing: .09em; text-transform: uppercase; }
 .addon-card-copy strong { margin: 5px 42px 0 0; font-size: 1.15rem; }
 .addon-card-copy em { margin-top: 7px; color: var(--guide-teal-dark); font-size: .88rem; font-style: normal; font-weight: 900; }
 .addon-card-copy p { margin: 9px 0 0; color: var(--guide-muted); font-size: .82rem; line-height: 1.45; }
-.addon-options { display: grid; gap: 8px; min-width: 0; margin: 16px 0 0; padding: 0; border: 0; }
+.addon-options { display: grid; gap: 6px; min-width: 0; margin: 12px 0 0; padding: 0; border: 0; }
 .addon-options legend { margin-bottom: 7px; color: var(--guide-muted); font-size: .72rem; font-weight: 850; }
-.addon-option { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; min-height: 46px; padding: 9px 12px; border: 1px solid var(--guide-line); border-radius: 12px; background: #fffdfa; cursor: pointer; }
+.addon-option { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; min-height: 42px; padding: 7px 11px; border: 1px solid var(--guide-line); border-radius: 12px; background: #fffdfa; cursor: pointer; }
 .addon-option input { appearance: none; width: 21px; height: 21px; margin: 0; border: 2px solid #7c8587; border-radius: 50%; background: white; cursor: pointer; }
 .addon-option input:checked { border: 5px solid var(--guide-teal); box-shadow: 0 0 0 2px #b8e2dd; }
 .addon-option span { font-size: .82rem; font-weight: 800; line-height: 1.25; }
@@ -343,8 +343,8 @@ html { scroll-behavior: smooth; }
   .package-detail-main h3 { font-size: 1.75rem; }
   .package-pricing { grid-column: auto; }
   .addon-grid { grid-template-columns: 1fr; }
-  .addon-card-gallery { height: 220px; }
-  .addon-option { min-height: 50px; padding: 11px 13px; }
+  .addon-card-gallery { height: 145px; }
+  .addon-option { min-height: 46px; padding: 9px 12px; }
   .addon-option span, .addon-option b { font-size: .88rem; }
   .addon-quantity { padding: 14px; }
   .addon-total { align-items: flex-start; flex-direction: column; }

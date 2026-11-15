@@ -282,6 +282,8 @@ def southland_party_guide(request, token=None):
     for package in packages:
         package["weekday_label"] = f"${package['weekday']:,}"
         package["weekend_label"] = f"${package['weekend']:,}"
+        package["deposit"] = 500 if package["key"] in {"essential", "signature"} else 1000
+        package["deposit_label"] = f"${package['deposit']:,} deposit"
 
     themes = _southland_theme_catalog()
 
