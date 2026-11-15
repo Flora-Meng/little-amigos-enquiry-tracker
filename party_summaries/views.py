@@ -200,7 +200,9 @@ def _save_invoice_file(summary, form):
 
 @login_required
 def party_summary_list(request):
-    summaries = summaries_visible_to(request.user)
+    summaries = summaries_visible_to(request.user).defer(
+        "invoice_file", "decoration_example",
+    )
     search = request.GET.get("search", "").strip()
     party_date = request.GET.get("party_date", "").strip()
     date_from = request.GET.get("date_from", "").strip()
@@ -271,17 +273,20 @@ def party_summary_bulk_action(request):
     if not selected_ids:
         messages.warning(request, "Select at least one party first.")
         return redirect("party_summary_list")
-    summaries = list(
+    action = request.POST.get("action")
+    summaries_query = (
         summaries_visible_to(request.user)
         .filter(id__in=selected_ids)
         .defer("invoice_file")
         .prefetch_related("menu_items", "bill_items")
         .order_by("party_date", "party_time", "owner_name")
     )
+    if action == "upload_lark":
+        summaries_query = summaries_query.defer("decoration_example")
+    summaries = list(summaries_query)
     if not summaries:
         raise Http404
 
-    action = request.POST.get("action")
     if action == "download_invoice":
         if len({summary.location_id for summary in summaries}) != 1:
             messages.error(

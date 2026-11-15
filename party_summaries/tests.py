@@ -1,6 +1,7 @@
 from datetime import timedelta
 from decimal import Decimal
 from io import BytesIO
+from unittest.mock import patch
 
 from pypdf import PdfReader, PdfWriter
 
@@ -290,6 +291,8 @@ class PartySummaryTests(TestCase):
         response = self.client.get(reverse("party_summary_list"))
         self.assertContains(response, southland.owner_name)
         self.assertEqual(len(response.context["summaries"]), 1)
+        self.assertIn("invoice_file", response.context["summaries"][0].get_deferred_fields())
+        self.assertIn("decoration_example", response.context["summaries"][0].get_deferred_fields())
 
     def test_search_matches_owner_phone_child_theme_and_location(self):
         summary = self._create_summary()
@@ -504,6 +507,27 @@ class PartySummaryTests(TestCase):
         self.assertEqual(response.status_code, 200)
         reader = PdfReader(BytesIO(b"".join(response.streaming_content)))
         self.assertEqual(len(reader.pages), 3)
+
+    @patch("party_summaries.lark.sync_summaries_to_lark")
+    def test_lark_bulk_upload_does_not_load_stored_files(self, sync_to_lark):
+        summary = self._create_summary()
+        summary.invoice_file = b"invoice-file"
+        summary.decoration_example = b"decoration-image"
+        summary.save(update_fields=("invoice_file", "decoration_example"))
+        sync_to_lark.return_value = {
+            "uploaded": 1, "skipped": 0, "failed": 0, "errors": [],
+        }
+        self.client.force_login(self.flora)
+
+        response = self.client.post(reverse("party_summary_bulk_action"), {
+            "summary_ids": [str(summary.id)],
+            "action": "upload_lark",
+        })
+
+        self.assertRedirects(response, reverse("party_summary_list"))
+        uploaded_summary = sync_to_lark.call_args.args[0][0]
+        self.assertIn("invoice_file", uploaded_summary.get_deferred_fields())
+        self.assertIn("decoration_example", uploaded_summary.get_deferred_fields())
 
     def test_selected_month_has_a_separate_invoice_totals_page_for_each_week(self):
         monday = timezone.localdate() + timedelta(days=(7 - timezone.localdate().weekday()))
