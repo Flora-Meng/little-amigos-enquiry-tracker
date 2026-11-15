@@ -275,7 +275,6 @@ html { scroll-behavior: smooth; }
 .addon-option span { font-size: .82rem; font-weight: 800; line-height: 1.25; }
 .addon-option b { color: var(--guide-teal-dark); font-size: .82rem; white-space: nowrap; }
 .addon-option:has(input:checked) { border-color: var(--guide-teal); background: #ebf9f7; box-shadow: 0 0 0 1px var(--guide-teal); }
-.addon-option-none:has(input:checked) { border-color: var(--guide-line); background: #f8f7f3; box-shadow: none; }
 .addon-option-single { margin-top: 16px; }
 .addon-quantity { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 16px; padding: 12px; border: 1px solid var(--guide-line); border-radius: 13px; background: #fffdfa; }
 .addon-quantity span, .addon-quantity b, .addon-quantity small { display: block; }

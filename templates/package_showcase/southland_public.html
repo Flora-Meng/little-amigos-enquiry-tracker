@@ -83,7 +83,7 @@
     </section>
 
     <section class="guide-section food-section" id="menu" data-package-guide>
-      <div class="guide-section-heading"><div><p class="guide-eyebrow">Included food</p><h2>Kids first, then grown-ups</h2><p>Preview the children’s choices first, followed by the adult sharing menu in the selected package.</p></div></div>
+      <div class="guide-section-heading"><div><p class="guide-eyebrow">Included food</p><h2>Explore our party food</h2><p>See the children’s meal choices and the adult sharing menu included with each package.</p></div></div>
       <div class="kids-menu-preview">
         <div class="food-preview-heading"><div class="food-number">1</div><div><small>Kids' menu</small><h3>One hot meal and one kids' size drink per child</h3><p>Choose up to two hot-food types.</p></div></div>
         <ul class="kids-meal-list" aria-label="Kids' hot food choices">
@@ -106,7 +106,6 @@
             <small>Optional service</small><strong>{{ addon.name }}</strong><em>{{ addon.price_label }}</em><p>{{ addon.details }}</p>
             {% if addon.selection_options %}
             <fieldset class="addon-options"><legend>Choose an option</legend>
-              <label class="addon-option addon-option-none"><input type="radio" name="addon-{{ addon.pk }}" value="" checked><span>Not selected</span><b>$0</b></label>
               {% for option in addon.selection_options %}<label class="addon-option"><input type="radio" name="addon-{{ addon.pk }}" value="{{ option.label }}" data-addon-option data-addon-name="{{ addon.name }} — {{ option.label }}" data-price="{{ option.price }}"><span>{{ option.label }}</span><b>${{ option.price }}</b></label>{% endfor %}
             </fieldset>
             {% elif addon.is_quantity_addon %}
