@@ -64,7 +64,9 @@ class LarkConfigurationError(RuntimeError):
 
 
 class LarkAPIError(RuntimeError):
-    pass
+    def __init__(self, message, *, code=None):
+        super().__init__(message)
+        self.code = code
 
 
 def lark_is_configured():
@@ -89,7 +91,11 @@ def _request(method, path, *, token=None, payload=None, query=None):
     except (URLError, TimeoutError, json.JSONDecodeError) as error:
         raise LarkAPIError(f"Could not reach Lark: {error}") from error
     if body.get("code", 0) != 0:
-        raise LarkAPIError(f"Lark error {body.get('code')}: {body.get('msg', 'Unknown error')}")
+        code = body.get("code")
+        raise LarkAPIError(
+            f"Lark error {code}: {body.get('msg', 'Unknown error')}",
+            code=code,
+        )
     return body.get("data") or body
 
 
@@ -478,6 +484,24 @@ def sync_summaries_to_lark(summaries, *, client=None):
             result["skipped"] += 1
             continue
         try:
+            if summary.lark_order_record_id:
+                try:
+                    client.get_record(
+                        client.order_table_id, summary.lark_order_record_id,
+                    )
+                except LarkAPIError as error:
+                    if error.code != 1254043 and "RecordIdNotFound" not in str(error):
+                        raise
+                    summary.lark_order_record_id = ""
+                    summary.lark_party_id = ""
+                    summary.lark_sync_error = ""
+                    summary.save(update_fields=(
+                        "lark_order_record_id",
+                        "lark_party_id",
+                        "lark_sync_error",
+                        "updated_at",
+                    ))
+
             if not summary.lark_order_record_id:
                 created = client.create_records(
                     client.order_table_id, [_order_fields(summary, order_catalog)],

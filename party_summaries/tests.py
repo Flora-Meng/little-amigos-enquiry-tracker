@@ -21,7 +21,7 @@ from .models import (
     PartyBillItem, PartyIntakeLink, PartyMenuItem, PartySummary,
     voucher_food_unit_price,
 )
-from .lark import sync_summaries_to_lark
+from .lark import LarkAPIError, sync_summaries_to_lark
 from .pdf import _numeric_quantity
 
 
@@ -633,6 +633,60 @@ class PartySummaryTests(TestCase):
         summary.refresh_from_db()
         self.assertEqual(summary.lark_party_id, "S-D2611030")
 
+    def test_lark_upload_recreates_deleted_order_record_before_food(self):
+        class DeletedOrderClient:
+            order_table_id = "orders"
+            food_table_id = "food"
+
+            def __init__(self):
+                self.created = {"orders": [], "food": []}
+
+            def fields(self, table_id):
+                if table_id == "orders":
+                    return [
+                        {"field_name": "Party ID", "type": 20},
+                        {"field_name": "Owner Name", "type": 1},
+                    ]
+                return [
+                    {"field_name": "Party ID", "type": 1},
+                    {"field_name": "Item", "type": 1},
+                ]
+
+            def get_record(self, table_id, record_id):
+                if record_id == "deleted-order-record":
+                    raise LarkAPIError(
+                        "Lark error 1254043: RecordIdNotFound", code=1254043,
+                    )
+                return {"fields": {"Party ID": "C-D2610040"}}
+
+            def create_records(self, table_id, records):
+                self.created[table_id].extend(records)
+                return [{"record_id": "replacement-order-record"}]
+
+        summary = self._create_summary(location=self.canberra, user=self.emma)
+        summary.lark_order_record_id = "deleted-order-record"
+        summary.lark_party_id = "C-D2610040"
+        summary.lark_sync_error = "Lark error 1254043: RecordIdNotFound"
+        summary.save()
+        PartyMenuItem.objects.create(
+            summary=summary,
+            category=PartyMenuItem.Category.KIDS,
+            quantity="18",
+            item="Nuggets & Chips",
+        )
+        client = DeletedOrderClient()
+
+        result = sync_summaries_to_lark([summary], client=client)
+
+        self.assertEqual(result["uploaded"], 1)
+        self.assertEqual(len(client.created["orders"]), 1)
+        self.assertEqual(len(client.created["food"]), 1)
+        summary.refresh_from_db()
+        self.assertEqual(summary.lark_order_record_id, "replacement-order-record")
+        self.assertEqual(summary.lark_party_id, "C-D2610040")
+        self.assertEqual(summary.lark_sync_error, "")
+        self.assertIsNotNone(summary.lark_synced_at)
+
     def test_lark_upload_converts_text_fields_and_skips_link_fields(self):
         class MixedFieldClient:
             order_table_id = "orders"
@@ -735,7 +789,7 @@ class PartySummaryTests(TestCase):
         food = client.created["food"][0]
         self.assertEqual(food["Party ID"], "S-D2611030")
         self.assertEqual(food["Item"], ["rec-menu-nuggets"])
-        self.assertEqual(food["Note"], "Free")
+        self.assertEqual(food["Note"], "Package")
 
     def test_lark_upload_maps_workspace_food_names_to_lark_menu_names(self):
         class AliasedMenuClient:
