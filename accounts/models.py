@@ -166,6 +166,10 @@ class SouthlandShowcaseInvite(models.Model):
     phone = models.CharField(max_length=40, blank=True)
     party_date = models.DateField(null=True, blank=True)
     estimated_guest_count = models.PositiveIntegerField(null=True, blank=True)
+    selected_package = models.CharField(max_length=40, blank=True)
+    selected_theme = models.CharField(max_length=160, blank=True)
+    selected_addons = models.JSONField(default=list, blank=True)
+    choices_submitted_at = models.DateTimeField(null=True, blank=True)
     created_by = models.ForeignKey(
         User,
         null=True,

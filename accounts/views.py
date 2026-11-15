@@ -4,12 +4,16 @@ from django.contrib.auth.tokens import default_token_generator
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
 from django.db.models import OuterRef, Prefetch, Subquery
-from django.http import Http404, HttpResponse
+import json
+import re
+
+from django.http import Http404, HttpResponse, HttpResponseBadRequest
 from django.shortcuts import get_object_or_404, redirect, render
 from django.templatetags.static import static
 from django.urls import reverse
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
+from django.utils import timezone
 from django.views.decorators.http import require_POST
 from enquiries.models import Enquiry, Note
 from enquiries.services import due_today, overdue
@@ -183,7 +187,7 @@ def package_showcase(request):
 
 
 def southland_party_guide(request, token=None):
-    """Public, read-only Southland theme and package guide."""
+    """Public Southland party guide with choice submission for personalised links."""
     invite = get_object_or_404(SouthlandShowcaseInvite, token=token) if token else None
     if invite and invite.estimated_guest_count:
         count = invite.estimated_guest_count
@@ -315,10 +319,67 @@ def southland_party_guide(request, token=None):
         addon.is_quantity_addon = addon.name == "Party bags"
         if addon.name == "Entertainer or mascot":
             addon.price_label = "1 hour $380 · 2 hours $580"
+
+    if request.method == "POST":
+        if not invite:
+            return HttpResponseBadRequest("A personalised party-guide link is required.")
+        package_key = request.POST.get("selected_package", "").strip()
+        theme_name = request.POST.get("selected_theme", "").strip()
+        try:
+            selected_addons = json.loads(request.POST.get("selected_addons", "[]"))
+        except json.JSONDecodeError:
+            return HttpResponseBadRequest("Choose valid add-ons.")
+
+        if package_key not in {package["key"] for package in packages}:
+            return HttpResponseBadRequest("Choose a valid package.")
+        if theme_name and theme_name not in {theme.name for theme in themes}:
+            return HttpResponseBadRequest("Choose a valid theme.")
+        if not isinstance(selected_addons, list) or len(selected_addons) > 20:
+            return HttpResponseBadRequest("Choose valid add-ons.")
+
+        valid_addons = set()
+        for addon in addons:
+            if addon.selection_options:
+                valid_addons.update(
+                    f"{addon.name} — {option['label']}" for option in addon.selection_options
+                )
+            elif not addon.is_quantity_addon:
+                valid_addons.add(addon.name)
+        cleaned_addons = []
+        for item in selected_addons:
+            if not isinstance(item, str) or len(item) > 160:
+                return HttpResponseBadRequest("Choose valid add-ons.")
+            party_bag_match = re.fullmatch(r"Party bags × ([1-9][0-9]{0,2})", item)
+            if item not in valid_addons and not (
+                party_bag_match and int(party_bag_match.group(1)) <= 200
+            ):
+                return HttpResponseBadRequest("Choose valid add-ons.")
+            cleaned_addons.append(item)
+
+        invite.selected_package = package_key
+        invite.selected_theme = theme_name
+        invite.selected_addons = cleaned_addons
+        invite.choices_submitted_at = timezone.now()
+        invite.save(update_fields=(
+            "selected_package",
+            "selected_theme",
+            "selected_addons",
+            "choices_submitted_at",
+        ))
+        return redirect(
+            f"{reverse('southland_party_guide_invite', kwargs={'token': invite.token})}"
+            "?choices_sent=1#party-plan"
+        )
     return render(
         request,
         "package_showcase/southland_public.html",
-        {"packages": packages, "themes": themes, "addons": addons, "invite": invite},
+        {
+            "packages": packages,
+            "themes": themes,
+            "addons": addons,
+            "invite": invite,
+            "choices_sent": request.GET.get("choices_sent") == "1",
+        },
     )
 
 
@@ -425,6 +486,11 @@ def southland_showcase_manage(request):
     addons = list(SouthlandShowcaseAddon.objects.all())
     for addon in addons:
         addon.image_url = _addon_image_url(addon)
+    submitted_choices = list(
+        SouthlandShowcaseInvite.objects.exclude(choices_submitted_at__isnull=True)
+        .select_related("created_by")
+        .order_by("-choices_submitted_at")[:50]
+    )
     library_photos = list(
         PartySummary.objects.filter(
             location__code=Location.Code.SOUTHLAND,
@@ -446,6 +512,7 @@ def southland_showcase_manage(request):
             "themes": themes,
             "addons": addons,
             "library_photos": library_photos,
+            "submitted_choices": submitted_choices,
             "category_choices": SouthlandShowcaseTheme.Category.choices,
         },
     )

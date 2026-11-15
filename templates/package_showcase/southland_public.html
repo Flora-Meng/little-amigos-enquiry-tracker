@@ -7,7 +7,7 @@
   <meta name="description" content="Explore Little Amigos Southland party themes, packages, food and add-on services.">
   <title>Southland party guide · Little Amigos</title>
   <link rel="stylesheet" href="{% static 'css/app.css' %}?v=20261101-1">
-  <link rel="stylesheet" href="{% static 'css/southland_party_guide.css' %}?v=20261115-4">
+  <link rel="stylesheet" href="{% static 'css/southland_party_guide.css' %}?v=20261115-5">
 </head>
 <body class="southland-guide-body">
   <header class="guide-topbar">
@@ -125,7 +125,8 @@
       <p class="guide-disclaimer">Cake size, service duration, party-bag quantity and availability affect the final price. This selection is a planning guide only and does not place an order.</p>
     </section>
 
-    <section class="guide-section final-plan-section" id="party-plan" data-party-plan>
+    <section class="guide-section final-plan-section" id="party-plan" data-party-plan data-initial-package="{% if invite.selected_package %}{{ invite.selected_package }}{% else %}essential{% endif %}" data-initial-theme="{{ invite.selected_theme|default:'' }}">
+      {% if invite %}{{ invite.selected_addons|json_script:"initial-selected-addons" }}{% endif %}
       <div class="guide-section-heading"><div><p class="guide-eyebrow">Your party plan</p><h2>Review your selections</h2><p>A simple summary of everything you explored above. Our team will confirm availability and final pricing before you pay.</p></div></div>
       <div class="final-plan-grid">
         <article><small>Room &amp; package</small><strong data-plan-package>Single room · Essential</strong><span data-plan-price>Weekday $699 · Weekend $899</span></article>
@@ -135,11 +136,34 @@
         <article class="payment-card"><small>Balance</small><strong>Paid after the party</strong><span>The remaining balance is paid on the party day after the celebration has finished.</span></article>
       </div>
       <div class="party-process"><p class="guide-eyebrow">Our process</p><h3>What happens after you choose</h3><ol><li><span>1</span><div><strong>Pay the deposit</strong><p>The deposit starts the preparation process for your party.</p></div></li><li><span>2</span><div><strong>Receive your e-invitation</strong><p>We’ll prepare and send you the e-invitation.</p></div></li><li><span>3</span><div><strong>Arrange optional services</strong><p>We’ll help you arrange any add-on services you need.</p></div></li><li><span>4</span><div><strong>Confirm the final details</strong><p>Around one week before the party, we’ll confirm the menu and final number of guests.</p></div></li></ol></div>
+      <div class="coordinator-card">
+        <div class="coordinator-copy">
+          <p class="guide-eyebrow">Your party coordinator</p>
+          <h3>Party Coordinator — Flora</h3>
+          <p>Send your choices to Flora. She’ll confirm the date, room and availability before sending your deposit payment request.</p>
+          <span>No payment is required on this page.</span>
+        </div>
+        <div class="coordinator-actions">
+          {% if choices_sent %}<p class="choices-sent" role="status"><strong>Choices sent to Flora.</strong> We’ll confirm availability and contact you with the next step.</p>{% endif %}
+          {% if invite %}
+          <form method="post" data-choice-form>
+            {% csrf_token %}
+            <input type="hidden" name="selected_package" value="essential" data-choice-package>
+            <input type="hidden" name="selected_theme" value="" data-choice-theme>
+            <input type="hidden" name="selected_addons" value="[]" data-choice-addons>
+            <button class="guide-button guide-button-primary coordinator-submit" type="submit">Send my choices to Party Coordinator — Flora</button>
+          </form>
+          {% else %}
+          <p class="coordinator-personal-note">Use the personalised party-guide link Flora sent you to submit your choices.</p>
+          {% endif %}
+          <div class="coordinator-question"><strong>Ask Flora a question</strong><div><a class="guide-button guide-button-secondary" href="sms:0439046887">Text Flora</a><a class="guide-button guide-button-secondary" href="tel:0439046887">Call Flora</a></div><span>0439 046 887</span></div>
+        </div>
+      </div>
     </section>
 
     <section class="guide-closing"><div><p class="guide-eyebrow">Ready for the next step?</p><h2>Save the themes and package you love.</h2><p>Share your favourites with our Southland team. We’ll help confirm the room, party time, availability and finishing details.</p></div><a class="guide-button guide-button-primary" href="#top">Back to the top</a></section>
   </main>
   <footer class="guide-footer"><span>Little Amigos Southland</span><span>Party information may change; please confirm before booking.</span></footer>
-  <script src="{% static 'js/southland_party_guide.js' %}?v=20261115-4" defer></script>
+  <script src="{% static 'js/southland_party_guide.js' %}?v=20261115-5" defer></script>
 </body>
 </html>

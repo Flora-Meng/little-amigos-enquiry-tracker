@@ -5,6 +5,10 @@
   const planPackage = document.querySelector('[data-plan-package]');
   const planPrice = document.querySelector('[data-plan-price]');
   const planDeposit = document.querySelector('[data-plan-deposit]');
+  const choicePackage = document.querySelector('[data-choice-package]');
+  const choiceTheme = document.querySelector('[data-choice-theme]');
+  const choiceAddons = document.querySelector('[data-choice-addons]');
+  const partyPlan = document.querySelector('[data-party-plan]');
 
   function showPackage(key, scroll = false) {
     packageTabs.forEach(tab => {
@@ -19,11 +23,13 @@
       planPackage.textContent = `${selectedPackage.dataset.packageRoom} · ${selectedPackage.dataset.packageLabel}`;
       planPrice.textContent = `Weekday ${selectedPackage.dataset.packageWeekday} · Weekend ${selectedPackage.dataset.packageWeekend}`;
       if (planDeposit) planDeposit.textContent = selectedPackage.dataset.packageDeposit;
+      if (choicePackage) choicePackage.value = key;
     }
     if (scroll) document.querySelector('#packages')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   packageTabs.forEach(tab => tab.addEventListener('click', () => showPackage(tab.dataset.packageTab)));
+  showPackage(partyPlan?.dataset.initialPackage || 'essential');
 
   document.querySelectorAll('[data-food-carousel]').forEach(carousel => {
     const track = carousel.querySelector('[data-food-track]');
@@ -99,8 +105,20 @@
       catalog.querySelectorAll('[data-theme-card]').forEach(card => card.classList.toggle('is-selected', card.dataset.themeOpen === dialog.dataset.themeDialog));
       const planTheme = document.querySelector('[data-plan-theme]');
       if (planTheme) planTheme.textContent = button.dataset.themeSelect;
+      if (choiceTheme) choiceTheme.value = button.dataset.themeSelect;
       dialog.close();
     }));
+    const initialTheme = partyPlan?.dataset.initialTheme;
+    if (initialTheme) {
+      const initialButton = [...catalog.querySelectorAll('[data-theme-select]')].find(button => button.dataset.themeSelect === initialTheme);
+      const initialDialog = initialButton?.closest('dialog');
+      if (initialButton && initialDialog) {
+        cards.forEach(card => card.classList.toggle('is-selected', card.dataset.themeOpen === initialDialog.dataset.themeDialog));
+        const planTheme = document.querySelector('[data-plan-theme]');
+        if (planTheme) planTheme.textContent = initialTheme;
+        if (choiceTheme) choiceTheme.value = initialTheme;
+      }
+    }
     catalog.querySelectorAll('dialog').forEach(dialog => dialog.addEventListener('click', event => {
       if (event.target === dialog) dialog.close();
     }));
@@ -138,6 +156,7 @@
       });
 
       if (planAddons) planAddons.textContent = selections.length ? selections.map(item => item.name).join(', ') : 'No add-ons selected';
+      if (choiceAddons) choiceAddons.value = JSON.stringify(selections.map(item => item.name));
     }
 
     allInputs.forEach(input => {
@@ -151,6 +170,20 @@
       });
       input.addEventListener('input', updateAddons);
     });
+    const initialAddonsNode = document.querySelector('#initial-selected-addons');
+    if (initialAddonsNode) {
+      try {
+        const initialAddons = JSON.parse(initialAddonsNode.textContent);
+        initialAddons.forEach(name => {
+          const option = optionChoices.find(item => item.dataset.addonName === name);
+          if (option) option.checked = true;
+          const partyBags = /^Party bags × ([1-9][0-9]{0,2})$/.exec(name);
+          if (partyBags && quantityChoices[0]) quantityChoices[0].value = partyBags[1];
+        });
+      } catch (error) {
+        // Ignore invalid legacy selections and keep the current empty state.
+      }
+    }
     updateAddons();
   }
 })();

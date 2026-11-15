@@ -1,9 +1,11 @@
 from datetime import date
 from decimal import Decimal
+import json
 
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import timezone
 
 from party_summaries.models import PartySummary
 
@@ -107,6 +109,57 @@ class SouthlandPartyGuideTests(TestCase):
         self.assertContains(response, "Prepared for Jorja")
         self.assertContains(response, "recommend starting with the Double Room")
 
+    def test_guide_offers_direct_flora_contact(self):
+        response = self.client.get(reverse("southland_party_guide"))
+
+        self.assertContains(response, "Party Coordinator — Flora")
+        self.assertContains(response, 'href="sms:0439046887"')
+        self.assertContains(response, 'href="tel:0439046887"')
+        self.assertContains(response, "0439 046 887")
+
+    def test_personalised_guide_saves_customer_choices(self):
+        invite = SouthlandShowcaseInvite.objects.create(customer_name="Jorja")
+
+        response = self.client.post(
+            reverse("southland_party_guide_invite", kwargs={"token": invite.token}),
+            {
+                "selected_package": "signature",
+                "selected_theme": "Frozen",
+                "selected_addons": json.dumps([
+                    "Face painting — 1.5 hours",
+                    "Party bags × 12",
+                ]),
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("choices_sent=1#party-plan", response.url)
+        invite.refresh_from_db()
+        self.assertEqual(invite.selected_package, "signature")
+        self.assertEqual(invite.selected_theme, "Frozen")
+        self.assertEqual(
+            invite.selected_addons,
+            ["Face painting — 1.5 hours", "Party bags × 12"],
+        )
+        self.assertIsNotNone(invite.choices_submitted_at)
+
+        saved_page = self.client.get(response.url)
+        self.assertContains(saved_page, 'data-initial-package="signature"')
+        self.assertContains(saved_page, 'data-initial-theme="Frozen"')
+        self.assertContains(saved_page, "Choices sent to Flora")
+
+    def test_generic_guide_cannot_save_unidentified_choices(self):
+        response = self.client.post(
+            reverse("southland_party_guide"),
+            {
+                "selected_package": "essential",
+                "selected_theme": "",
+                "selected_addons": "[]",
+            },
+        )
+
+        self.assertEqual(response.status_code, 400)
+
 
 class SouthlandShowcaseManagerTests(TestCase):
     def setUp(self):
@@ -124,6 +177,23 @@ class SouthlandShowcaseManagerTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Manage themes and add-ons")
+
+    def test_manager_lists_customer_choice_submissions(self):
+        SouthlandShowcaseInvite.objects.create(
+            customer_name="Jorja",
+            phone="0439000000",
+            selected_package="signature",
+            selected_theme="Frozen",
+            selected_addons=["Face painting — 1.5 hours"],
+            choices_submitted_at=timezone.now(),
+        )
+
+        response = self.client.get(reverse("southland_showcase_manage"))
+
+        self.assertContains(response, "Latest party-guide submissions")
+        self.assertContains(response, "Jorja")
+        self.assertContains(response, "Signature · Frozen")
+        self.assertContains(response, "Face painting — 1.5 hours")
 
     def test_admin_can_add_theme_with_image(self):
         response = self.client.post(
