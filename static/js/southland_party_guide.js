@@ -16,6 +16,13 @@
 
   packageTabs.forEach(tab => tab.addEventListener('click', () => showPackage(tab.dataset.packageTab)));
 
+  document.querySelectorAll('[data-food-carousel]').forEach(carousel => {
+    const track = carousel.querySelector('[data-food-track]');
+    const move = direction => track.scrollBy({ left: direction * Math.max(track.clientWidth * 0.78, 240), behavior: 'smooth' });
+    carousel.querySelector('[data-food-prev]')?.addEventListener('click', () => move(-1));
+    carousel.querySelector('[data-food-next]')?.addEventListener('click', () => move(1));
+  });
+
   const recommender = document.querySelector('[data-room-recommender]');
   const kidsInput = recommender?.querySelector('[data-kids-count]');
   const result = recommender?.querySelector('[data-recommendation-result]');

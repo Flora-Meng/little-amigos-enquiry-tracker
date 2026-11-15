@@ -37,7 +37,9 @@ class SouthlandPartyGuideTests(TestCase):
         self.assertContains(response, "One finger sandwich platter")
         self.assertContains(response, "Nuggets &amp; Chips")
         self.assertContains(response, "Kids’ meal photo 3")
+        self.assertContains(response, "Kids’ meal photo 4")
         self.assertContains(response, "Package food photo 4")
+        self.assertContains(response, "data-food-carousel")
 
     def test_guide_has_searchable_theme_catalog(self):
         response = self.client.get(reverse("southland_party_guide"))
