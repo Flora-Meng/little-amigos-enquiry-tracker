@@ -2,6 +2,8 @@
   const packageTabs = [...document.querySelectorAll('[data-package-tab]')];
   const packagePanels = [...document.querySelectorAll('[data-package-panel]')];
   const foodPanels = [...document.querySelectorAll('[data-food-panel]')];
+  const planPackage = document.querySelector('[data-plan-package]');
+  const planPrice = document.querySelector('[data-plan-price]');
 
   function showPackage(key, scroll = false) {
     packageTabs.forEach(tab => {
@@ -11,6 +13,11 @@
     });
     packagePanels.forEach(panel => { panel.hidden = panel.dataset.packagePanel !== key; });
     foodPanels.forEach(panel => { panel.hidden = panel.dataset.foodPanel !== key; });
+    const selectedPackage = packageTabs.find(tab => tab.dataset.packageTab === key);
+    if (selectedPackage && planPackage && planPrice) {
+      planPackage.textContent = `${selectedPackage.dataset.packageRoom} · ${selectedPackage.dataset.packageLabel}`;
+      planPrice.textContent = `Weekday ${selectedPackage.dataset.packageWeekday} · Weekend ${selectedPackage.dataset.packageWeekend}`;
+    }
     if (scroll) document.querySelector('#packages')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
@@ -85,6 +92,13 @@
       catalog.querySelector(`[data-theme-dialog="${card.dataset.themeOpen}"]`)?.showModal();
     }));
     catalog.querySelectorAll('[data-theme-close]').forEach(button => button.addEventListener('click', () => button.closest('dialog').close()));
+    catalog.querySelectorAll('[data-theme-select]').forEach(button => button.addEventListener('click', () => {
+      const dialog = button.closest('dialog');
+      catalog.querySelectorAll('[data-theme-card]').forEach(card => card.classList.toggle('is-selected', card.dataset.themeOpen === dialog.dataset.themeDialog));
+      const planTheme = document.querySelector('[data-plan-theme]');
+      if (planTheme) planTheme.textContent = button.dataset.themeSelect;
+      dialog.close();
+    }));
     catalog.querySelectorAll('dialog').forEach(dialog => dialog.addEventListener('click', event => {
       if (event.target === dialog) dialog.close();
     }));
@@ -95,8 +109,7 @@
     const optionChoices = [...addonBuilder.querySelectorAll('[data-addon-option]')];
     const quantityChoices = [...addonBuilder.querySelectorAll('[data-addon-quantity]')];
     const allInputs = [...addonBuilder.querySelectorAll('input')];
-    const summary = addonBuilder.querySelector('[data-addon-summary]');
-    const total = addonBuilder.querySelector('[data-addon-total]');
+    const planAddons = document.querySelector('[data-plan-addons]');
 
     function updateAddons() {
       const selected = optionChoices.filter(item => item.checked);
@@ -122,13 +135,18 @@
         card.classList.toggle('is-selected', Boolean(selectedOption || quantity > 0));
       });
 
-      const amount = selections.reduce((sum, item) => sum + item.amount, 0);
-      summary.textContent = selections.length ? selections.map(item => item.name).join(', ') : 'No add-ons selected yet';
-      total.textContent = `$${amount.toLocaleString('en-AU', { maximumFractionDigits: 0 })}`;
+      if (planAddons) planAddons.textContent = selections.length ? selections.map(item => item.name).join(', ') : 'No add-ons selected';
     }
 
     allInputs.forEach(input => {
-      input.addEventListener('change', updateAddons);
+      input.addEventListener('change', () => {
+        if (input.matches('[data-addon-option]') && input.checked && input.dataset.addonGroup) {
+          optionChoices.forEach(other => {
+            if (other !== input && other.dataset.addonGroup === input.dataset.addonGroup) other.checked = false;
+          });
+        }
+        updateAddons();
+      });
       input.addEventListener('input', updateAddons);
     });
     updateAddons();

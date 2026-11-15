@@ -80,6 +80,9 @@ class SouthlandPartyGuideTests(TestCase):
         self.assertContains(response, 'data-unit-price="8"')
         self.assertNotContains(response, "Not selected")
         self.assertContains(response, "Explore our party food")
+        self.assertContains(response, "Review your selections")
+        self.assertContains(response, "Around one week before the party")
+        self.assertNotContains(response, "Estimated add-on total")
 
     def test_room_examples_are_combined_with_package_tabs(self):
         response = self.client.get(reverse("southland_party_guide"))
