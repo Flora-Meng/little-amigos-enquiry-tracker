@@ -117,17 +117,27 @@ html { scroll-behavior: smooth; }
 
 .food-section { background: #f8fcfb; }
 .kids-menu-preview, .adult-menu-preview { border: 1px solid #dce8e5; border-radius: 21px; background: white; }
-.kids-menu-preview { display: grid; grid-template-columns: 54px 1fr; gap: 17px; padding: 23px; }
+.kids-menu-preview { padding: 23px; }
 .food-number { width: 46px; height: 46px; display: grid; place-items: center; border-radius: 14px; color: white; background: var(--guide-coral); font-weight: 950; }
 .kids-menu-preview small, .food-preview-heading small { color: var(--guide-teal-dark); font-size: .68rem; font-weight: 950; letter-spacing: .09em; text-transform: uppercase; }
 .kids-menu-preview h3, .food-preview-heading h3 { margin: 4px 0 0; font-size: 1.25rem; }
-.kids-menu-preview p { margin: 10px 0 0; color: var(--guide-muted); line-height: 1.55; }
+.kids-menu-preview p { margin: 7px 0 0; color: var(--guide-muted); line-height: 1.55; }
 .adult-menu-preview { margin-top: 13px; padding: 23px; }
 .food-preview-heading { display: grid; grid-template-columns: 54px 1fr; gap: 17px; align-items: center; }
 .food-preview-heading .food-number { background: var(--guide-teal); }
+.kids-menu-preview .food-number { background: var(--guide-coral); }
+.kids-meal-list { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 9px; margin: 20px 0 0; padding: 0; list-style: none; }
+.kids-meal-list li { min-height: 58px; display: flex; align-items: center; padding: 12px 14px 12px 42px; border-radius: 12px; color: #40545a; background: #fff3ed; font-weight: 800; line-height: 1.35; position: relative; }
+.kids-meal-list li::before { content: "✓"; position: absolute; left: 15px; color: var(--guide-coral-dark); font-weight: 950; }
 .adult-menu-preview ul { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin: 20px 0 0; padding: 0; list-style: none; }
 .adult-menu-preview li { display: flex; align-items: start; gap: 9px; padding: 12px 13px; border-radius: 12px; color: #495b60; background: #f6f4ef; line-height: 1.4; }
 .adult-menu-preview li span { flex: 0 0 auto; color: var(--guide-teal-dark); font-weight: 950; }
+.food-photo-strip { display: grid; gap: 10px; margin-top: 20px; }
+.food-photo-strip-kids { grid-template-columns: repeat(3,minmax(0,1fr)); }
+.food-photo-strip-adults { grid-template-columns: repeat(4,minmax(0,1fr)); }
+.food-photo-slot { min-height: 150px; display: grid; place-items: center; overflow: hidden; border: 2px dashed #c9dcd8; border-radius: 15px; color: #718085; background: linear-gradient(145deg,#f8fbfa,#eef6f4); text-align: center; }
+.food-photo-slot span { max-width: 120px; font-size: .72rem; font-weight: 850; line-height: 1.35; }
+.food-photo-slot img { width: 100%; height: 100%; min-height: 150px; display: block; object-fit: cover; }
 .guide-disclaimer { margin: 18px 0 0; padding: 13px 16px; border-radius: 13px; color: #7b6333; background: #fff1c8; font-size: .8rem; line-height: 1.5; }
 
 .guide-closing { display: flex; align-items: center; justify-content: space-between; gap: 35px; margin-top: 28px; padding: 43px; border-radius: 30px; color: white; background: linear-gradient(135deg,#df6d53,#f49375 56%,#f5b184); }
@@ -178,9 +188,17 @@ html { scroll-behavior: smooth; }
   .package-detail { padding: 21px 17px; }
   .package-pricing strong { font-size: 1.45rem; }
   .adult-menu-preview ul { grid-template-columns: 1fr; }
+  .kids-meal-list { grid-template-columns: 1fr 1fr; }
+  .food-photo-strip { display: flex; overflow-x: auto; margin-right: -17px; padding: 0 17px 8px 0; scroll-snap-type: x mandatory; }
+  .food-photo-slot { min-width: min(76vw,270px); min-height: 180px; flex: 0 0 min(76vw,270px); scroll-snap-align: start; }
+  .food-photo-slot img { min-height: 180px; }
   .guide-closing { display: block; padding: 30px 24px; }
   .guide-closing .guide-button { margin-top: 20px; }
   .guide-footer { width: min(100% - 30px,1240px); display: grid; gap: 5px; }
+}
+
+@media (max-width: 520px) {
+  .kids-meal-list { grid-template-columns: 1fr; }
 }
 
 /* Southland customer showcase additions */

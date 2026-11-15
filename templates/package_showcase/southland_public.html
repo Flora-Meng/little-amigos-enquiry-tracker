@@ -7,7 +7,7 @@
   <meta name="description" content="Explore Little Amigos Southland party themes, packages, food and add-on services.">
   <title>Southland party guide · Little Amigos</title>
   <link rel="stylesheet" href="{% static 'css/app.css' %}?v=20261101-1">
-  <link rel="stylesheet" href="{% static 'css/southland_party_guide.css' %}?v=20261114-3">
+  <link rel="stylesheet" href="{% static 'css/southland_party_guide.css' %}?v=20261115-1">
 </head>
 <body class="southland-guide-body">
   <header class="guide-topbar">
@@ -84,8 +84,16 @@
 
     <section class="guide-section food-section" id="menu" data-package-guide>
       <div class="guide-section-heading"><div><p class="guide-eyebrow">Included food</p><h2>Kids first, then grown-ups</h2><p>Preview the children’s choices first, followed by the adult sharing menu in the selected package.</p></div></div>
-      <div class="kids-menu-preview"><div class="food-number">1</div><div><small>Kids' menu</small><h3>One hot meal and one kids' size drink per child</h3><p>Choose up to two hot-food types: Nuggets &amp; Chips, Fish Fingers &amp; Chips, Ham &amp; Cheese Toast, Spring Rolls &amp; Chips, Kid Spaghetti, or Tomato &amp; Cheese Toast.</p></div></div>
-      {% for package in packages %}<div class="adult-menu-preview" data-food-panel="{{ package.key }}"{% if not forloop.first %} hidden{% endif %}><div class="food-preview-heading"><div class="food-number">2</div><div><small>Adults' sharing menu</small><h3>{{ package.label }} package inclusions</h3></div></div><ul>{% for item in package.included %}<li><span aria-hidden="true">✓</span>{{ item }}</li>{% endfor %}</ul></div>{% endfor %}
+      <div class="kids-menu-preview">
+        <div class="food-preview-heading"><div class="food-number">1</div><div><small>Kids' menu</small><h3>One hot meal and one kids' size drink per child</h3><p>Choose up to two hot-food types.</p></div></div>
+        <ul class="kids-meal-list" aria-label="Kids' hot food choices">
+          <li>Nuggets &amp; Chips</li><li>Fish Fingers &amp; Chips</li><li>Ham &amp; Cheese Toast</li><li>Spring Rolls &amp; Chips</li><li>Kid Spaghetti</li><li>Tomato &amp; Cheese Toast</li>
+        </ul>
+        <div class="food-photo-strip food-photo-strip-kids" aria-label="Kids' meal photo gallery">
+          <div class="food-photo-slot"><span>Kids’ meal photo 1</span></div><div class="food-photo-slot"><span>Kids’ meal photo 2</span></div><div class="food-photo-slot"><span>Kids’ meal photo 3</span></div>
+        </div>
+      </div>
+      {% for package in packages %}<div class="adult-menu-preview" data-food-panel="{{ package.key }}"{% if not forloop.first %} hidden{% endif %}><div class="food-preview-heading"><div class="food-number">2</div><div><small>Adults' sharing menu</small><h3>{{ package.label }} package inclusions</h3></div></div><ul>{% for item in package.included %}<li><span aria-hidden="true">✓</span>{{ item }}</li>{% endfor %}</ul><div class="food-photo-strip food-photo-strip-adults" aria-label="{{ package.label }} package food photo gallery"><div class="food-photo-slot"><span>Package food photo 1</span></div><div class="food-photo-slot"><span>Package food photo 2</span></div><div class="food-photo-slot"><span>Package food photo 3</span></div><div class="food-photo-slot"><span>Package food photo 4</span></div></div></div>{% endfor %}
     </section>
 
     <section class="guide-section addon-section" id="addons" data-addon-builder>
