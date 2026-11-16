@@ -293,6 +293,7 @@ class PartySummaryTests(TestCase):
         self.assertEqual(len(response.context["summaries"]), 1)
         self.assertIn("invoice_file", response.context["summaries"][0].get_deferred_fields())
         self.assertIn("decoration_example", response.context["summaries"][0].get_deferred_fields())
+        self.assertIn("decoration_reference", response.context["summaries"][0].get_deferred_fields())
 
     def test_search_matches_owner_phone_child_theme_and_location(self):
         summary = self._create_summary()
@@ -513,7 +514,8 @@ class PartySummaryTests(TestCase):
         summary = self._create_summary()
         summary.invoice_file = b"invoice-file"
         summary.decoration_example = b"decoration-image"
-        summary.save(update_fields=("invoice_file", "decoration_example"))
+        summary.decoration_reference = b"reference-image"
+        summary.save(update_fields=("invoice_file", "decoration_example", "decoration_reference"))
         sync_to_lark.return_value = {
             "uploaded": 1, "skipped": 0, "failed": 0, "errors": [],
         }
@@ -528,6 +530,7 @@ class PartySummaryTests(TestCase):
         uploaded_summary = sync_to_lark.call_args.args[0][0]
         self.assertIn("invoice_file", uploaded_summary.get_deferred_fields())
         self.assertIn("decoration_example", uploaded_summary.get_deferred_fields())
+        self.assertIn("decoration_reference", uploaded_summary.get_deferred_fields())
 
     def test_selected_month_has_a_separate_invoice_totals_page_for_each_week(self):
         monday = timezone.localdate() + timedelta(days=(7 - timezone.localdate().weekday()))
@@ -1328,6 +1331,31 @@ class PartySummaryTests(TestCase):
         self.client.force_login(self.emma)
         response = self.client.get(reverse("party_summary_decoration", args=(summary.id,)))
         self.assertEqual(response.status_code, 404)
+
+    def test_decoration_reference_is_separate_from_theme_library_photo(self):
+        self.client.force_login(self.flora)
+        data = self._post_data()
+        reference = SimpleUploadedFile("requested-setup.png", b"reference-image", content_type="image/png")
+        library_photo = SimpleUploadedFile("finished-party.png", b"library-image", content_type="image/png")
+
+        response = self.client.post(reverse("party_summary_create"), {
+            **data,
+            "decoration_reference_upload": reference,
+            "decoration_example_upload": library_photo,
+        })
+
+        self._assert_create_redirects_to_edit(response)
+        summary = PartySummary.objects.get()
+        self.assertEqual(bytes(summary.decoration_reference), b"reference-image")
+        self.assertEqual(bytes(summary.decoration_example), b"library-image")
+        response = self.client.get(reverse("party_summary_decoration_reference", args=(summary.id,)))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(b"".join(response.streaming_content), b"reference-image")
+
+        edit_page = self.client.get(reverse("party_summary_edit", args=(summary.id,)))
+        self.assertContains(edit_page, "Decoration example")
+        self.assertContains(edit_page, "does not enter the Theme photo library")
+        self.assertContains(edit_page, "finished party setup photo after the party")
 
     def test_pdf_download_is_single_page_and_scoped_to_visible_summaries(self):
         summary = self._create_summary()

@@ -183,6 +183,22 @@ def _save_decoration_example(summary, form):
     ))
 
 
+def _save_decoration_reference(summary, form):
+    if form.cleaned_data.get("remove_decoration_reference"):
+        summary.decoration_reference = None
+        summary.decoration_reference_name = ""
+        summary.decoration_reference_content_type = ""
+    upload = form.cleaned_data.get("decoration_reference_upload")
+    if upload:
+        summary.decoration_reference = upload.read()
+        summary.decoration_reference_name = upload.name[:255]
+        summary.decoration_reference_content_type = upload.content_type
+    summary.save(update_fields=(
+        "decoration_reference", "decoration_reference_name",
+        "decoration_reference_content_type", "updated_at",
+    ))
+
+
 def _save_invoice_file(summary, form):
     if form.cleaned_data.get("remove_invoice_file"):
         summary.invoice_file = None
@@ -201,7 +217,7 @@ def _save_invoice_file(summary, form):
 @login_required
 def party_summary_list(request):
     summaries = summaries_visible_to(request.user).defer(
-        "invoice_file", "decoration_example",
+        "invoice_file", "decoration_example", "decoration_reference",
     )
     search = request.GET.get("search", "").strip()
     party_date = request.GET.get("party_date", "").strip()
@@ -282,7 +298,7 @@ def party_summary_bulk_action(request):
         .order_by("party_date", "party_time", "owner_name")
     )
     if action == "upload_lark":
-        summaries_query = summaries_query.defer("decoration_example")
+        summaries_query = summaries_query.defer("decoration_example", "decoration_reference")
     summaries = list(summaries_query)
     if not summaries:
         raise Http404
@@ -608,6 +624,7 @@ def party_summary_create(request):
                 )
                 return _summary_save_redirect(existing, request.POST.get("action"))
             _save_menu_items(summary, formsets)
+            _save_decoration_reference(summary, form)
             _save_decoration_example(summary, form)
             _save_invoice_file(summary, form)
             messages.success(request, f"Party summary for {summary.owner_name} was saved.")
@@ -634,6 +651,7 @@ def party_summary_edit(request, summary_id):
                 updated.location = request.user.location
             updated.save()
             _save_menu_items(updated, formsets)
+            _save_decoration_reference(updated, form)
             _save_decoration_example(updated, form)
             _save_invoice_file(updated, form)
             messages.success(request, "Party summary saved successfully.")
@@ -1015,6 +1033,20 @@ def party_summary_decoration(request, summary_id):
         BytesIO(bytes(summary.decoration_example)),
         content_type=summary.decoration_example_content_type,
         filename=summary.decoration_example_name or "decoration-example",
+    )
+    response["X-Content-Type-Options"] = "nosniff"
+    return response
+
+
+@login_required
+def party_summary_decoration_reference(request, summary_id):
+    summary = _visible_or_404(request.user, summary_id)
+    if not summary.decoration_reference:
+        raise Http404
+    response = FileResponse(
+        BytesIO(bytes(summary.decoration_reference)),
+        content_type=summary.decoration_reference_content_type,
+        filename=summary.decoration_reference_name or "decoration-example",
     )
     response["X-Content-Type-Options"] = "nosniff"
     return response

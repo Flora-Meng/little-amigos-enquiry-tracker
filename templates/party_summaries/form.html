@@ -122,6 +122,15 @@
           {% include "enquiries/_field.html" with field=form.age %}
           {% include "enquiries/_field.html" with field=form.theme %}
           {% include "enquiries/_field.html" with field=form.balloon_color %}
+          <div class="field field-wide decoration-upload{% if form.decoration_reference_upload.errors %} field-invalid{% endif %}">
+            <label for="{{ form.decoration_reference_upload.id_for_label }}">Decoration example</label>
+            <small>Upload the setup picture you want the party team to follow. This stays with this Party Summary and does not enter the Theme photo library.</small>
+            {% if summary.decoration_reference %}<a href="{% url 'party_summary_decoration_reference' summary.id %}" target="_blank" rel="noopener"><img class="decoration-preview" src="{% url 'party_summary_decoration_reference' summary.id %}" alt="Current decoration example"></a><span class="decoration-file-name">{{ summary.decoration_reference_name }}</span>{% endif %}
+            {{ form.decoration_reference_upload }}
+            <small>JPG, PNG or WebP, up to 5 MB. Uploading a new image replaces the current decoration example.</small>
+            {% for error in form.decoration_reference_upload.errors %}<p class="field-error" role="alert">{{ error }}</p>{% endfor %}
+            {% if summary.decoration_reference %}<label class="remove-image-check">{{ form.remove_decoration_reference }} Remove current decoration example</label>{% endif %}
+          </div>
           {% include "enquiries/_field.html" with field=form.rsvp_information wide=True %}
           {% include "enquiries/_field.html" with field=form.special_note wide=True %}
         </div>
@@ -152,7 +161,7 @@
       </section>
     </div>
     <section class="panel theme-library-upload-panel">
-      <div class="panel-heading"><div><h2>Theme photo library</h2><span>Upload a theme, decoration reference or finished party setup photo. The image is saved in the database; Southland photos become available in the Showcase manager.</span></div></div>
+      <div class="panel-heading"><div><h2>Theme photo library</h2><span>Upload a finished party setup photo after the party. Southland photos become available in the Showcase manager and may be added to the customer theme gallery.</span></div></div>
       <div class="theme-library-upload-body">
         <div class="field decoration-upload{% if form.decoration_example_upload.errors %} field-invalid{% endif %}">
           <label for="{{ form.decoration_example_upload.id_for_label }}">Theme library photo</label>
@@ -475,9 +484,8 @@
     bindBillDeleteButton(row.querySelector('[data-delete-bill]'));
     totalInput.value = total + 1;
   });
-  const decorationInput = document.getElementById('id_decoration_example_upload');
-  decorationInput?.addEventListener('change', async () => {
-    const file = decorationInput.files?.[0];
+  const prepareImageUpload = (input) => input?.addEventListener('change', async () => {
+    const file = input.files?.[0];
     if (!file || file.type === 'image/jpeg') return;
     try {
       const bitmap = await createImageBitmap(file);
@@ -492,11 +500,13 @@
       if (!jpeg) return;
       const files = new DataTransfer();
       files.items.add(new File([jpeg], file.name.replace(/\.[^.]+$/, '') + '.jpg', {type: 'image/jpeg'}));
-      decorationInput.files = files.files;
+      input.files = files.files;
     } catch (error) {
       console.warn('Decoration image conversion was not available.', error);
     }
   });
+  prepareImageUpload(document.getElementById('id_decoration_reference_upload'));
+  prepareImageUpload(document.getElementById('id_decoration_example_upload'));
   updateWaterNotes();
   updateCustomPackageName();
   calculate();

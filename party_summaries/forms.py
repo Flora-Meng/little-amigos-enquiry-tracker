@@ -136,6 +136,16 @@ def room_choices_for_location(location_code):
 
 
 class PartySummaryForm(forms.ModelForm):
+    decoration_reference_upload = forms.FileField(
+        label="Decoration example",
+        required=False,
+        widget=forms.FileInput(attrs={"accept": "image/jpeg,image/png,image/webp"}),
+        help_text="A setup reference for the team. JPG, PNG or WebP, up to 5 MB.",
+    )
+    remove_decoration_reference = forms.BooleanField(
+        label="Remove current decoration example",
+        required=False,
+    )
     decoration_example_upload = forms.FileField(
         label="Theme library photo",
         required=False,
@@ -244,8 +254,8 @@ class PartySummaryForm(forms.ModelForm):
         cleaned["actual_balance"] = cleaned.get("actual_balance") or 0
         return cleaned
 
-    def clean_decoration_example_upload(self):
-        upload = self.cleaned_data.get("decoration_example_upload")
+    def _clean_image_upload(self, field_name):
+        upload = self.cleaned_data.get(field_name)
         if not upload:
             return upload
         if upload.size > 5 * 1024 * 1024:
@@ -253,6 +263,12 @@ class PartySummaryForm(forms.ModelForm):
         if upload.content_type not in {"image/jpeg", "image/png", "image/webp"}:
             raise forms.ValidationError("Choose a JPG, PNG or WebP image.")
         return upload
+
+    def clean_decoration_reference_upload(self):
+        return self._clean_image_upload("decoration_reference_upload")
+
+    def clean_decoration_example_upload(self):
+        return self._clean_image_upload("decoration_example_upload")
 
     def clean_invoice_file_upload(self):
         upload = self.cleaned_data.get("invoice_file_upload")

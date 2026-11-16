@@ -25,6 +25,8 @@ urlpatterns = [
     path("<uuid:summary_id>/toggle-confirmed/", views.party_summary_toggle_confirmed,
         name="party_summary_toggle_confirmed"),
     path("<uuid:summary_id>/decoration/", views.party_summary_decoration, name="party_summary_decoration"),
+    path("<uuid:summary_id>/decoration-reference/", views.party_summary_decoration_reference,
+        name="party_summary_decoration_reference"),
     path("<uuid:summary_id>/invoice/", views.party_summary_invoice, name="party_summary_invoice"),
     path("<uuid:summary_id>/confirmation-email/", views.party_summary_confirmation_email,
         name="party_summary_confirmation_email"),

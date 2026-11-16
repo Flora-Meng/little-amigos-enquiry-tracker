@@ -218,7 +218,7 @@ def _build_fallback_pdf(summary):
             f"Theme: {summary.theme}    Balloon color: {summary.balloon_color}",
             f"RSVP information: {summary.rsvp_information}",
             f"Special note: {summary.special_note}",
-            f"Decoration example: {summary.decoration_example_name or 'None'}",
+            f"Decoration example: {summary.decoration_reference_name or 'None'}",
         ]),
         ("BILL", [
             f"Deposit paid: -${summary.deposit_amount:,.2f}    Package: {summary.package_display_name} ${summary.package_amount:,.2f}",
@@ -243,7 +243,7 @@ def _build_fallback_pdf(summary):
                 commands.extend(["BT", f"/F1 {font_size:.2f} Tf", f"32 {y:.2f} Td", f"({_pdf_escape(chunk)}) Tj", "ET"])
                 y -= line_height
         y -= line_height * 0.45
-    image_data = bytes(summary.decoration_example or b"")
+    image_data = bytes(summary.decoration_reference or b"")
     image_dimensions = _jpeg_dimensions(image_data)
     if image_dimensions and y > 52:
         original_width, original_height = image_dimensions
@@ -401,7 +401,7 @@ def _kids_menu_column(pdf, x, top, width, height, items, dietary_requirements):
 
 def _extra_food_column(pdf, x, top, width, height, items, summary):
     _section_box(pdf, x, top, width, height, "Extra food")
-    image_data = bytes(summary.decoration_example or b"")
+    image_data = bytes(summary.decoration_reference or b"")
     image_label_height = 18 if image_data else 0
     image_area_height = min(205, max(0, height * .56)) if image_data else 0
     menu_area_height = height - 29 - image_area_height - image_label_height
