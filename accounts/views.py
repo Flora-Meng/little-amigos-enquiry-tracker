@@ -3,7 +3,7 @@ from django.contrib import messages
 from django.contrib.auth.tokens import default_token_generator
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
-from django.db.models import OuterRef, Prefetch, Subquery
+from django.db.models import OuterRef, Prefetch, Q, Subquery
 import json
 import re
 
@@ -183,6 +183,45 @@ def package_showcase(request):
         request,
         "package_showcase/canberra.html",
         {"packages": packages, "voucher_groups": voucher_groups},
+    )
+
+
+@login_required
+def theme_library(request):
+    if request.user.role == User.Role.STAFF:
+        if not request.user.location_id:
+            raise Http404
+        return redirect("theme_library_location", location_code=request.user.location.code)
+    locations = Location.objects.order_by("name")
+    return render(request, "accounts/theme_library_hub.html", {"locations": locations})
+
+
+@login_required
+def theme_library_location(request, location_code):
+    from party_summaries.models import PartySummary
+
+    location = get_object_or_404(Location, code=location_code)
+    if request.user.role == User.Role.STAFF and request.user.location_id != location.id:
+        raise Http404
+    photos = (
+        PartySummary.objects.filter(location=location, decoration_example__isnull=False)
+        .defer("invoice_file", "decoration_example", "decoration_reference")
+        .order_by("-party_date", "-updated_at")
+    )
+    search = request.GET.get("search", "").strip()
+    if search:
+        photos = photos.filter(
+            Q(theme__icontains=search)
+            | Q(owner_name__icontains=search)
+            | Q(kids_name__icontains=search)
+        )
+    photos = list(photos)
+    for summary in photos:
+        summary.library_photo_url = reverse("party_summary_decoration", args=(summary.pk,))
+    return render(
+        request,
+        "accounts/theme_library_location.html",
+        {"location": location, "photos": photos, "search": search},
     )
 
 

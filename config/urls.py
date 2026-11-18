@@ -29,6 +29,8 @@ from accounts.views import (
     southland_showcase_update,
     southland_theme_photo,
     team_accounts,
+    theme_library,
+    theme_library_location,
 )
 from config.views import health_check, initial_admin_password, party_planner_demo
 from enquiries.views import add_enquiry_images, add_note, archive_enquiry, delete_note, enquiry_detail, enquiry_image, enquiry_list, extension_token_settings, new_store_enquiry, quick_update_status, reschedule_follow_up, update_enquiry, zumo_duplicate_check, zumo_ignore, zumo_import, zumo_imports, zumo_review_again, zumo_review_status
@@ -60,6 +62,9 @@ urlpatterns = [
     ),
     path("logout/", auth_views.LogoutView.as_view(), name="logout"),
     path("team-accounts/", team_accounts, name="team_accounts"),
+    path("theme-library/", theme_library, name="theme_library"),
+    path("theme-library/<slug:location_code>/", theme_library_location,
+        name="theme_library_location"),
     path("package-showcase/", package_showcase, name="package_showcase"),
     path(
         "team-accounts/setup/<uidb64>/<token>/",

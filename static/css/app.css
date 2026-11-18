@@ -68,6 +68,11 @@
 .theme-library-upload-panel { margin-top: 24px; }
 .theme-library-upload-body { padding: 24px; border-top: 1px solid var(--border); }
 .theme-library-upload-body .decoration-upload { max-width: 680px; }
+.theme-library-locations { max-width: 980px; }
+.theme-library-search { display: grid; gap: 8px; margin: 0 0 22px; padding: 20px 22px; border: 1px solid var(--border); border-radius: 18px; background: white; box-shadow: var(--shadow); }
+.theme-library-search > label { font-weight: 850; }
+.theme-library-search > div { display: flex; gap: 9px; }
+.theme-library-search input { flex: 1; min-width: 0; min-height: 46px; padding: 0 14px; border: 1px solid #dcd4c8; border-radius: 12px; color: var(--ink); background: white; font: inherit; }
 
 @media (max-width: 900px) {
   .manager-form { grid-template-columns: 1fr 1fr; }
@@ -86,6 +91,7 @@
   .manager-upload { align-items: stretch; flex-direction: column; }
   .manager-addon-grid { grid-template-columns: 1fr; padding: 17px; }
   .manager-library-grid { grid-template-columns: 1fr; padding: 17px; }
+  .theme-library-search > div { align-items: stretch; flex-direction: column; }
 }
 
 [hidden] { display: none !important; }

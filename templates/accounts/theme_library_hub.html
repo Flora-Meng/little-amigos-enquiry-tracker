@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Theme library · Little Amigos Workspace{% endblock %}
+{% block body %}
+{% include "accounts/_header.html" %}
+<main class="page-shell">
+  <a class="back-link" href="{% url 'dashboard' %}">← Dashboard</a>
+  <div class="page-heading">
+    <div><p class="eyebrow">Theme library</p><h1>Choose a location</h1><p class="muted">Each location has its own finished party setup photos.</p></div>
+  </div>
+  <section class="workspace-modules theme-library-locations" aria-label="Theme library locations">
+    {% for location in locations %}
+    <a class="module-card module-showcase" href="{% url 'theme_library_location' location.code %}"><span class="module-icon">{% if location.code == 'southland' %}S{% else %}C{% endif %}</span><span><strong>{{ location.name }}</strong><small>Open this location's theme photo library</small></span><b>→</b></a>
+    {% endfor %}
+  </section>
+</main>
+{% endblock %}

@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}{{ location.name }} theme library · Little Amigos Workspace{% endblock %}
+{% block body %}
+{% include "accounts/_header.html" %}
+<main class="page-shell showcase-manager">
+  <a class="back-link" href="{% if request.user.role == 'admin' %}{% url 'theme_library' %}{% else %}{% url 'dashboard' %}{% endif %}">← {% if request.user.role == 'admin' %}All locations{% else %}Dashboard{% endif %}</a>
+  <div class="page-heading">
+    <div><p class="eyebrow">Theme library</p><h1>{{ location.name }}</h1><p class="muted">Finished party setup photos uploaded from this location's Party Summaries.</p></div>
+    {% if request.user.role == 'admin' and location.code == 'southland' %}<a class="button button-primary" href="{% url 'southland_showcase_manage' %}">Manage Southland customer showcase</a>{% endif %}
+  </div>
+
+  <form class="theme-library-search" method="get">
+    <label for="theme-library-search">Search by theme, customer or child</label>
+    <div><input id="theme-library-search" type="search" name="search" value="{{ search }}" placeholder="e.g. Frozen"><button class="button button-primary" type="submit">Search</button>{% if search %}<a class="button button-secondary" href="{% url 'theme_library_location' location.code %}">Clear</a>{% endif %}</div>
+  </form>
+
+  <section class="panel manager-library-panel">
+    <div class="panel-heading"><div><p class="eyebrow">Finished setups</p><h2>{{ photos|length }} photo{{ photos|length|pluralize }}</h2><p class="muted">New photos appear here after a Theme Library photo is uploaded in a Party Summary.</p></div></div>
+    <div class="manager-library-grid">
+      {% for summary in photos %}
+      <article class="manager-library-card">
+        <a href="{{ summary.library_photo_url }}" target="_blank" rel="noopener"><img src="{{ summary.library_photo_url }}" alt="{{ summary.theme|default:'Party theme' }} setup from {{ summary.party_date|date:'j M Y' }}"></a>
+        <div class="manager-library-copy"><small>{{ summary.party_date|date:"j M Y" }} · {{ summary.get_room_type_display }}</small><h3>{{ summary.theme|default:"Theme name not entered" }}</h3><p>{{ summary.owner_name }}{% if summary.kids_name %} · {{ summary.kids_name }}{% endif %}</p><span>{{ location.name }}</span></div>
+        <div class="manager-library-actions"><a class="button button-secondary" href="{% url 'party_summary_edit' summary.id %}">Open Party Summary</a></div>
+      </article>
+      {% empty %}<div class="empty-state"><p>{% if search %}No matching photos{% else %}No Theme Library photos yet{% endif %}</p><span>{% if search %}Try another search word.{% else %}Upload a finished setup photo in a {{ location.name }} Party Summary and it will appear here.{% endif %}</span></div>{% endfor %}
+    </div>
+  </section>
+</main>
+{% endblock %}
