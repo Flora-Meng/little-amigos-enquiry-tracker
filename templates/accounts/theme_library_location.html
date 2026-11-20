@@ -6,8 +6,9 @@
   <a class="back-link" href="{% if request.user.role == 'admin' %}{% url 'theme_library' %}{% else %}{% url 'dashboard' %}{% endif %}">← {% if request.user.role == 'admin' %}All locations{% else %}Dashboard{% endif %}</a>
   <div class="page-heading">
     <div><p class="eyebrow">Theme library</p><h1>{{ location.name }}</h1><p class="muted">Finished party setup photos uploaded from this location's Party Summaries.</p></div>
-    {% if request.user.role == 'admin' and location.code == 'southland' %}<a class="button button-primary" href="{% url 'southland_showcase_manage' %}">Manage Southland customer showcase</a>{% endif %}
   </div>
+
+  {% if messages %}<div class="manager-messages">{% for message in messages %}<p class="manager-message manager-message-{{ message.tags }}">{{ message }}</p>{% endfor %}</div>{% endif %}
 
   <form class="theme-library-search" method="get">
     <label for="theme-library-search">Search by theme, customer or child</label>
@@ -15,16 +16,81 @@
   </form>
 
   <section class="panel manager-library-panel">
-    <div class="panel-heading"><div><p class="eyebrow">Finished setups</p><h2>{{ photos|length }} photo{{ photos|length|pluralize }}</h2><p class="muted">New photos appear here after a Theme Library photo is uploaded in a Party Summary.</p></div></div>
-    <div class="manager-library-grid">
-      {% for summary in photos %}
-      <article class="manager-library-card">
-        <a href="{{ summary.library_photo_url }}" target="_blank" rel="noopener"><img src="{{ summary.library_photo_url }}" alt="{{ summary.theme|default:'Party theme' }} setup from {{ summary.party_date|date:'j M Y' }}"></a>
-        <div class="manager-library-copy"><small>{{ summary.party_date|date:"j M Y" }} · {{ summary.get_room_type_display }}</small><h3>{{ summary.theme|default:"Theme name not entered" }}</h3><p>{{ summary.owner_name }}{% if summary.kids_name %} · {{ summary.kids_name }}{% endif %}</p><span>{{ location.name }}</span></div>
-        <div class="manager-library-actions"><a class="button button-secondary" href="{% url 'party_summary_edit' summary.id %}">Open Party Summary</a></div>
+    <div class="panel-heading"><div><p class="eyebrow">Theme photos library</p><h2>{{ photos|length }} photo{{ photos|length|pluralize }}</h2><p class="muted">Create, view, update and remove reusable theme photos for {{ location.name }}.</p></div></div>
+    <form class="manager-form theme-photo-create" method="post" action="{% url 'theme_library_photo_create' location.code %}" enctype="multipart/form-data">
+      {% csrf_token %}
+      <label><span>Theme name *</span><input name="theme" required placeholder="e.g. Frozen"></label>
+      <label><span>Short note</span><input name="description" placeholder="Optional description"></label>
+      <label><span>Photo *</span><input type="file" name="image" accept="image/jpeg,image/png,image/webp" required></label>
+      <button class="button button-primary" type="submit">Add Theme Photo</button>
+    </form>
+    <div class="manager-library-grid theme-photo-display-grid">
+      {% for photo in photos %}
+      <article class="manager-library-card theme-photo-display-card">
+        <img src="{{ photo.library_photo_url }}" alt="{{ photo.library_theme|default:'Party theme' }} setup">
+        <div class="manager-library-copy"><small>{{ photo.library_date|date:"j M Y" }} · {{ photo.library_source_label }}</small><h3>{{ photo.library_theme|default:"Theme name not entered" }}</h3><p>{{ photo.library_owner }}</p><span>{{ location.name }}</span></div>
+        <details class="theme-photo-edit"><summary>Edit Theme Photo</summary>
+          {% if photo.library_kind == 'direct' %}
+          <form method="post" action="{% url 'theme_library_direct_photo_update' location.code photo.pk %}" enctype="multipart/form-data">
+            {% csrf_token %}<label><span>Theme name *</span><input name="theme" value="{{ photo.theme }}" required></label><label><span>Short note</span><input name="description" value="{{ photo.description }}"></label><label><span>Replace photo</span><input type="file" name="image" accept="image/jpeg,image/png,image/webp"></label><button class="button button-secondary" type="submit">Save changes</button>
+          </form>
+          {% else %}
+          <form method="post" action="{% url 'theme_library_summary_photo_update' location.code photo.pk %}" enctype="multipart/form-data">
+            {% csrf_token %}<label><span>Theme name *</span><input name="theme" value="{{ photo.theme }}" required></label><label><span>Replace photo</span><input type="file" name="image" accept="image/jpeg,image/png,image/webp"></label><p class="muted">This photo came from a Party Summary. Renaming it also updates that Summary's theme.</p><button class="button button-secondary" type="submit">Save changes</button>
+          </form>
+          {% endif %}
+        </details>
+        {% if photo.library_kind == 'direct' %}
+        <form class="theme-photo-remove" method="post" action="{% url 'theme_library_direct_photo_remove' location.code photo.pk %}" onsubmit="return confirm('Remove this photo from the Theme Library?')">
+        {% else %}
+        <form class="theme-photo-remove" method="post" action="{% url 'theme_library_photo_remove' location.code photo.pk %}" onsubmit="return confirm('Remove this photo from the Theme Library? The Party Summary will not be deleted.')">
+        {% endif %}
+          {% csrf_token %}<button class="button manager-delete" type="submit">Remove from Theme Library</button>
+        </form>
       </article>
-      {% empty %}<div class="empty-state"><p>{% if search %}No matching photos{% else %}No Theme Library photos yet{% endif %}</p><span>{% if search %}Try another search word.{% else %}Upload a finished setup photo in a {{ location.name }} Party Summary and it will appear here.{% endif %}</span></div>{% endfor %}
+      {% empty %}<div class="empty-state"><p>{% if search %}No matching photos{% else %}No Theme Library photos yet{% endif %}</p><span>{% if search %}Try another search word.{% else %}Upload a Theme Library photo in a {{ location.name }} Party Summary and it will appear here.{% endif %}</span></div>{% endfor %}
     </div>
   </section>
+
+  {% if location.code == 'southland' %}
+  <section class="panel southland-catalogue-panel" id="customer-theme-catalogue">
+    <div class="panel-heading"><div><p class="eyebrow">Southland customer showcase</p><h2>Customer theme catalogue · {{ themes|length }} themes</h2><p class="muted">The themes and photos below are shown on the Southland customer Party Guide.</p></div></div>
+
+    {% if can_manage_showcase %}
+    <form class="manager-form inline-theme-create" method="post" action="{% url 'southland_showcase_update' %}" enctype="multipart/form-data">
+      {% csrf_token %}<input type="hidden" name="action" value="add_theme"><input type="hidden" name="next" value="{{ theme_library_return }}">
+      <label><span>New theme name *</span><input name="name" required placeholder="e.g. Space Adventure"></label>
+      <label><span>Category *</span><select name="category">{% for value,label in category_choices %}<option value="{{ value }}">{{ label }}</option>{% endfor %}</select></label>
+      <label><span>Extra search words</span><input name="search_terms" placeholder="e.g. astronaut galaxy"></label>
+      <label class="manager-wide"><span>Description</span><textarea name="description" rows="2" placeholder="Optional note shown in the theme gallery"></textarea></label>
+      <label class="manager-wide"><span>First image</span><input type="file" name="image" accept="image/jpeg,image/png,image/webp"></label>
+      <button class="button button-primary" type="submit">Add theme</button>
+    </form>
+    {% endif %}
+
+    <div class="manager-list customer-theme-list">
+      {% for theme in themes %}
+      <article class="manager-item{% if not theme.is_active %} is-hidden{% endif %}">
+        <div class="manager-item-main">
+          <div class="manager-thumbnails">{% for photo in theme.admin_photos %}<div><img src="{{ photo.preview_url }}" alt="{{ theme.name }} example {{ forloop.counter }}">{% if can_manage_showcase %}<form method="post" action="{% url 'southland_showcase_update' %}">{% csrf_token %}<input type="hidden" name="action" value="delete_theme_photo"><input type="hidden" name="photo_id" value="{{ photo.pk }}"><input type="hidden" name="next" value="{{ theme_library_return }}"><button type="submit" aria-label="Remove photo">×</button></form>{% endif %}</div>{% empty %}<span>No image</span>{% endfor %}</div>
+          <div><small>{{ theme.get_category_display }}</small><h3>{{ theme.name }}</h3><p>{{ theme.description|default:"No description" }}</p><strong>{% if theme.is_active %}Visible to customers{% else %}Hidden from customers{% endif %}</strong></div>
+        </div>
+        {% if can_manage_showcase %}
+        <div class="manager-item-actions theme-catalogue-actions">
+          <form class="manager-photo-picker" method="post" action="{% url 'southland_showcase_update' %}">
+            {% csrf_token %}<input type="hidden" name="action" value="apply_summary_photo"><input type="hidden" name="theme_id" value="{{ theme.pk }}"><input type="hidden" name="next" value="{{ theme_library_return }}">
+            <label><span>Choose from uploaded Theme photos</span><select name="library_photo" required><option value="">Choose a photo</option>{% for photo in selection_photos %}<option value="{{ photo.library_kind }}:{{ photo.pk }}">{{ photo.library_theme|default:"Unnamed theme" }} · {{ photo.library_date|date:"j M Y" }} · {{ photo.library_owner }}</option>{% endfor %}</select></label>
+            <button class="button button-primary" type="submit"{% if not selection_photos %} disabled{% endif %}>Add selected photo</button>
+          </form>
+          <form class="manager-upload" method="post" action="{% url 'southland_showcase_update' %}" enctype="multipart/form-data">{% csrf_token %}<input type="hidden" name="action" value="add_theme_photo"><input type="hidden" name="theme_id" value="{{ theme.pk }}"><input type="hidden" name="next" value="{{ theme_library_return }}"><label><span>Upload another image</span><input type="file" name="image" accept="image/jpeg,image/png,image/webp" required></label><button class="button button-secondary" type="submit">Upload</button></form>
+          <form method="post" action="{% url 'southland_showcase_update' %}">{% csrf_token %}<input type="hidden" name="action" value="toggle_theme"><input type="hidden" name="theme_id" value="{{ theme.pk }}"><input type="hidden" name="next" value="{{ theme_library_return }}"><button class="button button-secondary" type="submit">{% if theme.is_active %}Hide{% else %}Show{% endif %}</button></form>
+          <form method="post" action="{% url 'southland_showcase_update' %}" onsubmit="return confirm('Delete this theme and all of its photos?')">{% csrf_token %}<input type="hidden" name="action" value="delete_theme"><input type="hidden" name="theme_id" value="{{ theme.pk }}"><input type="hidden" name="next" value="{{ theme_library_return }}"><button class="button manager-delete" type="submit">Delete</button></form>
+        </div>
+        {% endif %}
+      </article>
+      {% empty %}<div class="empty-state"><p>No customer themes yet</p><span>Add a theme above to begin the Southland customer catalogue.</span></div>{% endfor %}
+    </div>
+  </section>
+  {% endif %}
 </main>
 {% endblock %}

@@ -7,8 +7,10 @@
     <div><p class="eyebrow">{{ request.user.location.name }}</p><h1>Hello, {{ request.user.display_name }}</h1><p class="muted">Your location's store enquiries at a glance.</p></div>
     <a class="button button-primary" href="{% url 'new_store_enquiry' %}">New enquiry</a>
   </div>
+  {% include "accounts/_party_questions.html" %}
   <section class="workspace-modules" aria-label="Workspace modules">
     <a class="module-card module-showcase" href="{% url 'theme_library' %}"><span class="module-icon">T</span><span><strong>Theme library</strong><small>Browse your location's finished party themes</small></span><b>→</b></a>
+    {% if request.user.location.code == 'southland' %}<a class="module-card module-showcase" href="{% url 'southland_party_guide' %}"><span class="module-icon">G</span><span><strong>Southland Party Guide</strong><small>Preview rooms, packages, themes, food and add-ons</small></span><b>→</b></a>{% endif %}
     <a class="module-card" href="{% url 'enquiry_list' %}"><span class="module-icon">E</span><span><strong>Enquiry tracking</strong><small>Manage your location's enquiries</small></span><b>→</b></a>
     <a class="module-card module-party" href="{% url 'party_summary_list' %}"><span class="module-icon">P</span><span><strong>Party summaries</strong><small>Create and update party plans</small></span><b>→</b></a>
     {% if request.user.location.code == 'canberra' %}<a class="module-card module-showcase" href="{% url 'package_showcase' %}"><span class="module-icon">S</span><span><strong>Package showcase</strong><small>Show Canberra packages and add-ons before booking</small></span><b>→</b></a>{% endif %}

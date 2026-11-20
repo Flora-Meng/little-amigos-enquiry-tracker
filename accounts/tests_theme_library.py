@@ -1,11 +1,12 @@
 from datetime import date
 
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 from django.urls import reverse
 
 from party_summaries.models import PartySummary
 
-from .models import Location, User
+from .models import Location, SouthlandShowcaseInvite, ThemeLibraryPhoto, User
 
 
 class ThemeLibraryAccessTests(TestCase):
@@ -46,8 +47,66 @@ class ThemeLibraryAccessTests(TestCase):
 
         content = response.content.decode()
         self.assertContains(response, "Theme library")
+        self.assertContains(response, "Southland Party Guide")
         self.assertLess(content.index("Theme library"), content.index("Enquiry tracking"))
         self.assertNotContains(response, "Southland showcase")
+
+    def test_southland_staff_has_party_guide_entry_but_canberra_staff_does_not(self):
+        self.client.force_login(self.southland_user)
+        response = self.client.get(reverse("dashboard"))
+        self.assertContains(response, "Southland Party Guide")
+        self.assertContains(response, reverse("southland_party_guide"))
+
+        self.client.force_login(self.canberra_user)
+        response = self.client.get(reverse("dashboard"))
+        self.assertNotContains(response, "Southland Party Guide")
+
+    def test_party_guide_question_is_action_required_for_admin_and_southland(self):
+        invite = SouthlandShowcaseInvite.objects.create(
+            customer_name="Jorja",
+            email="jorja@example.com",
+            phone="0439000000",
+            selected_package="signature",
+            selected_theme="Frozen",
+            customer_question="Can we bring our own cake?",
+        )
+        for user in (self.admin, self.southland_user):
+            with self.subTest(user=user.email):
+                self.client.force_login(user)
+                response = self.client.get(reverse("dashboard"))
+                self.assertContains(response, "Action required")
+                self.assertContains(response, "Party Guide questions")
+                self.assertContains(response, "Can we bring our own cake?")
+                self.assertContains(response, "View customer &amp; enquiry details")
+                self.assertContains(response, "jorja@example.com")
+                self.assertContains(response, "0439000000")
+                self.assertContains(response, "Signature")
+                self.assertContains(response, "Frozen")
+                self.assertContains(
+                    response,
+                    reverse("southland_question_resolve", args=(invite.pk,)),
+                )
+
+        self.client.force_login(self.canberra_user)
+        response = self.client.get(reverse("dashboard"))
+        self.assertNotContains(response, "Can we bring our own cake?")
+
+    def test_southland_can_mark_party_guide_question_as_handled(self):
+        invite = SouthlandShowcaseInvite.objects.create(
+            customer_name="Jorja",
+            customer_question="Can we bring our own cake?",
+        )
+        self.client.force_login(self.southland_user)
+
+        response = self.client.post(
+            reverse("southland_question_resolve", args=(invite.pk,)),
+        )
+
+        self.assertRedirects(response, reverse("dashboard"))
+        invite.refresh_from_db()
+        self.assertIsNotNone(invite.question_resolved_at)
+        response = self.client.get(reverse("dashboard"))
+        self.assertNotContains(response, "Can we bring our own cake?")
 
     def test_admin_chooses_between_both_locations(self):
         self.client.force_login(self.admin)
@@ -85,11 +144,14 @@ class ThemeLibraryAccessTests(TestCase):
             reverse("theme_library_location", args=(Location.Code.SOUTHLAND,)),
         )
 
-        self.assertContains(response, "Frozen")
-        self.assertContains(response, "Southland Customer")
-        self.assertNotContains(response, "Bluey")
-        self.assertNotContains(response, "Canberra Customer")
-        summary = response.context["photos"][0]
+        photos = list(response.context["photos"])
+        self.assertEqual([photo.theme for photo in photos], ["Frozen"])
+        self.assertEqual([photo.owner_name for photo in photos], ["Southland Customer"])
+        self.assertNotContains(response, "Open Party Summary")
+        self.assertNotContains(response, "Manage Southland customer showcase")
+        self.assertContains(response, "Customer theme catalogue")
+        self.assertContains(response, "Choose from uploaded Theme photos")
+        summary = photos[0]
         self.assertIn("decoration_example", summary.get_deferred_fields())
         self.assertIn("decoration_reference", summary.get_deferred_fields())
         self.assertIn("invoice_file", summary.get_deferred_fields())
@@ -98,6 +160,135 @@ class ThemeLibraryAccessTests(TestCase):
         self.client.force_login(self.admin)
         url = reverse("theme_library_location", args=(Location.Code.SOUTHLAND,))
 
-        self.assertContains(self.client.get(url, {"search": "Frozen"}), "Southland Customer")
-        self.assertContains(self.client.get(url, {"search": "Southland Customer"}), "Frozen")
-        self.assertNotContains(self.client.get(url, {"search": "Bluey"}), "Southland Customer")
+        response = self.client.get(url, {"search": "Frozen"})
+        self.assertEqual([photo.owner_name for photo in response.context["photos"]], ["Southland Customer"])
+
+        response = self.client.get(url, {"search": "Southland Customer"})
+        self.assertEqual([photo.theme for photo in response.context["photos"]], ["Frozen"])
+
+        response = self.client.get(url, {"search": "Bluey"})
+        self.assertEqual(list(response.context["photos"]), [])
+
+    def test_staff_can_view_catalogue_but_not_customer_showcase_controls(self):
+        self.client.force_login(self.southland_user)
+        response = self.client.get(
+            reverse("theme_library_location", args=(Location.Code.SOUTHLAND,)),
+        )
+
+        self.assertContains(response, "Customer theme catalogue")
+        self.assertNotContains(response, "Choose from uploaded Theme photos")
+        self.assertNotContains(response, "Add selected photo")
+
+    def test_authorised_user_can_remove_photo_without_deleting_party_summary(self):
+        self.client.force_login(self.southland_user)
+        response = self.client.post(
+            reverse(
+                "theme_library_photo_remove",
+                args=(Location.Code.SOUTHLAND, self.southland_photo.pk),
+            ),
+        )
+
+        self.assertRedirects(
+            response,
+            reverse("theme_library_location", args=(Location.Code.SOUTHLAND,)),
+        )
+        summary = PartySummary.objects.get(pk=self.southland_photo.pk)
+        self.assertIsNone(summary.decoration_example)
+        self.assertEqual(summary.decoration_example_name, "")
+        self.assertEqual(summary.decoration_example_content_type, "")
+
+    def test_staff_cannot_remove_another_locations_photo(self):
+        self.client.force_login(self.southland_user)
+        response = self.client.post(
+            reverse(
+                "theme_library_photo_remove",
+                args=(Location.Code.CANBERRA, self.canberra_photo.pk),
+            ),
+        )
+
+        self.assertEqual(response.status_code, 404)
+        self.canberra_photo.refresh_from_db()
+        self.assertEqual(bytes(self.canberra_photo.decoration_example), b"finished-party-photo")
+
+    def test_staff_can_create_read_update_and_delete_direct_library_photo(self):
+        self.client.force_login(self.southland_user)
+        library_url = reverse(
+            "theme_library_location",
+            args=(Location.Code.SOUTHLAND,),
+        )
+
+        response = self.client.post(
+            reverse("theme_library_photo_create", args=(Location.Code.SOUTHLAND,)),
+            {
+                "theme": "Space Party",
+                "description": "Blue and silver",
+                "image": SimpleUploadedFile(
+                    "space.jpg", b"space-image", content_type="image/jpeg",
+                ),
+            },
+        )
+        self.assertRedirects(response, library_url)
+        photo = ThemeLibraryPhoto.objects.get(theme="Space Party")
+        self.assertEqual(photo.location, self.southland)
+
+        response = self.client.get(library_url)
+        self.assertContains(response, "Space Party")
+        self.assertContains(response, "Blue and silver")
+        image_response = self.client.get(
+            reverse(
+                "theme_library_direct_photo",
+                args=(Location.Code.SOUTHLAND, photo.pk),
+            ),
+        )
+        self.assertEqual(image_response.content, b"space-image")
+
+        response = self.client.post(
+            reverse(
+                "theme_library_direct_photo_update",
+                args=(Location.Code.SOUTHLAND, photo.pk),
+            ),
+            {
+                "theme": "Galaxy Party",
+                "description": "Purple and silver",
+                "image": SimpleUploadedFile(
+                    "galaxy.webp", b"galaxy-image", content_type="image/webp",
+                ),
+            },
+        )
+        self.assertRedirects(response, library_url)
+        photo.refresh_from_db()
+        self.assertEqual(photo.theme, "Galaxy Party")
+        self.assertEqual(photo.description, "Purple and silver")
+        self.assertEqual(bytes(photo.image_data), b"galaxy-image")
+
+        response = self.client.post(
+            reverse(
+                "theme_library_direct_photo_remove",
+                args=(Location.Code.SOUTHLAND, photo.pk),
+            ),
+        )
+        self.assertRedirects(response, library_url)
+        self.assertFalse(ThemeLibraryPhoto.objects.filter(pk=photo.pk).exists())
+
+    def test_summary_library_photo_can_be_renamed_and_replaced(self):
+        self.client.force_login(self.southland_user)
+        response = self.client.post(
+            reverse(
+                "theme_library_summary_photo_update",
+                args=(Location.Code.SOUTHLAND, self.southland_photo.pk),
+            ),
+            {
+                "theme": "Frozen Castle",
+                "image": SimpleUploadedFile(
+                    "castle.png", b"castle-image", content_type="image/png",
+                ),
+            },
+        )
+
+        self.assertRedirects(
+            response,
+            reverse("theme_library_location", args=(Location.Code.SOUTHLAND,)),
+        )
+        self.southland_photo.refresh_from_db()
+        self.assertEqual(self.southland_photo.theme, "Frozen Castle")
+        self.assertEqual(bytes(self.southland_photo.decoration_example), b"castle-image")

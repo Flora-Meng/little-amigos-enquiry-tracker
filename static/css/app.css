@@ -73,6 +73,26 @@
 .theme-library-search > label { font-weight: 850; }
 .theme-library-search > div { display: flex; gap: 9px; }
 .theme-library-search input { flex: 1; min-width: 0; min-height: 46px; padding: 0 14px; border: 1px solid #dcd4c8; border-radius: 12px; color: var(--ink); background: white; font: inherit; }
+.theme-photo-display-card > img { width: 100%; aspect-ratio: 4 / 3; display: block; object-fit: cover; object-position: top; background: #eee; }
+.theme-photo-create { grid-template-columns: 1fr 1fr 1.2fr auto; align-items: end; border-top: 1px solid #ece5db; background: #fffcf7; }
+.theme-photo-edit { margin: 0 16px 14px; border: 1px solid #e5ded3; border-radius: 12px; background: #faf7f1; }
+.theme-photo-edit summary { padding: 11px 13px; font-weight: 850; cursor: pointer; }
+.theme-photo-edit form { display: grid; gap: 10px; padding: 0 13px 13px; }
+.theme-photo-edit label { display: grid; gap: 5px; }
+.theme-photo-edit label span { font-size: .72rem; font-weight: 850; }
+.theme-photo-edit input { width: 100%; min-height: 42px; padding: 8px 10px; border: 1px solid #dcd4c8; border-radius: 10px; color: var(--ink); background: white; font: inherit; }
+.theme-photo-edit .muted { margin: 0; font-size: .72rem; }
+.theme-photo-remove { padding: 0 16px 16px; }
+.theme-photo-remove .button { width: 100%; }
+.southland-catalogue-panel { margin-top: 26px; }
+.inline-theme-create { border-top: 1px solid #ece5db; border-bottom: 1px solid #ece5db; background: #fffcf7; }
+.theme-catalogue-actions { align-items: stretch; flex-direction: column; min-width: min(100%, 430px); }
+.manager-photo-picker { display: grid; grid-template-columns: minmax(220px, 1fr) auto; align-items: end; gap: 8px; width: 100%; padding-bottom: 11px; border-bottom: 1px solid #eee8df; }
+.manager-photo-picker label { display: grid; gap: 6px; }
+.manager-photo-picker label span { font-size: .72rem; font-weight: 850; }
+.manager-photo-picker select { width: 100%; min-height: 44px; padding: 0 10px; border: 1px solid #dcd4c8; border-radius: 10px; color: var(--ink); background: white; font: inherit; }
+.theme-catalogue-actions .manager-upload { width: 100%; }
+.theme-catalogue-actions > form:not(.manager-photo-picker):not(.manager-upload) { display: inline-flex; }
 
 @media (max-width: 900px) {
   .manager-form { grid-template-columns: 1fr 1fr; }
@@ -81,6 +101,7 @@
   .manager-item-actions { justify-content: start; }
   .manager-addon-grid { grid-template-columns: 1fr 1fr; }
   .manager-library-grid { grid-template-columns: 1fr 1fr; }
+  .theme-photo-create { grid-template-columns: 1fr 1fr; }
 }
 
 @media (max-width: 620px) {
@@ -91,7 +112,9 @@
   .manager-upload { align-items: stretch; flex-direction: column; }
   .manager-addon-grid { grid-template-columns: 1fr; padding: 17px; }
   .manager-library-grid { grid-template-columns: 1fr; padding: 17px; }
+  .theme-photo-create { grid-template-columns: 1fr; }
   .theme-library-search > div { align-items: stretch; flex-direction: column; }
+  .manager-photo-picker { grid-template-columns: 1fr; }
 }
 
 [hidden] { display: none !important; }
@@ -968,3 +991,38 @@ th { color: var(--muted); font-size: .75rem; letter-spacing: .06em; text-transfo
 .copy-link-row input { min-width: 0; }
 .small-copy { font-size: .88rem; margin: 10px 0 0; }
 @media (max-width: 700px) { .copy-link-row { grid-template-columns: 1fr; } }
+
+/* Party Guide questions requiring a Southland response */
+.action-required-panel { overflow: hidden; margin: 0 0 30px; border: 1px solid #efb9ad; border-radius: 22px; background: #fff8f5; box-shadow: 0 12px 32px rgba(163,75,57,.09); }
+.action-required-heading { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 21px 23px; border-bottom: 1px solid #f2d6cf; }
+.action-required-heading .eyebrow { margin: 0 0 5px; }
+.action-required-heading h2 { font-size: 1.25rem; }
+.action-required-heading p { margin: 6px 0 0; color: var(--muted); }
+.action-required-heading > span { padding: 7px 11px; border-radius: 999px; color: #923b31; background: #ffe1d9; font-size: .78rem; font-weight: 850; white-space: nowrap; }
+.action-required-list { display: grid; gap: 1px; background: #f2d6cf; }
+.party-question-card { display: grid; grid-template-columns: 220px minmax(0,1fr) auto; align-items: center; gap: 20px; padding: 19px 23px; background: white; }
+.party-question-person { display: flex; align-items: center; gap: 11px; }
+.party-question-person > span { width: 42px; height: 42px; display: grid; place-items: center; flex: 0 0 42px; border-radius: 13px; color: #923b31; background: #ffe1d9; font-weight: 900; }
+.party-question-person strong, .party-question-person small { display: block; }
+.party-question-person small { margin-top: 3px; color: var(--muted); }
+.party-question-content { min-width: 0; }
+.party-question-card blockquote { margin: 0; padding: 13px 15px; border-left: 4px solid var(--peach); border-radius: 0 12px 12px 0; background: #fff8f5; line-height: 1.5; }
+.party-question-details { margin-top: 9px; border: 1px solid #eee1dc; border-radius: 12px; background: #fffdfb; }
+.party-question-details summary { padding: 10px 13px; color: #8b4438; font-size: .8rem; font-weight: 850; cursor: pointer; }
+.party-question-details dl { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 9px; margin: 0; padding: 0 13px 13px; }
+.party-question-details dl div { min-width: 0; padding: 9px 10px; border-radius: 9px; background: #fff8f5; }
+.party-question-details dt { color: var(--muted); font-size: .68rem; font-weight: 800; text-transform: uppercase; }
+.party-question-details dd { overflow-wrap: anywhere; margin: 3px 0 0; font-size: .82rem; font-weight: 750; }
+.party-question-actions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 8px; }
+.party-question-actions form { margin: 0; }
+@media (max-width: 900px) {
+  .party-question-card { grid-template-columns: 1fr; gap: 13px; }
+  .party-question-details dl { grid-template-columns: 1fr; }
+  .party-question-actions { justify-content: flex-start; }
+}
+@media (max-width: 560px) {
+  .action-required-heading { align-items: flex-start; padding: 18px; }
+  .party-question-card { padding: 18px; }
+  .party-question-actions .button, .party-question-actions form { width: 100%; }
+  .party-question-actions form .button { width: 100%; }
+}

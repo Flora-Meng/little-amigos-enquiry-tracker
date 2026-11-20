@@ -24,13 +24,20 @@ from accounts.views import (
     package_showcase,
     southland_addon_image,
     southland_party_guide,
+    southland_question_resolve,
     southland_theme_list,
     southland_showcase_manage,
     southland_showcase_update,
     southland_theme_photo,
     team_accounts,
     theme_library,
+    theme_library_direct_photo,
+    theme_library_direct_photo_remove,
+    theme_library_direct_photo_update,
     theme_library_location,
+    theme_library_photo_create,
+    theme_library_photo_remove,
+    theme_library_summary_photo_update,
 )
 from config.views import health_check, initial_admin_password, party_planner_demo
 from enquiries.views import add_enquiry_images, add_note, archive_enquiry, delete_note, enquiry_detail, enquiry_image, enquiry_list, extension_token_settings, new_store_enquiry, quick_update_status, reschedule_follow_up, update_enquiry, zumo_duplicate_check, zumo_ignore, zumo_import, zumo_imports, zumo_review_again, zumo_review_status
@@ -43,6 +50,11 @@ urlpatterns = [
     path("party-guide/southland/theme-photo/<int:photo_id>/", southland_theme_photo, name="southland_theme_photo"),
     path("party-guide/southland/addon-image/<int:addon_id>/", southland_addon_image, name="southland_addon_image"),
     path("southland-showcase/manage/", southland_showcase_manage, name="southland_showcase_manage"),
+    path(
+        "southland-showcase/questions/<int:invite_id>/resolve/",
+        southland_question_resolve,
+        name="southland_question_resolve",
+    ),
     path("southland-showcase/manage/update/", southland_showcase_update, name="southland_showcase_update"),
     path("party-planner/demo/", party_planner_demo, name="party_planner_demo"),
     path(
@@ -65,6 +77,36 @@ urlpatterns = [
     path("theme-library/", theme_library, name="theme_library"),
     path("theme-library/<slug:location_code>/", theme_library_location,
         name="theme_library_location"),
+    path(
+        "theme-library/<slug:location_code>/photos/<uuid:summary_id>/remove/",
+        theme_library_photo_remove,
+        name="theme_library_photo_remove",
+    ),
+    path(
+        "theme-library/<slug:location_code>/photos/create/",
+        theme_library_photo_create,
+        name="theme_library_photo_create",
+    ),
+    path(
+        "theme-library/<slug:location_code>/photos/direct/<uuid:photo_id>/",
+        theme_library_direct_photo,
+        name="theme_library_direct_photo",
+    ),
+    path(
+        "theme-library/<slug:location_code>/photos/direct/<uuid:photo_id>/update/",
+        theme_library_direct_photo_update,
+        name="theme_library_direct_photo_update",
+    ),
+    path(
+        "theme-library/<slug:location_code>/photos/direct/<uuid:photo_id>/remove/",
+        theme_library_direct_photo_remove,
+        name="theme_library_direct_photo_remove",
+    ),
+    path(
+        "theme-library/<slug:location_code>/photos/summary/<uuid:summary_id>/update/",
+        theme_library_summary_photo_update,
+        name="theme_library_summary_photo_update",
+    ),
     path("package-showcase/", package_showcase, name="package_showcase"),
     path(
         "team-accounts/setup/<uidb64>/<token>/",

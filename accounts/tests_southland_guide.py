@@ -9,7 +9,7 @@ from django.utils import timezone
 
 from party_summaries.models import PartySummary
 
-from .models import Location, SouthlandShowcaseAddon, SouthlandShowcaseInvite, SouthlandShowcaseTheme, SouthlandShowcaseThemePhoto, User
+from .models import Location, SouthlandShowcaseAddon, SouthlandShowcaseInvite, SouthlandShowcaseTheme, SouthlandShowcaseThemePhoto, ThemeLibraryPhoto, User
 
 
 class SouthlandPartyGuideTests(TestCase):
@@ -36,11 +36,13 @@ class SouthlandPartyGuideTests(TestCase):
         self.assertContains(response, "$2,699")
         self.assertContains(response, "$2,999")
         self.assertContains(response, "Kids' menu")
-        self.assertContains(response, "One finger sandwich platter")
+        self.assertContains(response, "1 finger sandwich platter")
         self.assertContains(response, "Nuggets &amp; Chips")
-        self.assertContains(response, "Kids’ meal photo 3")
-        self.assertContains(response, "Kids’ meal photo 4")
-        self.assertContains(response, "Package food photo 4")
+        self.assertContains(response, "package_showcase/southland/food/kids/1.png")
+        self.assertContains(response, "package_showcase/southland/food/kids/2.png")
+        self.assertNotContains(response, "Kids’ meal photo 3")
+        self.assertContains(response, "package_showcase/southland/food/package/1.png", count=4)
+        self.assertContains(response, "package_showcase/southland/food/package/11.png", count=4)
         self.assertContains(response, "data-food-carousel")
 
     def test_guide_has_searchable_theme_catalog(self):
@@ -49,9 +51,11 @@ class SouthlandPartyGuideTests(TestCase):
         self.assertContains(response, "data-theme-search")
         self.assertContains(response, "Dinosaurs")
         self.assertContains(response, "Mermaid")
-        self.assertContains(response, "Custom Printed Theme")
         self.assertContains(response, "K-pop Demon Hunters")
         self.assertContains(response, "data-name=\"paw patrol chase marshall skye\"")
+        self.assertContains(response, "package_showcase/southland/themes/frozen/01.jpg")
+        self.assertNotContains(response, "package_showcase/southland/theme-pages/page-07.jpg")
+        self.assertNotContains(response, "Custom Printed Theme")
 
     def test_permanent_theme_list_is_public_and_uses_current_catalog(self):
         response = self.client.get(reverse("southland_theme_list"))
@@ -80,22 +84,51 @@ class SouthlandPartyGuideTests(TestCase):
         self.assertContains(response, "Professional photographer — 2 hours")
         self.assertContains(response, "data-addon-quantity")
         self.assertContains(response, 'data-unit-price="8"')
+        self.assertContains(response, "package_showcase/southland/addons/cake1.png")
+        self.assertContains(response, "package_showcase/southland/addons/cake2.png")
+        self.assertContains(response, "package_showcase/southland/addons/photographer.png")
+        self.assertContains(response, "package_showcase/southland/addons/partybags.png")
         self.assertNotContains(response, "Not selected")
         self.assertContains(response, "Explore our party food")
-        self.assertContains(response, "Review your selections")
+        self.assertNotContains(response, "Review your selections")
+        self.assertContains(response, "What happens after you choose")
+        self.assertContains(response, "Ask Flora a question")
+        self.assertContains(response, "Flora will contact you within 24 hours")
+        self.assertContains(response, "data-flora-question")
+        self.assertNotContains(response, "Ready for the next step?")
+        self.assertNotContains(response, "Save the themes and package you love")
         self.assertContains(response, "Around one week before the party")
         self.assertNotContains(response, "Estimated add-on total")
         self.assertContains(response, 'data-package-deposit="$500 deposit"')
         self.assertContains(response, 'data-package-deposit="$1,000 deposit"')
 
-    def test_room_examples_are_combined_with_package_tabs(self):
+    def test_pdf_package_guides_are_combined_with_package_tabs(self):
         response = self.client.get(reverse("southland_party_guide"))
 
         self.assertContains(response, "Compare rooms and packages")
         self.assertContains(response, 'data-package-tab="essential"')
         self.assertContains(response, 'data-package-tab="private"')
         self.assertContains(response, 'data-package-panel="essential"')
-        self.assertContains(response, "Single room decoration example")
+        self.assertContains(response, "Download full package PDF", count=1)
+        self.assertContains(
+            response,
+            "package_showcase/southland/packages/southland-party-packages.pdf",
+        )
+        self.assertNotContains(response, "package_showcase/southland/packages/essential.png")
+        self.assertNotContains(response, "package_showcase/southland/packages/signature.png")
+        self.assertNotContains(response, "package_showcase/southland/packages/ultimate.png")
+        self.assertNotContains(response, "package_showcase/southland/packages/private.png")
+        self.assertContains(response, "4 adult sharing platters")
+        self.assertContains(response, "9 adult sharing platters")
+        self.assertContains(response, "12 adult sharing platters")
+        self.assertContains(response, "13 adult sharing platters")
+        self.assertContains(response, "Exclusive train ride")
+        self.assertContains(response, "20-minute mascot appearance", count=2)
+        self.assertContains(response, "Party bags for all children")
+        self.assertContains(response, "3.5m balloon arch")
+        self.assertContains(response, "$38 per child · $16 per adult", count=4)
+        self.assertContains(response, "$42 per child · $22 per adult", count=4)
+        self.assertNotContains(response, "Single room decoration example")
         self.assertNotContains(response, "data-room-example-tab")
         content = response.content.decode()
         self.assertLess(content.index('id="packages"'), content.index('id="themes"'))
@@ -116,9 +149,11 @@ class SouthlandPartyGuideTests(TestCase):
         response = self.client.get(reverse("southland_party_guide"))
 
         self.assertContains(response, "Party Coordinator — Flora")
-        self.assertContains(response, 'href="sms:0439046887"')
+        self.assertContains(response, "Email Flora what you would like")
+        self.assertContains(response, "Submit question to Flora")
         self.assertContains(response, 'href="tel:0439046887"')
         self.assertContains(response, "0439 046 887")
+        self.assertNotContains(response, "Use the personalised party-guide link")
 
     def test_personalised_guide_saves_customer_choices(self):
         invite = SouthlandShowcaseInvite.objects.create(customer_name="Jorja")
@@ -132,11 +167,12 @@ class SouthlandPartyGuideTests(TestCase):
                     "Face painting — 1.5 hours",
                     "Party bags × 12",
                 ]),
+                "customer_question": "Can we bring our own cake?",
             },
         )
 
         self.assertEqual(response.status_code, 302)
-        self.assertIn("choices_sent=1#party-plan", response.url)
+        self.assertIn("question_sent=1#ask-flora", response.url)
         invite.refresh_from_db()
         self.assertEqual(invite.selected_package, "signature")
         self.assertEqual(invite.selected_theme, "Frozen")
@@ -144,12 +180,38 @@ class SouthlandPartyGuideTests(TestCase):
             invite.selected_addons,
             ["Face painting — 1.5 hours", "Party bags × 12"],
         )
+        self.assertEqual(invite.customer_question, "Can we bring our own cake?")
+        self.assertIsNone(invite.question_resolved_at)
         self.assertIsNotNone(invite.choices_submitted_at)
 
         saved_page = self.client.get(response.url)
         self.assertContains(saved_page, 'data-initial-package="signature"')
         self.assertContains(saved_page, 'data-initial-theme="Frozen"')
-        self.assertContains(saved_page, "Choices sent to Flora")
+        self.assertContains(saved_page, "Question sent successfully")
+
+    def test_generic_guide_creates_identified_question_for_flora(self):
+        response = self.client.post(
+            reverse("southland_party_guide"),
+            {
+                "selected_package": "ultimate",
+                "selected_theme": "Frozen",
+                "selected_addons": json.dumps(["Party bags × 8"]),
+                "customer_name": "Maya",
+                "customer_email": "maya@example.com",
+                "customer_phone": "0439000001",
+                "customer_question": "Is the date still available?",
+            },
+        )
+
+        self.assertEqual(response.status_code, 302)
+        invite = SouthlandShowcaseInvite.objects.get(customer_name="Maya")
+        self.assertIn(str(invite.token), response.url)
+        self.assertEqual(invite.email, "maya@example.com")
+        self.assertEqual(invite.phone, "0439000001")
+        self.assertEqual(invite.selected_package, "ultimate")
+        self.assertEqual(invite.selected_theme, "Frozen")
+        self.assertEqual(invite.selected_addons, ["Party bags × 8"])
+        self.assertEqual(invite.customer_question, "Is the date still available?")
 
     def test_generic_guide_cannot_save_unidentified_choices(self):
         response = self.client.post(
@@ -188,6 +250,7 @@ class SouthlandShowcaseManagerTests(TestCase):
             selected_package="signature",
             selected_theme="Frozen",
             selected_addons=["Face painting — 1.5 hours"],
+            customer_question="Can we arrive early?",
             choices_submitted_at=timezone.now(),
         )
 
@@ -197,6 +260,7 @@ class SouthlandShowcaseManagerTests(TestCase):
         self.assertContains(response, "Jorja")
         self.assertContains(response, "Signature · Frozen")
         self.assertContains(response, "Face painting — 1.5 hours")
+        self.assertContains(response, "Can we arrive early?")
 
     def test_admin_can_add_theme_with_image(self):
         response = self.client.post(
@@ -253,7 +317,7 @@ class SouthlandShowcaseManagerTests(TestCase):
             reverse("southland_showcase_update"),
             {
                 "action": "apply_summary_photo",
-                "summary_id": summary.pk,
+                "library_photo": f"summary:{summary.pk}",
                 "theme_id": theme.pk,
             },
         )
@@ -292,3 +356,28 @@ class SouthlandShowcaseManagerTests(TestCase):
         theme = SouthlandShowcaseTheme.objects.get(name="Rainbow Garden")
         self.assertTrue(theme.is_active)
         self.assertEqual(theme.photos.get().source_summary, summary)
+
+    def test_direct_theme_library_photo_can_be_applied_to_customer_theme(self):
+        library_photo = ThemeLibraryPhoto.objects.create(
+            location=Location.objects.get(code=Location.Code.SOUTHLAND),
+            theme="Galaxy",
+            image_data=b"galaxy-photo",
+            image_name="galaxy.jpg",
+            image_content_type="image/jpeg",
+            created_by=self.admin,
+        )
+        theme = SouthlandShowcaseTheme.objects.get(name="Dinosaurs")
+
+        response = self.client.post(
+            reverse("southland_showcase_update"),
+            {
+                "action": "apply_summary_photo",
+                "library_photo": f"direct:{library_photo.pk}",
+                "theme_id": theme.pk,
+            },
+        )
+
+        self.assertRedirects(response, reverse("southland_showcase_manage"))
+        photo = theme.photos.order_by("-pk").first()
+        self.assertEqual(bytes(photo.image_data), b"galaxy-photo")
+        self.assertIsNone(photo.source_summary)

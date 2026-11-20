@@ -10,6 +10,18 @@
   const choiceAddons = document.querySelector('[data-choice-addons]');
   const partyPlan = document.querySelector('[data-party-plan]');
 
+  const floraQuestion = document.querySelector('[data-flora-question]');
+  const floraQuestionSms = document.querySelector('[data-flora-question-sms]');
+  const updateFloraSms = () => {
+    if (!floraQuestionSms) return;
+    const question = floraQuestion?.value.trim();
+    floraQuestionSms.href = question
+      ? `sms:0439046887?body=${encodeURIComponent(question)}`
+      : 'sms:0439046887';
+  };
+  floraQuestion?.addEventListener('input', updateFloraSms);
+  updateFloraSms();
+
   function showPackage(key, scroll = false) {
     packageTabs.forEach(tab => {
       const active = tab.dataset.packageTab === key;
@@ -23,8 +35,8 @@
       planPackage.textContent = `${selectedPackage.dataset.packageRoom} · ${selectedPackage.dataset.packageLabel}`;
       planPrice.textContent = `Weekday ${selectedPackage.dataset.packageWeekday} · Weekend ${selectedPackage.dataset.packageWeekend}`;
       if (planDeposit) planDeposit.textContent = selectedPackage.dataset.packageDeposit;
-      if (choicePackage) choicePackage.value = key;
     }
+    if (selectedPackage && choicePackage) choicePackage.value = key;
     if (scroll) document.querySelector('#packages')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 

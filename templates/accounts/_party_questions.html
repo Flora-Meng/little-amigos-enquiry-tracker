@@ -1,0 +1,37 @@
+{% if party_questions %}
+<section class="action-required-panel" aria-labelledby="party-question-title">
+  <div class="action-required-heading">
+    <div><p class="eyebrow">Action required</p><h2 id="party-question-title">Party Guide questions</h2><p>Customers are waiting for a reply from Flora.</p></div>
+    <span>{{ party_questions|length }} waiting</span>
+  </div>
+  <div class="action-required-list">
+    {% for invite in party_questions %}
+    <article class="party-question-card">
+      <div class="party-question-person"><span>{{ invite.customer_name|first|upper }}</span><div><strong>{{ invite.customer_name }}</strong><small>{% if invite.choices_submitted_at %}Sent {{ invite.choices_submitted_at|timesince }} ago{% else %}New question{% endif %}</small></div></div>
+      <div class="party-question-content">
+        <blockquote>{{ invite.customer_question }}</blockquote>
+        <details class="party-question-details">
+          <summary>View customer &amp; enquiry details</summary>
+          <dl>
+            <div><dt>Name</dt><dd>{{ invite.customer_name }}</dd></div>
+            <div><dt>Email</dt><dd>{{ invite.email|default:"Not provided" }}</dd></div>
+            <div><dt>Phone</dt><dd>{{ invite.phone|default:"Not provided" }}</dd></div>
+            <div><dt>Party date</dt><dd>{% if invite.party_date %}{{ invite.party_date|date:"j F Y" }}{% else %}To be confirmed{% endif %}</dd></div>
+            <div><dt>Estimated guests</dt><dd>{{ invite.estimated_guest_count|default:"To be confirmed" }}</dd></div>
+            <div><dt>Package</dt><dd>{{ invite.selected_package|title|default:"Not selected" }}</dd></div>
+            <div><dt>Theme</dt><dd>{{ invite.selected_theme|default:"Not selected" }}</dd></div>
+            <div><dt>Add-ons</dt><dd>{% if invite.selected_addons %}{{ invite.selected_addons|join:", " }}{% else %}None selected{% endif %}</dd></div>
+          </dl>
+        </details>
+      </div>
+      <div class="party-question-actions">
+        {% if invite.phone %}<a class="button button-quiet" href="sms:{{ invite.phone }}">Text customer</a><a class="button button-quiet" href="tel:{{ invite.phone }}">Call</a>{% endif %}
+        {% if invite.email %}<a class="button button-quiet" href="mailto:{{ invite.email }}">Email</a>{% endif %}
+        <a class="button button-quiet" href="{% url 'southland_party_guide_invite' invite.token %}" target="_blank">Open guide</a>
+        <form method="post" action="{% url 'southland_question_resolve' invite.pk %}">{% csrf_token %}<button class="button button-primary" type="submit">Mark as handled</button></form>
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}

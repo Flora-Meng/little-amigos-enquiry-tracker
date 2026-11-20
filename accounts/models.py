@@ -89,6 +89,35 @@ class User(AbstractBaseUser, PermissionsMixin):
         return f"{self.display_name} <{self.email}>"
 
 
+class ThemeLibraryPhoto(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    location = models.ForeignKey(
+        Location,
+        on_delete=models.CASCADE,
+        related_name="theme_library_photos",
+    )
+    theme = models.CharField(max_length=160)
+    description = models.CharField(max_length=255, blank=True)
+    image_data = models.BinaryField(editable=False)
+    image_name = models.CharField(max_length=255)
+    image_content_type = models.CharField(max_length=100)
+    created_by = models.ForeignKey(
+        User,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="theme_library_photos",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("-updated_at",)
+
+    def __str__(self):
+        return f"{self.theme} · {self.location.name}"
+
+
 class SouthlandShowcaseTheme(models.Model):
     class Category(models.TextChoices):
         MAGIC = "magic", "Magic & wonder"
@@ -169,6 +198,8 @@ class SouthlandShowcaseInvite(models.Model):
     selected_package = models.CharField(max_length=40, blank=True)
     selected_theme = models.CharField(max_length=160, blank=True)
     selected_addons = models.JSONField(default=list, blank=True)
+    customer_question = models.TextField(blank=True)
+    question_resolved_at = models.DateTimeField(null=True, blank=True)
     choices_submitted_at = models.DateTimeField(null=True, blank=True)
     created_by = models.ForeignKey(
         User,
