@@ -16,6 +16,15 @@ class PackageShowcaseAccessTests(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertIn(reverse("login"), response.url)
 
+    def test_dashboard_uses_single_party_guide_entry(self):
+        for user in (self.canberra, self.admin):
+            with self.subTest(user=user.email):
+                self.client.force_login(user)
+                response = self.client.get(reverse("dashboard"))
+                self.assertContains(response, "Party Guide")
+                self.assertContains(response, reverse("party_guide_hub"))
+                self.assertNotContains(response, "Canberra package showcase")
+
     def test_canberra_and_admin_can_open_showcase(self):
         for user in (self.canberra, self.admin):
             with self.subTest(user=user.email):

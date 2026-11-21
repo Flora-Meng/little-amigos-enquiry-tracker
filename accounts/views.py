@@ -118,6 +118,54 @@ def team_accounts(request):
 
 
 @login_required
+def party_guide_hub(request):
+    """Location picker for the Southland and Canberra party guides."""
+    guides = (
+        {
+            "code": Location.Code.SOUTHLAND,
+            "name": "Little Amigos Southland",
+            "description": "Rooms, packages, themes, food and add-ons",
+            "url_name": "southland_party_guide",
+        },
+        {
+            "code": Location.Code.CANBERRA,
+            "name": "Little Amigos Canberra",
+            "description": "Packages, menus, photos and add-ons",
+            "url_name": "package_showcase",
+        },
+    )
+    if request.user.role == User.Role.STAFF:
+        guides = tuple(
+            guide for guide in guides if guide["code"] == request.user.location.code
+        )
+    return render(request, "accounts/party_guide_hub.html", {"guides": guides})
+
+
+@login_required
+def enquiry_reply_generator(request):
+    """Generate venue-specific SMS and email replies for new enquiries."""
+    venues = (
+        {
+            "code": Location.Code.SOUTHLAND,
+            "name": "Southland",
+            "guide_url": "https://little-amigos-workplace.onrender.com/party-guide/southland/",
+            "phone": "0439 046 887",
+        },
+        {
+            "code": Location.Code.CANBERRA,
+            "name": "Canberra",
+            "guide_url": "https://little-amigos-workplace.onrender.com/party-guide/canberra/",
+            "phone": "0417 673 756",
+        },
+    )
+    if request.user.role == User.Role.STAFF:
+        venues = tuple(
+            venue for venue in venues if venue["code"] == request.user.location.code
+        )
+    return render(request, "accounts/enquiry_reply_generator.html", {"venues": venues})
+
+
+@login_required
 def package_showcase(request):
     """Read-only, location-scoped package presentation for pre-booking conversations."""
     from party_summaries.forms import EXTRA_MENU_OPTIONS

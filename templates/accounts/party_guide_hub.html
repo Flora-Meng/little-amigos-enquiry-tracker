@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}Party Guide · Little Amigos Workspace{% endblock %}
+
+{% block body %}
+{% include "accounts/_header.html" %}
+<main class="page-shell">
+  <section class="page-heading">
+    <div><p class="eyebrow">Party Guide</p><h1>Choose a location</h1><p class="muted">Open the customer-facing party packages, themes, food and optional services for each venue.</p></div>
+  </section>
+
+  <a class="reply-generator-banner" href="{% url 'enquiry_reply_generator' %}">
+    <span class="module-icon">R</span>
+    <span><strong>Enquiry reply generator</strong><small>Create a ready-to-send SMS or email for a new customer enquiry.</small></span>
+    <b>Open generator</b>
+  </a>
+
+  <section class="workspace-modules party-guide-locations" aria-label="Party Guide locations">
+    {% for guide in guides %}
+    <a class="module-card module-showcase" href="{% url guide.url_name %}">
+      <span class="module-icon">{% if guide.code == 'southland' %}S{% else %}C{% endif %}</span>
+      <span><strong>{{ guide.name }}</strong><small>{{ guide.description }}</small></span>
+      <b>→</b>
+    </a>
+    {% empty %}
+    <div class="panel empty-state">No Party Guide is available for this account.</div>
+    {% endfor %}
+  </section>
+</main>
+{% endblock %}

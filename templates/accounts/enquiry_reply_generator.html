@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+
+{% block title %}Enquiry reply generator · Little Amigos Workspace{% endblock %}
+
+{% block body %}
+{% include "accounts/_header.html" %}
+<main class="page-shell reply-generator-page">
+  <a class="back-link" href="{% url 'party_guide_hub' %}">← Back to Party Guide</a>
+  <div class="page-heading reply-generator-heading">
+    <div>
+      <p class="eyebrow">Customer communication</p>
+      <h1>Enquiry reply generator</h1>
+      <p class="muted">Enter the customer’s name and choose a venue. Your SMS and email versions will be ready to copy.</p>
+    </div>
+  </div>
+
+  <section class="reply-generator-layout">
+    <form class="panel reply-generator-controls" onsubmit="return false;">
+      <div class="panel-heading"><h2>Customer details</h2></div>
+      <div class="reply-generator-fields">
+        <div class="field">
+          <label for="reply-customer-name">Customer name</label>
+          <input id="reply-customer-name" type="text" autocomplete="off" placeholder="e.g. Rebecca">
+        </div>
+        <div class="field">
+          <label for="reply-venue">Venue</label>
+          <select id="reply-venue">
+            {% for venue in venues %}
+            <option value="{{ venue.code }}" data-name="{{ venue.name }}" data-url="{{ venue.guide_url }}" data-phone="{{ venue.phone }}">Little Amigos {{ venue.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="reply-generator-tip">
+          <strong>Ready as you type</strong>
+          <span>You can edit the generated message before copying it.</span>
+        </div>
+      </div>
+    </form>
+
+    <section class="panel reply-output-panel">
+      <div class="reply-tabs" role="tablist" aria-label="Reply format">
+        <button class="reply-tab is-active" id="sms-tab" type="button" role="tab" aria-selected="true" aria-controls="sms-panel" data-reply-tab="sms">SMS</button>
+        <button class="reply-tab" id="email-tab" type="button" role="tab" aria-selected="false" aria-controls="email-panel" data-reply-tab="email">Email</button>
+      </div>
+
+      <div class="reply-output" id="sms-panel" role="tabpanel" aria-labelledby="sms-tab" data-reply-panel="sms">
+        <div class="reply-output-heading">
+          <div><span>SMS VERSION</span><h2>Message</h2></div>
+          <button class="button button-primary" type="button" data-copy-reply="sms">Copy SMS</button>
+        </div>
+        <textarea id="sms-output" class="reply-message" spellcheck="true" aria-label="Editable SMS message"></textarea>
+      </div>
+
+      <div class="reply-output" id="email-panel" role="tabpanel" aria-labelledby="email-tab" data-reply-panel="email" hidden>
+        <div class="reply-output-heading">
+          <div><span>EMAIL VERSION</span><h2>Email</h2></div>
+          <button class="button button-primary" type="button" data-copy-reply="email">Copy email</button>
+        </div>
+        <div class="field reply-subject-field">
+          <label for="email-subject">Subject</label>
+          <input id="email-subject" type="text" value="Little Amigos Party Information Guide">
+        </div>
+        <textarea id="email-output" class="reply-message reply-email-message" spellcheck="true" aria-label="Editable email message"></textarea>
+      </div>
+
+      <p class="reply-copy-status" id="reply-copy-status" role="status" aria-live="polite" hidden></p>
+    </section>
+  </section>
+</main>
+
+<script>
+(() => {
+  const customerName = document.getElementById('reply-customer-name');
+  const venue = document.getElementById('reply-venue');
+  const smsOutput = document.getElementById('sms-output');
+  const emailOutput = document.getElementById('email-output');
+  const emailSubject = document.getElementById('email-subject');
+  const copyStatus = document.getElementById('reply-copy-status');
+
+  function selectedVenue() {
+    const option = venue.options[venue.selectedIndex];
+    return {
+      name: option?.dataset.name || 'Southland',
+      url: option?.dataset.url || '',
+      phone: option?.dataset.phone || '',
+    };
+  }
+
+  function greetingName() {
+    return customerName.value.trim() || '{Customer name}';
+  }
+
+  function generateReplies() {
+    const name = greetingName();
+    const location = selectedVenue();
+
+    smsOutput.value = `Hi ${name}, this is Flora from Little Amigos ${location.name} 😊 Thank you for your enquiry.\n\nOur Party Information Guide includes our party packages, theme options, package details and add-on services:\n${location.url}\n\nPlease have a look and let me know your preferred date and time so I can check availability. A deposit is required to lock the time slot. You’re also welcome to call me on ${location.phone}.\n\nKind regards,\nFlora`;
+
+    emailOutput.value = `Hi ${name},\n\nThis is Flora from Little Amigos ${location.name} 😊 I’ll be helping you with your party booking.\n\nThank you for your enquiry.\n\nPlease find our Party Information Guide below, which includes our party packages, theme options, package details and add-on services:\n${location.url}\n\nOur process is as follows:\n· A deposit will be required to lock the time slot.\n· We’ll then prepare and send you the e-invitation.\n· Around 10 days before the party, we’ll confirm the menu and final number of guests.\n\nPlease check the party information and let me know your preferred date and time so I can check our availability for you.\n\nYou’re also welcome to call us back on ${location.phone} to discuss, whichever is easier for you.\n\nLooking forward to hearing from you 😊\n\nKind regards,\nFlora`;
+  }
+
+  customerName.addEventListener('input', generateReplies);
+  venue.addEventListener('change', generateReplies);
+
+  document.querySelectorAll('[data-reply-tab]').forEach(button => {
+    button.addEventListener('click', () => {
+      const selected = button.dataset.replyTab;
+      document.querySelectorAll('[data-reply-tab]').forEach(tab => {
+        const active = tab === button;
+        tab.classList.toggle('is-active', active);
+        tab.setAttribute('aria-selected', String(active));
+      });
+      document.querySelectorAll('[data-reply-panel]').forEach(panel => {
+        panel.hidden = panel.dataset.replyPanel !== selected;
+      });
+    });
+  });
+
+  async function copyText(text, button, label) {
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch (_error) {
+      const temporary = document.createElement('textarea');
+      temporary.value = text;
+      temporary.style.position = 'fixed';
+      temporary.style.opacity = '0';
+      document.body.appendChild(temporary);
+      temporary.select();
+      document.execCommand('copy');
+      temporary.remove();
+    }
+    const original = button.textContent;
+    button.textContent = 'Copied';
+    copyStatus.textContent = `${label} copied. You can paste it into your message.`;
+    copyStatus.hidden = false;
+    window.setTimeout(() => {
+      button.textContent = original;
+      copyStatus.hidden = true;
+    }, 2200);
+  }
+
+  document.querySelector('[data-copy-reply="sms"]').addEventListener('click', event => {
+    copyText(smsOutput.value, event.currentTarget, 'SMS');
+  });
+  document.querySelector('[data-copy-reply="email"]').addEventListener('click', event => {
+    copyText(`Subject: ${emailSubject.value}\n\n${emailOutput.value}`, event.currentTarget, 'Email');
+  });
+
+  generateReplies();
+})();
+</script>
+{% endblock %}

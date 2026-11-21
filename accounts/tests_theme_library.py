@@ -47,19 +47,86 @@ class ThemeLibraryAccessTests(TestCase):
 
         content = response.content.decode()
         self.assertContains(response, "Theme library")
-        self.assertContains(response, "Southland Party Guide")
+        self.assertContains(response, "Party Guide")
+        self.assertContains(response, reverse("party_guide_hub"))
         self.assertLess(content.index("Theme library"), content.index("Enquiry tracking"))
         self.assertNotContains(response, "Southland showcase")
 
-    def test_southland_staff_has_party_guide_entry_but_canberra_staff_does_not(self):
-        self.client.force_login(self.southland_user)
-        response = self.client.get(reverse("dashboard"))
-        self.assertContains(response, "Southland Party Guide")
-        self.assertContains(response, reverse("southland_party_guide"))
+    def test_both_staff_dashboards_have_the_party_guide_entry(self):
+        for user in (self.southland_user, self.canberra_user):
+            with self.subTest(user=user.email):
+                self.client.force_login(user)
+                response = self.client.get(reverse("dashboard"))
+                self.assertContains(response, "Party Guide")
+                self.assertContains(response, reverse("party_guide_hub"))
 
-        self.client.force_login(self.canberra_user)
-        response = self.client.get(reverse("dashboard"))
-        self.assertNotContains(response, "Southland Party Guide")
+    def test_admin_party_guide_hub_shows_both_locations(self):
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse("party_guide_hub"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Little Amigos Southland")
+        self.assertContains(response, "Little Amigos Canberra")
+        self.assertContains(response, reverse("southland_party_guide"))
+        self.assertContains(response, reverse("package_showcase"))
+
+    def test_staff_party_guide_hub_only_shows_own_location(self):
+        for user, visible, hidden in (
+            (self.southland_user, "Little Amigos Southland", "Little Amigos Canberra"),
+            (self.canberra_user, "Little Amigos Canberra", "Little Amigos Southland"),
+        ):
+            with self.subTest(user=user.email):
+                self.client.force_login(user)
+                response = self.client.get(reverse("party_guide_hub"))
+                self.assertEqual(response.status_code, 200)
+                self.assertContains(response, visible)
+                self.assertNotContains(response, hidden)
+
+    def test_anonymous_party_guide_hub_redirects_to_login(self):
+        response = self.client.get(reverse("party_guide_hub"))
+        self.assertEqual(response.status_code, 302)
+        self.assertIn(reverse("login"), response.url)
+
+    def test_party_guide_hub_links_to_reply_generator(self):
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse("party_guide_hub"))
+
+        self.assertContains(response, "Enquiry reply generator")
+        self.assertContains(response, reverse("enquiry_reply_generator"))
+
+    def test_admin_reply_generator_has_both_venues_and_message_versions(self):
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse("enquiry_reply_generator"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Little Amigos Southland")
+        self.assertContains(response, "Little Amigos Canberra")
+        self.assertContains(response, "SMS VERSION")
+        self.assertContains(response, "EMAIL VERSION")
+        self.assertContains(
+            response,
+            "https://little-amigos-workplace.onrender.com/party-guide/southland/",
+        )
+        self.assertContains(
+            response,
+            "https://little-amigos-workplace.onrender.com/party-guide/canberra/",
+        )
+
+    def test_staff_reply_generator_only_offers_own_venue(self):
+        for user, visible, hidden in (
+            (self.southland_user, "Little Amigos Southland", "Little Amigos Canberra"),
+            (self.canberra_user, "Little Amigos Canberra", "Little Amigos Southland"),
+        ):
+            with self.subTest(user=user.email):
+                self.client.force_login(user)
+                response = self.client.get(reverse("enquiry_reply_generator"))
+                self.assertContains(response, visible)
+                self.assertNotContains(response, hidden)
+
+    def test_anonymous_reply_generator_redirects_to_login(self):
+        response = self.client.get(reverse("enquiry_reply_generator"))
+        self.assertEqual(response.status_code, 302)
+        self.assertIn(reverse("login"), response.url)
 
     def test_party_guide_question_is_action_required_for_admin_and_southland(self):
         invite = SouthlandShowcaseInvite.objects.create(

@@ -21,7 +21,9 @@ from django.urls import include, path, reverse_lazy
 from accounts.forms import EmailAuthenticationForm, StaffPasswordSetupForm
 from accounts.views import (
     dashboard,
+    enquiry_reply_generator,
     package_showcase,
+    party_guide_hub,
     southland_addon_image,
     southland_party_guide,
     southland_question_resolve,
@@ -74,6 +76,8 @@ urlpatterns = [
     ),
     path("logout/", auth_views.LogoutView.as_view(), name="logout"),
     path("team-accounts/", team_accounts, name="team_accounts"),
+    path("party-guide/", party_guide_hub, name="party_guide_hub"),
+    path("party-guide/reply-generator/", enquiry_reply_generator, name="enquiry_reply_generator"),
     path("theme-library/", theme_library, name="theme_library"),
     path("theme-library/<slug:location_code>/", theme_library_location,
         name="theme_library_location"),
